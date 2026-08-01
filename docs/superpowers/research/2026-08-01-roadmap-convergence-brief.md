@@ -1,82 +1,84 @@
-# Roadmap convergence brief: SP0–SP2 rebuild and SP5 authoring
+# Project-boundary brief: provider and t-string training data
 
-## Purpose
+## Decision
 
-Update the project roadmap so the SP0–SP2 rebuild and SP5 corpus-authoring
-work form one programme rather than two competing pipelines. This is a brief
-for the roadmap revision, not a replacement implementation specification.
+The two efforts are a provider and a consumer, not co-owners of a shared
+implementation.
 
-## Decisions to preserve
+- `worktree-tstrings-rebuild` owns verification, dataset ingest, common gates,
+  the independent benchmark, training, and evaluation.
+- `worktree-sp5-corpus-brainstorm` owns t-string training data: sources, seeds,
+  properties, patterns, generated rows, reports, and dataset snapshots.
 
-1. **SP0 R1 lands first and substantially unchanged.** Retire the placeholder
-   scripts and quarantine the 24 legacy examples. Quarantine is not a corpus
-   type and must never feed a benchmark or training run.
-2. **One shared foundation, two corpus inputs.** `harvest` and `authoring`
-   must share the final corpus-row format, verifier, provenance contract, and
-   contamination controls. Neither track reimplements an oracle or gate chain.
-3. **SP2 is a small, high-trust source.** CPython/PEP harvest supplies
-   provenance-rich examples, fixtures, and regression cases; it cannot supply
-   the corpus scale required for the decision.
-4. **SP5 is the primary scale path.** Its seed-and-pattern system produces the
-   generated corpus, with its existing reproducibility, planted-defect, and
-   effective-diversity requirements retained.
-5. **SP6 owns the measurement instrument.** Benchmark redesign is independent
-   of both corpus sources. It must produce a 30–40 task benchmark, including
-   a naturalistic slice authored before patterns, plus strengthened retrieval
-   baselines.
-6. **Stdlib-only applies to emitted rows.** Third-party literals may be seed
-   material only after de-libraryization; no generated or harvested row may
-   import a third-party library.
+The SP5 effort uses the provider. It does not build a verification core and it
+does not train or score models.
 
-## Required roadmap changes
+## Boundary
 
-### Introduce a shared-foundation milestone after SP0 R1
-
-It owns the single package-level contracts needed by both routes:
-
-- final, format-neutral corpus row and provenance model;
-- subprocess verifier with timeout, feature-use and old-form checks;
-- hidden expectations derived by executing the reference solution under the
-  verifying interpreter;
-- structured stage/rejection reporting, with adversarial fixtures for every
-  rejecting stage;
-- benchmark/corpus contamination and intra-corpus deduplication.
-
-The SP0–SP2 rebuild design's threat-model obligations remain requirements, but
-its current implementation plan must be revised before use. In particular,
-the shared foundation must not inherit a bypassable expected-value factory,
-the generic AST-mutant anti-vacuity design, or a separate authoring oracle.
-
-### Reorder the programme
-
-| Order | Work | Gate before the next stage |
+| Concern | Provider effort | T-string-data effort |
 |---|---|---|
-| 1 | SP0 R1 — reset and quarantine | Legacy material is inert and the package/test scaffold works. |
-| 2 | Shared foundation | Cross-source task rows verify through one oracle; adversarial fixtures pass. |
-| 3 | SP6 benchmark redesign + SP1 baseline ladder | Independent benchmark, halting contamination gate, and base/real-docs measurements exist. |
-| 4 | SP2 harvest and SP5 seed preparation | Harvest rows self-verify; seed extraction, evaluation, and coverage work, but no training corpus is emitted. |
-| 5 | SP5 patterns, build gates, and 500-row pilot | Reproducible pilot; thresholds and composition targets are derived and committed. |
-| 6 | Training-format decision and composition-held 500 → 2k → 5k sweep | Same benchmark, full-corpus memorization check, and effective-diversity report at every point. |
-| 7 | Decision | Record fine-tune-vs-docs result, or the evidenced negative result (correlation or task-distribution bias). |
+| Dataset/task wire contract | Owns | Consumes |
+| Reference execution and candidate oracle | Owns | Calls |
+| Rejection stages and adversarial runner | Owns | Supplies t-string cases/policy |
+| Feature policy mechanism | Owns protocol/execution | Implements t-string policy |
+| Benchmark and baselines | Owns | Records fingerprint for contamination |
+| Training and evaluation | Owns | Publishes datasets only |
+| CPython/PEP source pinning and extraction | Consumes rows | Owns |
+| Third-party literal de-libraryization | — | Owns |
+| Seeds, properties, patterns, composition | — | Owns |
+| Data diversity and build reports | Consumes manifest | Owns |
+| 500/2k/5k scale experiment | Trains and scores | Publishes matched snapshots |
 
-Seed inventory and authoring may prepare during the measurement work, but no
-training corpus may be emitted or consumed before the SP6 baseline numbers
-exist. No training run may consume the pilot until its thresholds are derived.
+## Artifacts crossing the boundary
 
-## Explicit ownership
+The provider publishes:
 
-| Concern | Owner |
-|---|---|
-| Reset and quarantine | SP0 R1 |
-| Corpus row, verifier, provenance, and common gates | Shared foundation |
-| Independent benchmark and baseline ladder | SP6 / SP1 |
-| Small trusted source corpus | SP2 harvest |
-| Seed extraction, patterns, reproducible large corpus, and sweep | SP5 |
-| Training rendering and loss-masking decision | Training milestone before the sweep |
+- versioned `TaskRecord`, `CheckSpec`, `Provenance`, and `DatasetSnapshot`
+  schemas;
+- reference-execution and verification APIs;
+- `FeaturePolicy` protocol and typed stages;
+- halting contamination API plus benchmark fingerprint;
+- dataset and execution contract fixtures.
 
-## Completion framing
+The t-string-data project publishes:
 
-The programme succeeds when it produces a trustworthy decision, not when it
-necessarily proves fine-tuning superior. A retrieval win, a correlated-corpus
-finding, or evidence of benchmark/task-distribution bias are valid outcomes if
-they were measured through the shared verifier and independent benchmark.
+- immutable dataset snapshots;
+- source/seed/pattern/decision fingerprints;
+- t-string policy implementation and adversarial cases;
+- composition and effective-diversity metrics;
+- drop and build reports;
+- composition-matched 500, 2k, and 5k manifests.
+
+Expected values are not trusted boundary inputs. A row contains a reference
+program and declarative checks; the provider executes the reference and derives
+the observations used to verify candidates.
+
+Integration is through the installed provider package and its canonical JSON
+fixture, never by importing from the other worktree's filesystem. Dataset
+snapshots carry `PolicyRef(id, version, config)`, not executable policy code;
+the provider resolves the data project's `TStringPolicy` through a trusted
+registry. Any benchmark contamination conflict halts publication and training.
+
+## Roadmap consequences
+
+1. SP0 R1 reset/quarantine is provider-owned and lands first.
+2. The provider contract and verifier branch lands next; SP5 merges or rebases
+   onto it before claiming contract compatibility. The provider must not be
+   imported through a cross-worktree path.
+3. The provider contract and verifier land before SP5 can publish verified
+   rows. SP5 may validate sources and prepare seeds meanwhile.
+4. CPython/PEP harvest moves into the t-string-data project because it creates
+   domain data, not infrastructure.
+5. SP5's former oracle/cache/process-pool work becomes provider integration;
+   no second runner is implemented.
+6. SP6 benchmark redesign, baseline ladders, training format, loss masking,
+   LoRA runs, memorization checks, and model verdicts remain provider work.
+7. SP5's final scale rung publishes matched datasets. The provider performs
+   the 500 → 2k → 5k training/evaluation experiment.
+
+## Data-project completion
+
+SP5 is complete when it can reproduce and publish verified, stdlib-only,
+provenance-complete t-string datasets at 500, 2k, and 5k rows, with composition
+held constant and effective diversity reported. It does not need—and must not
+claim—a model-performance verdict.

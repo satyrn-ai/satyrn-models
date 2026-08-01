@@ -1,7 +1,8 @@
 # Spec: seed-and-pattern corpus authoring (SP5)
 
 **Date:** 2026-07-31
-**Status:** brainstormed and approved; input to `writing-plans`.
+**Status:** approved after provider/consumer reconciliation; implemented by the
+t-string training-data plan.
 **Supersedes:** SP3's framing (synthesis gated on harvest proving insufficient).
 
 Required pre-reading:
@@ -13,8 +14,9 @@ both and does not restate their evidence.
 
 ## 1. What this builds and why
 
-A corpus of verified, provenance-tagged, **stdlib-only** t-string examples at a
-scale harvesting cannot reach, produced by multiplying hand-curated *seeds*
+A set of reproducible, provider-qualified, provenance-tagged, **stdlib-only**
+t-string dataset snapshots at a scale harvesting cannot reach, produced by
+multiplying hand-curated *seeds*
 through reviewed *patterns*, with every expected value derived by **executing**
 real code on the pinned interpreter.
 
@@ -30,8 +32,8 @@ Three measured facts force this shape:
 
 The design inverts the human's role: **source, not gate.** Review effort scales
 with output volume; seeding effort scales with the diversity needed, and each
-seed multiplies. Execution-derived ground truth is what makes a large
-auto-accept path safe.
+seed multiplies. Provider-derived observations plus policy and data-quality
+gates make a large automated path auditable; they do not make it infallible.
 
 ### 1.1 Third-party sources are seed sources, not example sources
 
@@ -74,33 +76,33 @@ assurance is the wrong unit. Audits are per-pattern.
 
 ## 2. Architecture
 
-`satyrn_model.authoring`, a peer of `harvest`, over the **shared**
-verification core (`oracle`, `gate`, `corpus`, `provenance`, `contamination`).
-The core is planned once after SP0 R1 and is consumed by both source paths;
-this specification owns authoring-specific stages and failure reporting, not a
-second implementation of the verifier or common gates.
+`satyrn_model.authoring` is a **consumer** of the provider contracts built on
+`worktree-tstrings-rebuild`. This package owns t-string sources, seed and
+exercise intent, rendering, data-specific policy, generation, and reports. It
+does not implement `oracle`, generic `corpus`/`provenance` wire contracts,
+benchmark contamination, model training, or evaluation.
 
 > The spike branch (`worktree-overnight-tstrings-spike`) is reference, not
 > foundation. Per the findings doc: *do not carry the spike's code forward;
 > carry the judgment.* Two things it retrofitted are designed in here — an
 > injectable verify function, and per-gate failure semantics.
 
-The `authoring` / `harvest` split earns its keep on differing failure
-semantics: harvest raises on a bad row; authoring reports. One pattern bug at
-row 3121 must produce a damage report naming the pattern and its blast radius,
-not a stack trace.
+CPython/PEP harvest and pattern authoring are two source adapters inside this
+data project. Both emit provider `TaskRecord`s. Their local failure semantics
+differ: a broken trusted-source extraction fails its source batch, while one
+pattern bug produces a damage report naming the pattern and its blast radius.
 
 ### 2.1 Stages
 
 | Stage | Command | Output | Committed |
 |---|---|---|---|
-| Extract | `authoring extract` | `seeds/extracted.jsonl` | yes |
+| Extract | `authoring extract` | `seeds/extracted.jsonl`, `exercises/source.jsonl` | yes |
 | Review seeds | `authoring review seeds` | `review/decisions.jsonl` | yes |
 | Cover | `authoring coverage` | `reports/coverage.md` | yes |
 | Author | *(manual)* | `seeds/authored.jsonl` | yes |
 | Audit pattern | `authoring audit-pattern <id>` | `patterns/approvals.jsonl` | yes |
 | Generate | `authoring generate` | `build/generated.jsonl` | **no** |
-| Build | `authoring build` | `corpus/authored.jsonl`, `reports/build.md`, `reports/dropped.jsonl` | yes |
+| Build | `authoring build` | `corpus/tstrings.jsonl`, `reports/build.md`, `reports/dropped.jsonl` | yes |
 
 `coverage` must run meaningfully on `extracted.jsonl` alone, so the
 Cover→Author→Cover loop has a defined first iteration.
@@ -119,17 +121,20 @@ content** — drops referenced only by ID are undebuggable.
   which demands an exact tag *and* tag ≡ interpreter version; neither
   generalizes to third-party repos. The interpreter check survives as a
   separate global precondition asserted once per run.
-- `extract.py` — AST walk for `ast.TemplateStr`, emitting `Seed` records. Reads
-  library source; never imports it. Node matcher is a parameter (the one real
-  SP4 seam).
+- `extract.py` — AST walk for `ast.TemplateStr`, emitting `Seed` records and
+  self-contained CPython/PEP `SourceExercise` intents. Reads library source;
+  never imports it and never inlines cross-module helpers. The node matcher is
+  isolated for testability, not as a commitment to support other language
+  features here.
 - `seeds.py` — the `Seed` record and its JSONL round-trip.
-- `evaluate.py` — subprocess-isolated, timeout-bounded expression evaluation.
+- `facts.py` — calls the provider's timeout-bounded reference-execution API and
+  stores deterministic t-string facts; no local evaluator subprocess.
 - `patterns/` — approved pattern functions plus `registry.py`.
-- `render.py` — projects an `Exercise` into prompt, reference solution, and
-  hidden test.
+- `render.py` — projects an `Exercise` into prompt, reference program,
+  provider `CheckSpec`s, and a `PolicyRef`.
 - `generate.py` — applies patterns to seeds, emitting `Exercise` intents.
-- `verify.py` — authoring adapter around the shared verifier, adding its
-  memoizing and pooling policy without forking the verification contract.
+- `provider.py` — thin adapter for provider contract validation, reference
+  execution, candidate verification, and contamination. No oracle logic.
 - `diversity.py` — fingerprints, metrics, intra-corpus dedup.
 - `review.py` — the CLI and decision files.
 
@@ -140,15 +145,17 @@ session and land as reviewed source in `patterns/`. The pipeline runs offline
 and deterministically. Embedding-based clustering is the sole exception and
 informs reporting only — never acceptance.
 
-### 2.4 The SP4 seam, honestly scoped
+### 2.4 Reuse boundary, honestly scoped
 
-The swappable node matcher in `extract.py` is real and free. The claim that
-`generate` and `verify` are feature-agnostic is **false** and is not made: the
+The isolated node matcher in `extract.py` is real and cheap. It does not make
+this a multi-feature project. The claim that `generate` and policy are
+feature-agnostic is **false** and is not made: the
 old-form canary is definitionally f-vs-t, the on-target filter names
 templatelib symbols, anti-vacuity injects a dummy t-string, and every worthwhile
-pattern introspects `.strings`/`.values`/`convert`. What SP4 reuses is the stage
-decomposition, the artifact and decision conventions, the subprocess evaluator,
-and the cache.
+pattern introspects `.strings`/`.values`/`convert`. What a future data project
+may reuse is the stage decomposition and artifact/decision conventions.
+Subprocess execution and its cache remain provider services, not reusable
+authoring modules.
 
 ---
 
@@ -178,7 +185,7 @@ Ids are **content-derived** so the `seed_ids` join in provenance is
 tamper-evident. An audit trail whose targets can be edited underneath it is not
 an audit trail.
 
-### 3.2 `Property` and `Exercise`
+### 3.2 `Property` and exercise intents
 
 `Property` is a tagged union. Each variant declares its **arity** and the
 assertion-grammar forms it may render to.
@@ -192,21 +199,33 @@ assertion-grammar forms it may render to.
 
 ```python
 @dataclass(frozen=True)
-class Exercise:
+class GeneratedExercise:
     id: str
     pattern_id: str
     seeds: tuple[Seed, ...]
     prop: Property
+
+@dataclass(frozen=True)
+class SourceExercise:
+    id: str
+    origin: SourceOrigin
+    extracted_intent: str
+    reference_program: str
+    prop: Property
 ```
 
-`__post_init__` enforces `prop.arity == len(seeds)`. That is genuine
-unrepresentability and costs nothing.
+`ExerciseIntent` is the tagged union of these variants. `GeneratedExercise`
+enforces `prop.arity == len(seeds)` at construction. `SourceExercise` carries
+exact source provenance and has no fictional `pattern_id` or `seed_ids`.
+Source extraction accepts only self-contained stdlib programs; it rejects
+cross-module helper dependencies rather than adding a resolver/inliner.
 
-**No expected value is stored on the intent.** Nothing would tie such a field to
-its `(seeds, prop)`, so a batching bug would yield a well-formed but internally
-inconsistent exercise. Instead `render_hidden_test` derives it by calling the
-evaluator for the exact expression it embeds; a mismatch surfaces as a
-`KeyError`, not a wrong literal.
+**No expected value is stored on the intent or emitted row.** Nothing would tie
+such a field to its exact intent, so a batching bug would yield a well-formed
+but internally inconsistent exercise. `render.py` emits declarative
+`CheckSpec`s for the exact reference program; the provider executes that
+program and derives internal observations. The data project never serializes
+those observations as trusted input.
 
 **No composition tag.** Labels are derived mechanically from the `Property`
 variant per the table above. Multi-label at the row, single-sourced at the
@@ -216,46 +235,42 @@ template, and which the findings doc calls the canonical training content.
 
 ### 3.3 `Facts`
 
-Produced by `evaluate(template_expr, bindings) -> Facts`, keyed by content hash
-of that pair: `strings`, `values`, and `interpolations` with
+Produced by the provider reference-execution API for `(template_expr,
+bindings)`, keyed by content hash of that pair: `strings`, `values`, and
+`interpolations` with
 `expression`/`conversion`/`format_spec`.
 
-Per-seed facts are the degenerate case. The evaluator **must** be keyed on the
+Per-seed facts are the degenerate case. Provider reference execution **must** be keyed on the
 expression rather than the seed, because a composed template's facts are not
 derivable from its parts even in principle: `Template.__add__` collapses
 adjacent strings, so `t"Hello " + t"World"` yields `.strings == ("Hello World",)`.
 
 Every seed is evaluated **twice**; a mismatch rejects it as nondeterministic,
 catching `datetime.now()` and `random` at extraction time rather than as flaky
-oracle failures later. Every value must satisfy `eval(repr(v)) == v`, since
-these are embedded into hidden tests as source literals; a value with a
-non-evaluable repr is rejected or compared via `str` explicitly.
+provider failures later. Every observation must use a provider-approved
+serialization or comparison projection. A value with no approved
+representation is rejected; this project does not embed `repr` output into
+executable checks.
 
-Evaluation is subprocess-isolated with a timeout, batched **per seed** (~200
-runs, not 5k). In-process evaluation is rejected outright: no timeout, no
-isolation, and seed expressions are third-party-authored.
+The provider performs subprocess isolation and timeout enforcement, batched
+**per seed** (~200 calls, not 5k). This project never evaluates
+third-party-authored expressions in-process and never implements a competing
+subprocess runner.
 
 ### 3.4 `Provenance`
 
-```python
-    source_repo: str            # this project
-    source_path: str            # patterns/<pattern_id>.py
-    source_ref: str             # the pattern's source_sha256
-    verified_python: str
-    seed_ids: tuple[str, ...] = ()
-    pattern_id: str | None = None
-    generator_version: str | None = None
-```
+The provider owns a tagged provenance union. This project populates two real
+variants rather than filling one shape with fictional values:
 
-Every original field stays *true* for a synthesized row rather than becoming a
-polite fiction. `source_ref` records the pattern's `source_sha256` rather than a
-git SHA, because a dirty registry would otherwise stamp rows with a ref that
-never existed — and provenance then agrees with `approvals.jsonl` by
-construction, since that is the same key.
+- source-derived rows identify repository, immutable ref, path, exact span,
+  license record, and verifying interpreter;
+- generated rows identify this project, pattern ID and source hash, all seed
+  IDs, generator version, and verifying interpreter.
 
 Per-seed origins live on the `Seed` records and are reached through `seed_ids`,
-rather than copying one seed's origin onto a row built from three. Harvested
-rows leave the three new fields empty and load unchanged.
+rather than copying one seed's origin onto a row built from three. A generated
+row's pattern hash is the same key used by `approvals.jsonl`; a dirty registry
+therefore cannot stamp a row with a commit ref that never contained it.
 
 ### 3.5 Decision files
 
@@ -275,12 +290,13 @@ and one malformed writer must not corrupt both.
 
 ## 4. Verification and gates
 
-### 4.1 Oracle
+### 4.1 Provider verification boundary
 
-pytest in an isolated subprocess with a timeout — never in-process `exec`, which
-has no timeout, no isolation, and no notion of a hidden test. Three-check
-contract: hidden asserts, the feature is actually used (`ast.TemplateStr`
-present), and an old-form canary rejecting f-string / `.format()` / `%`.
+Verification is an external provider contract. It executes references and
+candidates in isolated subprocesses with timeouts and returns typed stages.
+This project renders provider `CheckSpec`s and supplies the t-string
+`FeaturePolicy`; it does not generate pytest files or interpret process exit
+codes.
 
 The canary carries a hard-won precision: `ast.Interpolation.format_spec` is
 *itself* an `ast.JoinedStr`, so a naive "flag every JoinedStr" rejects **every
@@ -288,35 +304,23 @@ correct `t"{v:.2f}"`**. The rule exempts nodes reachable only through a
 `.format_spec` slot while still descending into them, so a genuine f-string
 nested in a spec expression is still caught.
 
-`verify_candidate` is injectable throughout the gate chain, so caching and
-pooling need no fork of the invariants.
+The t-string policy retains the hard-won AST precision below, while the
+provider owns invocation, caching, pooling, and stage preservation.
+The policy is packaged as a dependency-isolated provider plugin: it depends on
+provider contracts but imports no source, seed, pattern, or authoring module.
 
-### 4.2 Assertion grammar
+### 4.2 Check-spec grammar
 
-Every assertion in a rendered hidden test must match one of four forms. `CExpr`
-is defined structurally: an expression whose only free name is `candidate`,
-built from attribute and subscript access plus a whitelist of pure wrappers
-(`len`, `type`, `str`, `tuple`, templatelib functions).
+The provider owns the closed `CheckSpec` tagged union and rejects arbitrary
+Python checks. This project maps each `Property` variant to permitted provider
+forms: value/field observation, type observation, containment observation, or
+expected exception. Candidate-derived values cannot appear as their own
+expected values because the wire contract has no expected-value field.
 
-| Form | Shape | Rendered by |
-|---|---|---|
-| 1 | `assert <CExpr> == <literal>` | Introspect, Render, Transform |
-| 2 | `assert [not] isinstance(<CExpr>, C)`, `C ∈ {Template, Interpolation, str, tuple}` | Introspect, NegativeControl |
-| 3 | `assert <literal> in / not in <CExpr>` | Render |
-| 4 | `with pytest.raises(E[, match=<literal>]): <CExpr>` | NegativeControl |
-
-Multiple `candidate` references on **one** side are legal and necessary — the
-renderer idiom is `candidate.render(candidate.template) == 'hi'`. The ban is on
-candidate references on *both* sides, which is what makes the spike's
-encoding-no-expected-value defect unrenderable rather than merely detected.
-
-Local aliasing is forbidden via a per-test statement whitelist — imports,
-asserts, `raises` blocks, nothing else — so the one-side analysis never needs
-dataflow. Whole-`Interpolation` equality stays banned; field-wise projection via
-`Introspect.field` covers it and sidesteps the repr-round-trip question.
-
-Each `Property` variant declares its permitted forms, so the check is
-per-variant. Off-grammar drops the row.
+Whole-`Interpolation` equality stays banned by t-string policy; field-wise
+projection through `Introspect.field` avoids unstable representation. Each
+`Property` variant declares its permitted `CheckSpec` forms. An off-grammar
+projection is a data-policy failure before snapshot publication.
 
 ### 4.3 Degenerate builder and anti-vacuity
 
@@ -326,23 +330,22 @@ defect found in the spike's shipped code: its builder covered only `ast.Assign`
 and `ast.FunctionDef`, so an `AnnAssign`-style solution (`tpl: Template = t'...'`)
 yielded a degenerate defining nothing.
 
-Failure must originate in an **assertion**. pytest's returncode alone cannot
-distinguish an assertion failure from a collection or import error, so the
-runner parses failed-vs-error; a degenerate dying before executing any assert
-counts as **vacuity untested**, never as vacuity tested. In the spike, that
-conflation meant a degenerate crashing on `AttributeError` was certified as a
-discriminating test.
+Failure must originate at the provider's **semantic-check stage**. The provider
+distinguishes this from parse, policy, execution, timeout, and infrastructure
+failure. A degenerate dying before a check counts as **vacuity untested**, never
+as vacuity tested. This project supplies intent-derived degenerates; it does not
+parse subprocess or pytest output.
 
 ### 4.4 Cross-projection consistency
 
-Prompt and hidden test are both projections of one `Property`, so they cannot
+Prompt and checks are both projections of one `Property`, so they cannot
 disagree about *which* property is under test. They can still disagree about how
-it is described: a prompt renderer saying `.values` while the test renderer
+it is described: a prompt renderer saying `.values` while the check renderer
 checks `.strings` reproduces the defect centrally.
 
 This is **a gate, not an impossibility**, and is named as such. The check
-verifies that a rendered prompt references the property its rendered test
-asserts. Per-renderer golden tests provably cannot catch it, since each renderer
+verifies that a rendered prompt references the property its rendered checks
+observe. Per-renderer golden tests provably cannot catch it, since each renderer
 individually matches its own golden output.
 
 ### 4.5 Composition classifier
@@ -364,38 +367,30 @@ passes on-target, so the two are not both maintained.
 
 | Gate | On failure |
 |---|---|
-| `requires_template` validation | drop row, report |
-| self-verification | drop row, report |
-| anti-vacuity | drop row, report |
-| assertion grammar | drop row, report |
-| cross-projection consistency | drop row, report |
+| t-string policy validation | drop row, report |
+| provider self-verification | drop row, report |
+| provider anti-vacuity qualification | drop row, report |
+| check-spec/property grammar | drop row, report |
+| cross-projection consistency | fail the affected pattern |
 | composition classifier | **fail the pattern** |
 | missing or stale pattern audit | **halt the build** |
-| contamination | **raise** above the agreed drop-rate bound |
+| any benchmark contamination | **halt publication** |
 
-Contamination keeps its raise per the findings doc's carry-forward list. Below
-the bound, conflicting rows are dropped and reported; above it, the conflict is
-systemic and the run halts. The bound starts at **2% of emitted rows** and is
-re-derived at R7. Its 0.70 code-axis threshold was derived from an 11×24
-distribution and **must likewise be re-derived at scale**.
+Contamination keeps its unconditional raise from the findings doc. There is no
+"small enough to drop" exception. The provider re-derives prompt/code
+similarity thresholds on the 500-row pilot because the spike's 11×24
+distribution does not transfer; SP5 supplies calibration rows but does not own
+or reinterpret the result.
 
-### 4.7 Oracle cache
+### 4.7 Provider cache boundary
 
-Key: length-prefixed fields over reference solution, hidden test,
-`requires_template`, the timeout value, `ORACLE_CONTRACT_VERSION`, the lockfile
-hash, and interpreter version.
+The provider owns execution caching and process pooling. Dataset manifests
+record the provider and execution-contract versions used during verification.
+A clean `authoring build --no-cache` asks the provider to bypass its cache and must
+produce the same accepted rows and typed rejection reasons as a warm build.
 
-Each element is load-bearing. Omitting the contract version would freeze
-pre-fix verdicts across a gate change — the most on-brand possible failure for
-this project. The lockfile hash covers pytest version and plugins, which affect
-outcomes. Length-prefixing avoids concatenation collisions across field
-boundaries. `stage="timeout"` results are **never** cached, being a function of
-machine load rather than content. The cache is scoped to `verify_candidate`
-only; the cheap AST checks always recompute, since the on-target filter reads
-the prompt, which is not in the key.
-
-`--no-cache` reverifies from scratch, so the cache is never load-bearing for
-correctness.
+This project may cache pure generation outputs by seed/pattern/input hash. It
+must not cache or reinterpret provider verdicts independently.
 
 ### 4.8 Planted defects
 
@@ -405,14 +400,14 @@ because gates are where this bug class re-hosts.
 
 | # | Planted | Must be caught by | Lands in |
 |---|---|---|---|
-| 1 | f-string solution to a template task | canary | R2c |
-| 2 | candidate-vs-candidate hidden test *(bypasses projection; tests the checker)* | grammar checker | R2d |
-| 3 | vacuous hidden test (`assert True`-grade) | anti-vacuity | R2c |
-| 4 | `AnnAssign`/`ClassDef` solution + vacuous test | dropped as *vacuity untested* | R2c |
+| 1 | f-string solution to a template task | provider policy stage | R2c |
+| 2 | attempted candidate-vs-candidate check | provider contract rejection | R2d |
+| 3 | vacuous check (`assert True`-grade intent) | provider task qualification | R2c |
+| 4 | `AnnAssign`/`ClassDef` solution + vacuous check | provider returns *vacuity untested* | R2c |
 | 5 | prompt renderer describing `.values`, test checking `.strings` | cross-projection check | R5 |
 | 6 | row lacking a feature its `Property` implies | classifier | R5 |
 | 7 | `TemplateStr` solution labelled `requires_template=False` | label gate | R2c |
-| 8 | duplicate of a benchmark task | contamination halts | R2d |
+| 8 | duplicate of a benchmark task | provider contamination halts | R6b |
 
 Defect 4 is the one the spike's own code did **not** catch.
 
@@ -455,33 +450,29 @@ calibration:
 2. Thresholds derived and committed **with their derivation**.
 3. Full build gated.
 
-**No training run consumes a corpus built before thresholds exist.**
+The provider must not consume a snapshot for training until the snapshot
+manifest records the committed thresholds and passes provider eligibility.
 
-### 5.3 Sweep decision rule
+### 5.3 Published scale slices
 
-Plot held-out score against **effective diversity**, never row count:
+This project publishes 500, 2k, and 5k dataset snapshots with composition held
+constant and effective diversity reported. `sampling.toml` records the
+selection rule and random seed; each manifest records the selected row IDs and
+all input fingerprints.
 
-| Reading | Action |
-|---|---|
-| Score rises with diversity | Corpus is working; continue |
-| Rows rise, diversity flat, score plateaus | Corpus is correlated — the lever is **more seeds**, not more patterns |
-| Diversity rises, score flat | Seeds/patterns are not the constraint; suspect task-distribution bias |
-
-Before charging the benchmark sub-project with the third reading, rule out
-B-LOSS-MASK (the spike used naive `prompt + solution` concatenation with no
-prompt-token masking) and B-FORMAT.
-
-Composition is held constant across sweep points, or the points are not
-comparable — the `n=24` anchor is already polluted by having only ~9 of 24 rows
-contain a t-string literal. `sampling.toml` records the selection rule and seed
-value, since subsets are not otherwise derivable from committed inputs.
+The provider trains and scores these slices. Its held-out curve and diagnosis
+(working corpus, correlation, or task-distribution bias) are consumer results,
+not authoring build outputs.
 
 ### 5.4 Build report
 
-`reports/build.md` carries row count, the three diversity numbers, achieved
-versus target composition mix, drops grouped by reason **and by pattern** (a
+`reports/build.md` carries source-derived/generated counts, total row count,
+the three diversity numbers, achieved versus target composition mix, drops
+grouped by reason **and by pattern** (a
 pattern-shaped defect appears as a cluster — that is the signal worth
-surfacing), the contamination result, and cache hit rate.
+surfacing), provider eligibility/contamination result, and the provider/version
+fingerprints. Provider cache hit rate is operational telemetry, not an SP5 data
+metric.
 
 ---
 
@@ -492,7 +483,8 @@ surfacing), the contamination result, and cache hit rate.
    hygiene.
 3. **Golden tests per (Property variant, renderer)**, plus the cross-projection
    check, which per-renderer goldens provably cannot catch.
-4. **Property and invariant tests** — evaluator determinism, repr round-trip,
+4. **Property and invariant tests** — provider-observation determinism and
+   serialization compatibility,
    JSONL round-trip preserving tuple types and frozen-dataclass equality, arity
    enforcement, content-derived id stability, atomic artifact writes on
    interrupted builds.
@@ -500,14 +492,11 @@ surfacing), the contamination result, and cache hit rate.
    - **Golden mini-corpus** — 3 fixture seeds × 2 fixture patterns through
      extract→generate→build, output asserted byte-identical. The only test that
      catches cross-stage integration drift.
-   - **Cache equivalence** — cold and warm builds produce identical corpora, and
-     bumping `ORACLE_CONTRACT_VERSION` provably triggers full re-verification.
-     The design leans its entire economics on this cache, and stale-cache bugs
-     are silent by nature.
-   - **pytest failed-vs-error parser fixtures** — real pytest output for
-     assertion failure, collection error, import error, and timeout. Load-bearing
-     for defect 4 and fragile across pytest versions, which is why the lockfile
-     hash is in the cache key.
+   - **Provider equivalence** — provider cold and warm modes produce identical
+     accepted rows and typed stages; this is a contract test, not a local
+     oracle implementation test.
+   - **Provider fixture compatibility** — the pinned contract fixtures validate
+     from this worktree and fail clearly on version drift.
 
 ---
 
@@ -515,57 +504,48 @@ surfacing), the contamination result, and cache hit rate.
 
 | Rung | Summary |
 |---|---|
-| R1 | **Source validation + extraction.** `grep -c 't"' ≥ 1` across all candidate repos **before** building extraction — the tdom category error's standing corrective. `sources.toml` records URL, pinned SHA, license, and (post-extraction) novel-skeleton contribution; zero-contribution repos drop from future refreshes. Shallow clones into a gitignored cache, `assert_source_pin`. AST extraction with free names and palette-proposed bindings. Content-derived ids. |
-| R2a | **Oracle + stage parser**, with output fixtures. |
-| R2b | **Data model** — `Seed`, `Exercise`, `Property`, arity invariant. Pure dataclasses; pulled early because R2c/R2d depend on `Property`. |
-| R2c | **Row-level gate chain** + defects 1, 3, 4, 7. |
-| R2d | **Assertion-grammar checker** + defects 2, 8. |
-| R3 | **Seed evaluation + review CLI.** Subprocess evaluator, run twice, repr round-trip. Facts-first review with palette auto-accept and cached `(name, expression)` decisions. Seed dedup by fingerprint bucket. |
+| R1 | **Source validation + extraction.** `grep -c 't"' ≥ 1` across all candidate repos **before** building extraction — the tdom category error's standing corrective. `sources.toml` records URL, pinned SHA, license, and (post-extraction) novel-skeleton contribution; zero-contribution repos drop from future refreshes. Shallow clones into a gitignored cache, `assert_source_pin`. AST extraction emits literal seeds plus self-contained CPython/PEP `SourceExercise` intents; cross-module helpers are rejected. Content-derived ids. |
+| R2a | **Provider adapter + contract fixtures.** Reference execution, verification, and typed stages are consumed, not implemented. |
+| R2b | **Data model** — `Seed`, `SourceExercise | GeneratedExercise`, `Property`, generated-arity invariant. Pure dataclasses; pulled early because R2c/R2d depend on `Property`. |
+| R2c | **T-string policy + provider qualification integration** + defects 1, 3, 4, 7. No runner. |
+| R2d | **Property-to-`CheckSpec` grammar** + defect 2. The provider owns the generic wire grammar. |
+| R3 | **Seed facts + review CLI.** Call provider reference execution twice and reject unsupported observations. Facts-first review with palette auto-accept and cached `(name, expression)` decisions. Seed dedup by fingerprint bucket. |
 | R4 | **Coverage analysis + seed authoring.** Grammar-shape × task-type matrix (`rt`-strings, implicit concatenation, nested quotes, format-spec nesting, `!r`/`!s`/`!a`, multiline, empty edge cases × emit/introspect/transform/negative). Owner authors seeds filling measured gaps; Self-Instruct's 100–200 is the floor for the combined budget. |
 | R5 | **Patterns and generation.** Renderers, cross-projection check, composition classifier, pattern registry, `audit-pattern`, generation to the fingerprinted cache. Defects 5, 6. |
-| R6a | **Oracle cache + process pool**, with equivalence tests. |
-| R6b | **Build-gate integration** — contamination, intra-corpus dedup, composition-mix reporting over the R5 classifier. |
+| R6a | **Provider integration + generation cache**, with cold/warm provider equivalence and pure-generation cache invalidation tests. |
+| R6b | **Build-gate integration** — provider contamination/eligibility call, local intra-corpus dedup, composition-mix reporting, and defect 8. |
 | R6c | **Reports** — `build.md`, `dropped.jsonl`. |
 | R6d | **Adjudication CLI** + migration report. UI rather than verification; may trail R7. |
-| R7 | **Pilot + threshold derivation.** ~500 rows. Commits, each with its derivation: diversity thresholds, the classifier tolerance band, the contamination drop-rate bound, and the review-budget fraction of §9.4. |
-| R8 | **Scale sweep.** 500 → 2k → 5k, composition held constant, decision rule applied. |
+| R7 | **Pilot + threshold derivation.** ~500 rows. Commit diversity thresholds, the classifier tolerance band, and the review-budget fraction with their derivations; supply calibration pairs/rows for provider-owned contamination thresholds. |
+| R8 | **Dataset slice publication.** Immutable 500 → 2k → 5k snapshots, composition held constant, manifests and effective-diversity reports committed. Provider performs the training sweep. |
 
 Rungs are deliberately small around verification-heavy work: each planted defect
 is *designed to fail first*, so bundling six into one rung builds in six
 potential fix rounds. That shape cost the spike a task that needed two fix
 rounds, a pivot, and deletion.
 
-### 7.1 Blocking dependency
+### 7.1 Blocking dependencies
 
-**R8 is blocked on the benchmark sub-project**, which must settle four things:
-
-1. Benchmark size — at `n=11`, 0/11 carries a ~25% upper confidence bound by the
-   rule of three, too thin to read the sweep's differences.
-2. **Naturalistic completion tasks**, scored only on "used a template
-   correctly," authored **before any pattern exists** so they cannot be shaped
-   by what patterns turn out to be easy to write. This is the answer to the
-   verifiability-bias problem in §8.
-3. Retrieval-arm strength (findings doc open question 6, raised at Gate 1 and
-   never decided). A redesigned benchmark with the same weak with-docs arm still
-   cannot adjudicate the §3.2 gate.
-4. Composition targets (open question 2).
-
-The benchmark is no longer frozen: its attached baselines are two 0% numbers
-that a greedy-decoding rerun reproduces in minutes.
+- R2a and every verified-row claim require the provider's versioned dataset,
+  reference-execution, policy, and typed-stage contract fixtures.
+- Final build publication requires a provider benchmark fingerprint and
+  contamination result. Benchmark design and baseline strength are not SP5
+  work.
+- R8 requires the R7 composition and diversity thresholds, but not a model run.
+  Training and evaluation may occur later without changing the published data.
 
 ---
 
 ## 8. Known residual risks
 
-**Verifiability bias, shared between corpus and benchmark.** Execution-derived
+**Verifiability bias at the consumer boundary.** Execution-derived
 ground truth only defines tasks whose answers are mechanically checkable, which
 is the same sub-skill skew already found in the 24-row corpus. The deployment
 skill is different: choosing `t"` over `f"` in open-ended code and writing the
-renderer idiom unprompted. Because the current benchmark is drawn from the same
-restricted distribution, the scale curve could rise while prior-fallback
-behaviour stays flat and **no number in the system would show it**. Contamination
-halts a run; shared bias inflates it silently. Mitigated benchmark-side by
-§7.1's naturalistic slice, not fixable corpus-side.
+renderer idiom unprompted. If the provider benchmark shares this restricted
+distribution, its scale curve could rise while prior-fallback behaviour stays
+flat. This project cannot fix that corpus-side; it reports composition and
+leaves the independent benchmark response to the provider.
 
 **Correlation.** 200 seeds × 30 patterns is not 6000 independent examples.
 Mitigated by domain-diverse seeds (§1.1), composing/transforming patterns, and
@@ -586,14 +566,13 @@ renderers. Planted defect 5 tests it; nothing makes it impossible.
 Falsifiable:
 
 1. On a clean checkout, `authoring build --no-cache` from committed inputs
-   reproduces `corpus/authored.jsonl` **byte-identically**.
+   reproduces `corpus/tstrings.jsonl` **byte-identically**.
 2. All eight planted defects fail live in CI.
 3. Corpus ≥ 5k rows; distinct-skeleton count and composition mix within the
-   bands committed at R7; zero contamination conflicts above the agreed bound.
+   bands committed at R7; zero benchmark contamination conflicts.
 4. Human decisions across both decision files number ≤ the review-budget
    fraction of emitted rows committed at R7 — the measurable form of "the
    owner's time went to seeds and patterns, not per-example review."
-5. Three composition-matched sweep points recorded, with the §5.3 decision
-   rule's verdict written down. **Either verdict satisfies this**: "corpus
-   correlated" or "task-distribution bias" is a successful outcome under the
-   roadmap's negative-result-is-success rule.
+5. Immutable 500, 2k, and 5k snapshots published with composition held
+   constant, effective diversity reported, and provider/benchmark fingerprints
+   recorded. No model-performance verdict is required from this project.
