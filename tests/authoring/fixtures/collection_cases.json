@@ -1,0 +1,57 @@
+[
+  {
+    "id": "literal_multiline",
+    "source": "value = t\"\"\"hello {name}\\nworld\"\"\"\n",
+    "expected": "extract_exact_span"
+  },
+  {
+    "id": "nested_shadowing",
+    "source": "name = 'outer'\ndef case():\n    name = 'inner'\n    return t\"{name}\"\n",
+    "expected": "reject_shadowed_binding"
+  },
+  {
+    "id": "multiple_cases",
+    "source": "def test_case():\n    assert t\"{name}\".strings == ('', '')\n    assert t\"{other}\".values == (other,)\n",
+    "expected": "split_assertion_blocks"
+  },
+  {
+    "id": "loop_subtest",
+    "source": "for value in values:\n    with self.subTest(value=value):\n        assert t\"{value}\"\n",
+    "expected": "reject_loop_or_subtest"
+  },
+  {
+    "id": "private_helper",
+    "source": "def test_case():\n    self.assertTStringEqual(t\"{name}\", expected)\n",
+    "expected": "reject_private_helper"
+  },
+  {
+    "id": "no_evidence",
+    "source": "def test_case():\n    assert t\"{name}\"\n",
+    "expected": "reject_missing_intent_evidence"
+  },
+  {
+    "id": "unsafe_import",
+    "source": "value = t\"{__import__('os')}\"\n",
+    "expected": "reject_pre_execution"
+  },
+  {
+    "id": "unsafe_file_process",
+    "source": "value = t\"{open('/tmp/sp5-probe', 'w')}\"\n",
+    "expected": "reject_pre_execution"
+  },
+  {
+    "id": "side_effect",
+    "source": "value = t\"{state.__setitem__('changed', True)}\"\n",
+    "expected": "reject_pre_execution"
+  },
+  {
+    "id": "format_spec_valid",
+    "source": "value = t\"{v:{w}}\"\n",
+    "expected": "accept_policy"
+  },
+  {
+    "id": "format_spec_nested_fstring",
+    "source": "value = t\"{v:{f'{w}'}}\"\n",
+    "expected": "reject_policy"
+  }
+]

@@ -44,6 +44,10 @@ The [roadmap](docs/superpowers/roadmap.md) sequences the work; the
 what a throwaway build already established, and should be read before designing
 any rung.
 
+[Execution readiness](docs/superpowers/research/2026-08-01-sp5-execution-readiness.md)
+records the exact interpreter pin, source-license policy, fixture inventory,
+and the provider release/sandbox requirements that block qualified snapshots.
+
 ### Why it is needed
 
 **The model does not know t-strings, and actively prefers the wrong answer.**

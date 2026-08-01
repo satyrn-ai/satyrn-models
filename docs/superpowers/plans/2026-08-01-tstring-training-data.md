@@ -132,7 +132,9 @@ Run `uv run pytest tests/authoring/test_static_gates.py -q`.
 
 ### Task 6: Provider adapter and render-to-task boundary
 
-Requires provider Tasks 0–2 and installed fixtures. Create `authoring/render.py`,
+Requires provider Tasks 0–2, an installable versioned provider release and
+canonical fixtures, and its fail-closed OS sandbox profile for untrusted
+reference/candidate code. Create `authoring/render.py`,
 `authoring/provider.py`, and `tests/authoring/test_provider_adapter.py`.
 
 - Render exactly one minimal provider `TaskRecord` from each canonical
@@ -140,11 +142,14 @@ Requires provider Tasks 0–2 and installed fixtures. Create `authoring/render.p
   projections of that intent. No expected value is serialized by SP5.
 - Validate imported provider types/version fixtures; pass `TaskRecord` plus
   `cache=` to `materialize_reference` and `qualify_task` exactly as published.
+- Require sandbox profile/version in provider execution evidence; refuse to
+  qualify third-party-derived material if the required profile is unavailable.
 - Use source candidates only after this rendering step; never add a competing
   raw-expression inspect API unless the provider explicitly publishes one.
 
 Start with `test_renderer_returns_provider_task_record`,
-`test_prompt_and_check_share_intent`, and `test_raw_expression_cannot_reach_provider`.
+`test_prompt_and_check_share_intent`, `test_raw_expression_cannot_reach_provider`,
+and `test_missing_sandbox_profile_blocks_qualification`.
 Run `uv run pytest tests/authoring/test_provider_adapter.py -q`.
 
 ### Task 7: Facts, review, policy, and qualification

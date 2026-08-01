@@ -1,0 +1,16 @@
+# SP5 source policy. Individual [[source]] records are added only after Task 1
+# validates their immutable ref, SPDX identifier, and attribution fields.
+
+[policy]
+allowed_licenses = [
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "MIT",
+  "PSF-2.0",
+]
+require_spdx_identifier = true
+require_attribution = true
+require_snapshot_license_inventory = true
+require_notice_for_license_text = true
