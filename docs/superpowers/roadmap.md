@@ -93,13 +93,16 @@ first real evidence arrives in SP1.
 | R4 | **Provider workflow skills.** Written by the provider against its established contracts. | External dependency |
 
 **Data-project dependency:** the placeholder scripts are gone, legacy examples
-are inert quarantine records, and provider contract fixtures validate locally.
+are inert quarantine records, and this branch must consume the resulting
+package/test baseline before collection implementation. Provider contract
+fixtures are a later dependency for qualified rows, not for local collection
+behavior.
 
 ### External provider: verification and dataset contracts
 
-This milestone is implemented on `worktree-tstrings-rebuild`. SP5 blocks only
-where it needs the provider API; source validation and seed preparation may
-proceed independently.
+This milestone is implemented on `worktree-tstrings-rebuild`. After the SP0 R1
+package/reset baseline is consumed, SP5 blocks only where it needs the provider
+API; source validation and seed preparation may proceed without provider calls.
 
 | Rung | Summary | State |
 |------|---------|-------|
@@ -223,17 +226,17 @@ Published precedent:
 
 | Rung | Summary | State |
 |------|---------|-------|
-| R1 | **Manifest + local collection model.** Exact source/verifier pins, allowed licenses and attribution, `SeedOccurrence` → multi-origin normalized `Seed`, canonical task intent/property model, and source-exercise candidates. No provider dependency. | Planned |
-| R2 | **Safe extraction + collection checkpoint.** AST extraction never imports sources; a pure-expression safety grammar precedes provider execution. Cover→Author→Cover creates committed coverage, source/license inventory, and an explicitly unqualified collection checkpoint. | Planned |
-| R3a | **Provider adapter + render-to-task fixtures.** Render a minimal `TaskRecord` from canonical intent before consuming reference execution, candidate verification, and typed stages; implement no oracle. | Planned |
+| R1 | **Manifest + local collection model.** After consuming the provider-owned reset/package baseline, exact source/verifier pins, allowed licenses and attribution, `SeedOccurrence` → multi-origin normalized `Seed`, canonical multi-property task intent plus policy-intent projection, and source-exercise candidates. No provider API dependency. | Planned |
+| R2 | **Safe extraction + collection checkpoint.** AST extraction never imports sources; a pure-expression safety grammar precedes provider execution. Cover→Author→Cover creates committed coverage, source/license inventory, a data-owner composition profile, and an explicitly unqualified collection checkpoint. | Planned |
+| R3a | **Provider adapter + render-to-task fixtures.** Render a minimal `TaskRecord` plus policy-intent configuration from canonical intent before consuming reference execution, candidate verification, and typed stages; implement no oracle. | Planned |
 | R3b | **Provider facts, policy, and qualification.** Facts/review are keyed by rendered task and provider environment; t-string policy includes construct/convert and dynamic-format-spec precision. | Planned |
 | R4 | **Patterns and generation.** Renderers, cross-projection consistency check, composition classifier, and `audit-pattern`; approval/cache keys use transitive pattern-input fingerprints, so helper/renderer changes invalidate approval. | Planned |
 | R6a | **Provider integration + generation cache.** Contract compatibility, provider cold/warm equivalence, and pure-generation cache invalidation. | Planned |
 | R6b | **Build-gate integration** — provider contamination/eligibility, exact intra-corpus dedup, structural diversity reporting/sampling caps, composition reporting, and planted defect 8. | Planned |
-| R6c | **Reports** — `build.md`, committed `dropped.jsonl` with full row content. | Planned |
+| R6c | **Reports** — `build.md`, committed `dropped.jsonl` with full row content, and snapshot-contained source/seed lineage plus NOTICE material. | Planned |
 | R6d | **Adjudication CLI** + migration report. UI rather than verification; may trail R7. | Planned |
 | R7 | **Pilot + threshold derivation.** ~500 rows; diversity thresholds, classifier tolerance band, and review-budget fraction committed with derivations. Supply calibration material for provider-owned contamination thresholds; any conflict still halts. | Planned |
-| R8 | **Dataset slice publication.** Immutable nested, stratified 500 ⊂ 2k ⊂ 5k snapshots with composition held constant, manifests and effective-diversity reports. Provider trains and scores them. | Planned |
+| R8 | **Dataset slice publication.** Immutable nested, stratified 500 ⊂ 2k ⊂ 5k snapshots with composition held constant against the versioned data-owner profile, self-contained lineage manifests, and effective-diversity reports. Provider trains and scores them. | Planned |
 
 Rungs are deliberately small around verification-heavy work: each planted defect
 is *designed to fail first*, so bundling several into one rung builds in several

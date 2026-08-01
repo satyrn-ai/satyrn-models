@@ -35,6 +35,8 @@ The provider publishes:
 
 - versioned `TaskRecord`, `CheckSpec`, `Provenance`, and `DatasetSnapshot`
   schemas;
+- the reset/package baseline on which the consumer installs its `authoring`
+  package; SP5 consumes this before it starts collection implementation;
 - reference-execution and verification APIs;
 - `FeaturePolicy` protocol and typed stages;
 - halting contamination API plus benchmark fingerprint;
@@ -44,6 +46,9 @@ The t-string-data project publishes:
 
 - immutable dataset snapshots;
 - source/seed/pattern/decision fingerprints;
+- a versioned data-owner composition profile and a self-contained
+  row→seed→occurrence source/license lineage bundle with required NOTICE
+  material;
 - t-string policy implementation and adversarial cases;
 - composition and effective-diversity metrics;
 - drop and build reports;
@@ -57,16 +62,22 @@ Integration is through the installed provider package and its canonical JSON
 fixture, never by importing from the other worktree's filesystem. Dataset
 snapshots carry `PolicyRef(id, version, config)`, not executable policy code;
 the provider resolves the data project's `TStringPolicy` through a trusted
-registry. Any benchmark contamination conflict halts publication and training.
+registry. `config` is the producer's versioned declarative `PolicyIntent`, not
+an import path: it gives the isolated policy the requirements needed to make
+degenerate candidates. Any benchmark contamination conflict halts publication
+and training.
 
 ## Roadmap consequences
 
-1. SP0 R1 reset/quarantine is provider-owned and lands first.
+1. SP0 R1 reset/quarantine is provider-owned and lands first. SP5 merges or
+   rebases onto that package baseline before collection implementation; this is
+   a shared-repository prerequisite, not a provider API dependency.
 2. The provider contract and verifier branch lands next; SP5 merges or rebases
    onto it before claiming contract compatibility. The provider must not be
    imported through a cross-worktree path.
 3. The provider contract and verifier land before SP5 can publish verified
-   rows. SP5 may validate sources and prepare seeds meanwhile.
+   rows. SP5 may validate sources and prepare seeds after the reset baseline is
+   consumed, without calling provider APIs.
 4. CPython/PEP harvest moves into the t-string-data project because it creates
    domain data, not infrastructure.
 5. SP5's former oracle/cache/process-pool work becomes provider integration;
@@ -80,5 +91,6 @@ registry. Any benchmark contamination conflict halts publication and training.
 
 SP5 is complete when it can reproduce and publish verified, stdlib-only,
 provenance-complete t-string datasets at 500, 2k, and 5k rows, with composition
-held constant and effective diversity reported. It does not need—and must not
-claim—a model-performance verdict.
+held constant against a versioned data-owner profile, effective diversity
+reported, and snapshot-contained lineage. It does not need—and must not claim—a
+model-performance verdict.

@@ -1,7 +1,9 @@
 # SP5 execution-readiness record
 
 **Date:** 2026-08-01
-**Status:** collection ready; provider-qualified production intentionally blocked
+**Status:** collection fixtures and local policy are ready; collection
+implementation awaits the provider-owned reset/package baseline;
+provider-qualified production is intentionally blocked
 
 ## Resolved local prerequisites
 
@@ -15,21 +17,31 @@
 - Embedding clustering is deferred from v1. It is optional report-only work,
   has no acceptance effect, and must not introduce a model call into SP5.
 
+## Shared package prerequisite
+
+The current checkout has not yet consumed provider Task 0's reset/package
+baseline. SP5 Tasks 1–5 do not call provider APIs, but they require that shared
+`src` layout, `uv` test configuration, and `authoring` command installation
+point; they must not recreate a competing scaffold. Before Task 1, land the
+provider reset on `main`, merge or rebase this branch onto it, and prove a clean
+`uv sync` plus the provider package-import smoke test. The source policy and
+fixture inventory below are ready to use immediately after that precondition.
+
 ## Provider integration status
 
-The provider design is at commit `b7ab02e` on
+The provider design is at commit `bb93318` on
 `worktree-tstrings-rebuild`; its package metadata is currently version `0.1.0`.
-It has **not** published an installable contract release or canonical fixtures,
-and its current plan specified subprocess isolation rather than an OS sandbox.
-SP5 Task 6 remains blocked until the provider publishes all of:
+Its plan now requires a fail-closed OS sandbox, but it has **not** published an
+installable contract release, canonical fixtures, or an implemented sandbox
+guarantee. SP5 Task 6 remains blocked until the provider publishes all of:
 
 1. an installable, versioned package and canonical consumer fixtures;
 2. the documented `TaskRecord`/qualification/reference APIs;
 3. a fail-closed OS sandbox guarantee for untrusted reference and candidate
    execution, with sandbox profile/version included in execution evidence.
 
-The provider plan is amended with that sandbox requirement. A subprocess timeout
-or run-twice result is not a substitute for it.
+A subprocess timeout or run-twice result is not a substitute for that
+guarantee.
 
 ## Fixture corpus reserved for implementation
 
@@ -43,6 +55,8 @@ code is written.
 | `literal_multiline` | multiline t-string literal | extract exact span |
 | `nested_shadowing` | same name in nested scope | reject unresolved/shadowed binding |
 | `multiple_cases` | two independent assertions in one method | split at assertion boundary |
+| `multi_observation` | one described case with related `.strings` and `.values` assertions | preserve aligned properties/checks |
+| `evidence_assertion_mismatch` | test-name evidence says `.values`; assertion checks `.strings` | reject before provider |
 | `loop_subtest` | loop/subtest-generated cases | reject unless directly transformed |
 | `private_helper` | CPython-style private assertion helper | reject; do not inline |
 | `no_evidence` | no method/docstring/comment intent | reject |

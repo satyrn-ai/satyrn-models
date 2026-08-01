@@ -15,6 +15,16 @@
     "expected": "split_assertion_blocks"
   },
   {
+    "id": "multi_observation",
+    "source": "def test_template_strings_and_values():\n    template = t\"{name}\"\n    assert template.strings == ('', '')\n    assert template.values == (name,)\n",
+    "expected": "preserve_aligned_properties"
+  },
+  {
+    "id": "evidence_assertion_mismatch",
+    "source": "def test_template_values():\n    template = t\"{name}\"\n    assert template.strings == ('', '')\n",
+    "expected": "reject_evidence_assertion_mismatch"
+  },
+  {
     "id": "loop_subtest",
     "source": "for value in values:\n    with self.subTest(value=value):\n        assert t\"{value}\"\n",
     "expected": "reject_loop_or_subtest"

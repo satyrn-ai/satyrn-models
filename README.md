@@ -20,17 +20,19 @@ contamination, benchmark, training, and evaluation provider being rebuilt on
 
 This worktree owns source manifests, t-string seed extraction, CPython/PEP
 source-derived rows, authored seeds, properties, patterns, generated rows,
-data-quality reports, and immutable 500/2k/5k dataset snapshots. It stops at
-the dataset boundary. Model training,
+data-quality reports, a versioned composition profile, provenance lineage, and
+immutable 500/2k/5k dataset snapshots. It stops at the dataset boundary. Model training,
 benchmark scoring, memorization measurement, and the fine-tune-vs-retrieval
 verdict belong to the provider effort.
 
-It has a useful independent first milestone: **collection**. SP5 can pin and
-license sources, extract safe t-string candidates, retain multi-origin seed
-provenance, measure coverage, and author seeds without the provider. Those
-artifacts are explicitly unqualified input—not final rows or publishable
-snapshots—until provider rendering, execution, qualification, and contamination
-checks are available.
+It has a useful independent first milestone: **collection**. Once the
+provider-owned reset/package baseline has landed and this branch has consumed
+it, SP5 can pin and license sources, extract safe t-string candidates, retain
+multi-origin seed provenance, set its data-owner composition profile, measure
+coverage, and author seeds without calling the provider. Those artifacts are
+explicitly unqualified input—not final rows or publishable snapshots—until
+provider rendering, execution, qualification, and contamination checks are
+available.
 
 The current records are:
 

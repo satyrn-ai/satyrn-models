@@ -221,7 +221,7 @@ class GeneratedExercise:
     id: str
     pattern_id: str
     seeds: tuple[Seed, ...]
-    prop: Property
+    properties: tuple[Property, ...]       # non-empty
 
 @dataclass(frozen=True)
 class SourceExerciseCandidate:
@@ -229,17 +229,29 @@ class SourceExerciseCandidate:
     origin: SourceOrigin
     evidence: SourceEvidence               # method/name/comment/docstring/span
     intent: TaskIntent                     # canonical derived intent
-    check_spec: LocalCheckIntent           # declarative, not executable Python
+    check_intents: tuple[LocalCheckIntent, ...]  # aligned, declarative only
 ```
 
 `TaskIntent` is the canonical source for the authored prompt template,
-property, and translated provider `CheckSpec`; none is independently rewritten
-from `evidence`. The harvest unit is an assertion block/case, not a whole test
-method. A method with multiple assertions, loops/subtests, helper calls, or no
-descriptive evidence is split only when its case can be represented directly;
-otherwise it is rejected with a reason. Cross-module helpers are rejected
-rather than resolved or inlined. `GeneratedExercise` enforces
-`prop.arity == len(seeds)` at construction.
+ordered non-empty property tuple, translated provider `CheckSpec` tuple, and
+versioned `PolicyIntent` projection in `PolicyRef.config`; none is
+independently rewritten from `evidence`. `PolicyIntent` contains only the
+declarative requirement needed by the dependency-isolated t-string policy to
+construct intent-derived degenerates. It is validated and fingerprinted with
+the task, so the policy never imports seed, source, or pattern-authoring code.
+
+The harvest unit is an assertion block/case, not a whole test method. A method
+with multiple assertions preserves each directly representable observation as
+an aligned property/check-intent pair; it never drops all but one just to fit a
+single-property record. A method with loops/subtests, helper calls, unsupported
+relationships, or no descriptive evidence is split only when its case can be
+represented directly; otherwise it is rejected with a reason. The extractor
+also reconciles its test-name/comment/docstring evidence, asserted
+subject/path, and translated property. It rejects a contradiction: provider
+self-verification proves a reference meets its checks, not that source prose
+asked for the translated thing. Cross-module helpers are rejected rather than
+resolved or inlined. `GeneratedExercise` enforces
+`all(prop.arity == len(seeds) for prop in properties)` at construction.
 
 **No expected value is stored on the intent or emitted row.** Nothing would tie
 such a field to its exact intent, so a batching bug would yield a well-formed
@@ -248,23 +260,25 @@ but internally inconsistent exercise. `render.py` emits declarative
 program and derives internal observations. The data project never serializes
 those observations as trusted input.
 
-**No composition tag.** Labels are derived mechanically from the `Property`
-variant per the table above. Multi-label at the row, single-sourced at the
-intent, nothing self-declared left to game. Single-label precedence would
+**No composition tag.** Labels are derived mechanically from every `Property`
+variant in the intent. Multi-label at the row, single-sourced at the intent,
+nothing self-declared left to game. Single-label precedence would
 systematically misfile renderer-idiom rows — which both author *and* consume a
 template, and which the findings doc calls the canonical training content.
 
 ### 3.3 `Facts`
 
-Produced by the provider reference-execution API for `(template_expr,
-bindings)`, keyed by content hash of that pair: `strings`, `values`, and
-`interpolations` with
-`expression`/`conversion`/`format_spec`.
+Produced by the provider reference-execution API for a rendered minimal
+`TaskRecord`, keyed by the task's content and execution-environment fingerprint:
+`strings`, `values`, and `interpolations` with
+`expression`/`conversion`/`format_spec`. There is no raw
+`(template_expr, bindings)` provider API on this boundary.
 
-Per-seed facts are the degenerate case. Provider reference execution **must** be keyed on the
-expression rather than the seed, because a composed template's facts are not
-derivable from its parts even in principle: `Template.__add__` collapses
-adjacent strings, so `t"Hello " + t"World"` yields `.strings == ("Hello World",)`.
+Per-seed facts are the degenerate case. The minimal task's reference program
+**must** be keyed on the expression rather than merely the seed, because a
+composed template's facts are not derivable from its parts even in principle:
+`Template.__add__` collapses adjacent strings, so `t"Hello " + t"World"` yields
+`.strings == ("Hello World",)`.
 
 Before a provider executes third-party-derived material, local extraction
 accepts only a documented pure AST expression subset and bindings from a small
@@ -300,6 +314,11 @@ Per-seed origins live on the `Seed` records and are reached through `seed_ids`,
 rather than copying one seed's origin onto a row built from three. A generated
 row's pattern hash is the same key used by `approvals.jsonl`; a dirty registry
 therefore cannot stamp a row with a commit ref that never contained it.
+
+Every published snapshot also carries a content-addressed lineage bundle: row
+ID → seed ID → occurrence ID → immutable source ref/license, plus pattern and
+decision links. The bundle, source/license inventory, and required NOTICE
+material are snapshot artifacts, not merely paths back into a mutable checkout.
 
 ### 3.5 Decision files
 
@@ -377,12 +396,19 @@ failure. A degenerate dying before a check counts as **vacuity untested**, never
 as vacuity tested. This project supplies intent-derived degenerates; it does not
 parse subprocess or pytest output.
 
+The rendered `PolicyRef.config` is the only authoring-to-policy handoff for
+that derivation. It is the versioned `PolicyIntent` projection of the same
+`TaskIntent` that rendered prompt, reference, and checks. A policy configuration
+that does not fingerprint/reconcile with those projections is a render failure,
+not an opportunity for a policy plugin to inspect authoring internals.
+
 ### 4.4 Cross-projection consistency
 
-Prompt and checks are both projections of one `Property`, so they cannot
-disagree about *which* property is under test. They can still disagree about how
-it is described: a prompt renderer saying `.values` while the check renderer
-checks `.strings` reproduces the defect centrally.
+Prompt and checks are both projections of the same ordered `Property` tuple,
+so they cannot disagree about *which declared properties* are under test. They
+can still disagree about how one is described: a prompt renderer saying
+`.values` while the check renderer checks `.strings` reproduces the defect
+centrally.
 
 This is **a gate, not an impossibility**, and is named as such. The check
 verifies that a rendered prompt references the property its rendered checks
@@ -435,7 +461,7 @@ must not cache or reinterpret provider verdicts independently.
 
 ### 4.8 Planted defects
 
-Eight, in `tests/adversarial/`, each demonstrated failing in a **live run**
+Ten, in `tests/adversarial/`, each demonstrated failing in a **live run**
 rather than asserted in prose. Four target gates rather than the pipeline,
 because gates are where this bug class re-hosts.
 
@@ -509,11 +535,15 @@ manifest records the committed thresholds and passes provider eligibility.
 ### 5.3 Published scale slices
 
 This project publishes nested, stratified 500 ⊂ 2k ⊂ 5k snapshots with
-composition held constant and effective diversity reported. `sampling.toml`
-commits the random seed, row IDs, and strata (source kind, property, pattern,
-and seed); each manifest records all input fingerprints. The calibrated 500 is
-the published 500 snapshot, or the final selected 500 must be recalibrated
-before publication.
+composition held constant and effective diversity reported. Before pattern
+authoring, a data-owner-reviewed `composition.toml` declares target proportions
+and mandatory strata for property, source kind, domain, and negative controls;
+there is no implicit uniform target. `sampling.toml` commits the random seed,
+row IDs, and strata (source kind, property, pattern, and seed); each manifest
+records the profile and all input fingerprints. The calibrated 500 is the
+published 500 snapshot, or the final selected 500 must be recalibrated before
+publication. A profile revision is versioned and requires regenerated nested
+selection and repeat calibration.
 
 The provider trains and scores these slices. Its held-out curve and diagnosis
 (working corpus, correlation, or task-distribution bias) are consumer results,
@@ -541,7 +571,8 @@ metric.
 4. **Property and invariant tests** — provider-observation determinism and
    serialization compatibility,
    JSONL round-trip preserving tuple types and frozen-dataclass equality,
-   multi-origin normalization, arity enforcement, content-derived id stability,
+   multi-origin normalization, multi-property/check preservation, arity
+   enforcement, policy-intent reconciliation, content-derived id stability,
    exact-versus-structural dedup distinction, and atomic artifact writes on
    interrupted builds.
 5. **End-to-end:**
@@ -560,8 +591,8 @@ metric.
 
 | Rung | Summary |
 |---|---|
-| R1 | **Source validation + collection.** `sources.toml` records URL, exact SHA, allowed license, attribution data, and source type. The exact verifying interpreter is recorded and checked against the CPython tag; it is not inferred from a minor-version file. AST extraction emits `SeedOccurrence`, normalized multi-origin `Seed`, and source-exercise candidates. A local pure-expression gate precedes any provider execution. |
-| R2 | **Collection checkpoint: coverage + authoring.** Run Cover→Author→Cover on collection artifacts without the provider: grammar-shape × task/property coverage, source/license inventory, and gaps. Commit reviewed authored seeds and `reports/coverage.md`; this is the independently useful stopping point. |
+| R1 | **Source validation + collection.** After consuming the provider-owned package/reset baseline, `sources.toml` records URL, exact SHA, allowed license, attribution data, and source type. The exact verifying interpreter is recorded and checked against the CPython tag; it is not inferred from a minor-version file. AST extraction emits `SeedOccurrence`, normalized multi-origin `Seed`, and source-exercise candidates. A local pure-expression gate precedes any provider execution. |
+| R2 | **Collection checkpoint: coverage + authoring.** Run Cover→Author→Cover on collection artifacts without provider APIs: grammar-shape × task/property coverage, source/license inventory, and gaps. Commit reviewed authored seeds, a data-owner composition profile, and `reports/coverage.md`; this is the independently useful stopping point. |
 | R3 | **Provider rendering, facts, policy, and qualification.** Render minimal `TaskRecord`s from canonical intents, then call provider reference execution twice and qualification. Facts-first review is keyed by content and provider contract; no raw expression is passed to a `TaskRecord` API. Defects 1–4, 7, and 10 prove provider/policy boundaries. |
 | R4 | **Patterns and generation.** Renderers, cross-projection check, composition classifier, and `audit-pattern`. Approval/cache keys use the transitive `pattern_input_fingerprint`; a helper or renderer change halts stale approval. Defects 5–6. |
 | R5 | **Build-gate integration and reports.** Provider contamination/eligibility call, exact intra-corpus dedup, structural diversity reporting, composition reporting, source/license inventory, and full-content drops. Defect 8. |
@@ -577,6 +608,9 @@ rounds, a pivot, and deletion.
 
 - R3 and every verified-row claim require the provider's versioned dataset,
   reference-execution, policy, and typed-stage contract fixtures.
+- R1 implementation requires the provider's Task 0 package/reset baseline to
+  have landed and be consumed by merge or rebase; collection remains independent
+  of provider *calls*, not of the shared repository scaffold.
 - Final build publication requires a provider benchmark fingerprint and
   contamination result. Benchmark design and baseline strength are not SP5
   work.
@@ -623,5 +657,7 @@ Falsifiable:
    fraction of emitted rows committed at R7 — the measurable form of "the
    owner's time went to seeds and patterns, not per-example review."
 5. Immutable 500, 2k, and 5k snapshots published with composition held
-   constant, effective diversity reported, and provider/benchmark fingerprints
-   recorded. No model-performance verdict is required from this project.
+   constant against a versioned data-owner profile, effective diversity
+   reported, self-contained lineage/NOTICE artifacts, and provider/benchmark
+   fingerprints recorded. No model-performance verdict is required from this
+   project.
