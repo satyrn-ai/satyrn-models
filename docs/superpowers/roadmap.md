@@ -56,7 +56,7 @@ that the roadmap is built to avoid repeating:
 | F-CONTAM | 7 of 10 `eval.py` prompts are byte-identical to `make_data.py` training descriptions; 2 more differ cosmetically. Reported pass rates are memorization scores. | Open — closed by SP0 R1 + SP1 R3 |
 | F-BLIND-ORACLE | `validate_snippet` defines success as "did not raise," so an f-string answer to a template task passes, as does `pass`. The harness cannot see the prior-fallback failure mode. | Open — closed by SP0 R3 |
 | F-STALE-CPYTHON | The CPython source was a **fork** (`t-strings/cpython`) on an in-progress docs branch dated 2025-06-17, ~4 months pre-3.14.0, missing `string.templatelib.convert()` entirely — the canonical `!r`/`!s`/`!a` helper, and precisely the renderer idiom this project teaches. | **Closed 2026-07-30.** Replaced by a shallow clone of official upstream `python/cpython` at tag `v3.14.5` (`~/projects/pauleveritt/cpython-3.14.5`, 157 MB), matching the verifying interpreter. Old checkout removed; its branch survives on the fork's remote. |
-| F-TDOM-RULED-OUT | An earlier plan ranked `tdom` as the highest-value harvest source and built a harvest architecture around it. Training on tdom would teach tdom's own API surface, not the PEP 750 language feature and stdlib `string.templatelib` API this project exists to teach; two independent failures (zero-t-string examples, vacuous hidden tests) were caught only by review before anything was committed. | **Closed 2026-07-31** by project-owner decision: no training example may import `tdom` or any other third-party package; harvest is stdlib-only. See [`DATASET_METHODOLOGY.md`](../../DATASET_METHODOLOGY.md) section 1 for the full record. |
+| F-TDOM-RULED-OUT | An earlier plan ranked `tdom` as the highest-value harvest source and built a harvest architecture around it. Training on tdom would teach tdom's own API surface, not the PEP 750 language feature and stdlib `string.templatelib` API this project exists to teach; two independent failures (zero-t-string examples, vacuous hidden tests) were caught only by review before anything was committed. | **Closed 2026-07-31** by project-owner decision: no training example may **import** `tdom` or any other third-party package. **Narrowed 2026-07-31:** third-party *literals* remain valid **seed** material — `t"<div class={cls}>{body}</div>"` is 100% PEP 750, and only the surrounding library assertions are not. See SP5 §1.1 ("de-libraryization") and [`DATASET_METHODOLOGY.md`](../../DATASET_METHODOLOGY.md) section 1. |
 
 ## Active
 
@@ -115,61 +115,127 @@ recorded — including if retrieval wins.
 
 ## Planned
 
+### SP6: Benchmark Redesign
+
+**Blocks SP5 R8 only** — SP5 R1–R7 proceed in parallel. Runs on measurement,
+not corpus, so it belongs outside SP5: the same instrument scores SP1's baseline
+ladder, SP2's harvest path, and SP5's sweep, and SP5 must not own the instrument
+it is itself scored by.
+
+The benchmark is **no longer frozen**. The
+[spike findings](research/2026-07-31-spike-findings.md) §5 moved that discipline
+to *expired*: the attached baselines are two 0% numbers that a greedy-decoding
+rerun reproduces in minutes, so freezing an 11-task instrument to protect them
+is a bad trade.
+
+Four things it must settle:
+
+1. **Size.** At `n=11`, 0/11 carries a ~25% upper confidence bound by the rule
+   of three — thin enough that a later "0% → 27%" sits at the edge of meaning,
+   and far too thin to read SP5 R8's 500 → 2k → 5k differences.
+2. **Naturalistic completion tasks**, scored only on "used a template
+   correctly" rather than on an introspectable property value. **Authored
+   before any SP5 pattern exists**, so they cannot be shaped by whichever
+   patterns turn out to be easy to write. This is the only available mitigation
+   for the verifiability-bias risk in SP5 spec §8: corpus and benchmark are
+   currently drawn from the same execution-checkable distribution, so the scale
+   curve could rise while real prior-fallback behaviour stays flat and no number
+   in the system would show it.
+3. **Retrieval-arm strength** ([spike findings](research/2026-07-31-spike-findings.md)
+   §6.6, raised at Gate 1 and never decided). The spike's with-docs arm was an
+   8-line comment summary fed to a *base* model at greedy decode — weak by
+   construction. `base + docs = 0%` supports "this base does not know
+   t-strings"; it does **not** support "retrieval loses." Either strengthen the
+   arm or narrow what the §3.2 gate may conclude.
+4. **Composition targets** — the balance between authoring t-strings, consuming
+   templates, and constructor-API usage. The `n=24` anchor is polluted by having
+   only ~9 of 24 rows contain a t-string literal, so curve points must be
+   composition-matched to be comparable.
+
+Supersedes SP1 R1's open question. **Done condition:** a benchmark whose size
+and composition can discriminate the §3.2 gate, carrying a naturalistic slice
+authored ahead of any pattern, with baselines re-measured and the retrieval-arm
+decision recorded.
+
 ### SP5: Seed-and-Pattern Corpus Authoring
 
 **Promoted ahead of SP3 — this is now the primary corpus source, not a
-gap-filler.** Full brief:
-[seed-and-pattern corpus authoring](research/2026-07-31-corpus-authoring-brief.md)
-— **required pre-reading for this sub-project's brainstorm.**
+gap-filler.** **Specced 2026-07-31:**
+[seed-and-pattern corpus design](specs/2026-07-31-seed-and-pattern-corpus-design.md)
+is the source of truth; the
+[brief](research/2026-07-31-corpus-authoring-brief.md) is its input and is
+superseded wherever the two differ.
 
-Two facts forced this. **Third-party sources are ruled out**: examples must
-teach the PEP 750 language feature and the `string.templatelib` stdlib API, not
-a library's API surface, so a corpus built on `tdom` would bind the model's
-notion of t-strings to one niche library. And **what remains is tiny** —
-CPython's `test_templatelib.py` is 193 lines / 13 test methods, plus a few dozen
-PEP 750 examples. That is 1–2 orders of magnitude below the "low thousands"
-target, so harvest cannot be the primary source and SP3's framing (synthesis
-gated on harvest proving insufficient) is superseded.
+Two facts forced this. **No training example may import a third-party
+package** — examples must teach the PEP 750 language feature and the
+`string.templatelib` stdlib API, not a library's API surface. Third-party
+*literals* nonetheless remain valid **seed** material (spec §1.1); the brief's
+blanket "all third-party sources are ruled out" is narrowed accordingly. And
+**what remains to harvest is tiny** — CPython's `test_templatelib.py` is 193
+lines / 13 test methods, plus a few dozen PEP 750 examples. That is 1–2 orders
+of magnitude below the "low thousands" target, so harvest cannot be the primary
+source and SP3's framing is superseded.
 
 The design inverts the human's role: **source, not gate.** Review effort scales
 with output volume; seeding effort scales with diversity needed, and each seed
 multiplies. Ground truth comes from *executing* real templates, never from a
-model — which is what makes a large auto-accept path safe, and is the structural
-fix for the vacuous-hidden-test defect found in the spike. The method has
-published precedent in
+model — which is what makes a large auto-accept path safe. **No LLM call exists
+in the pipeline**: patterns are drafted in chat and land as reviewed source.
+Published precedent:
 [Template-Based Data Generation](https://arxiv.org/abs/2411.18104).
 
 | Rung | Summary | State |
 |------|---------|-------|
-| R1 | **Seed extraction.** Pull real t-string *literals* out of real code — including third-party sources, whose literals are pure stdlib artifacts even though their surrounding assertions are not ("de-libraryization"). Record provenance per seed. Output is seeds only; no third-party import ever reaches the corpus. | Planned |
-| R2 | **Seed authoring + gap analysis.** Owner hand-authors seeds covering shapes extraction missed. Self-Instruct's 100–200 seeds is the calibration point. Seed *diversity* is the target, not count — see the correlation risk in the brief. | Planned |
-| R3 | **Pattern proposal + one-time approval.** LLM proposes parameterized exercise kinds; owner approves each once. Review is per-pattern (dozens), not per-example (hundreds). Favour patterns that **compose or transform** seeds over pure introspection, to break output correlation. | Planned |
-| R4 | **Deterministic cross-product with executed ground truth.** Apply approved patterns across seeds; compute every expected value by running the template on the pinned interpreter. Route all output through the existing oracle contract plus the self-verification, on-target, and anti-vacuity gates. | Planned |
-| R5 | **Adjudication surface.** Owner sees only the uncertain middle: verified-but-degenerate, near-duplicate, low-confidence. Everything cleanly verified auto-accepts; everything cleanly failing auto-rejects with a reason. | Planned |
-| R6 | **Scale sweep on effective diversity.** 500 → 2k → 5k against the fixed benchmark, measuring *effective* diversity rather than row count, so the correlation risk is observable rather than theoretical. Absorbs SP3 R4. | Planned |
+| R1 | **Source validation + extraction.** `grep -c 't"' ≥ 1` across every candidate repo *before* building extraction — the F-TDOM-RULED-OUT corrective, made standing. `sources.toml` records URL, pinned SHA, license, and post-extraction novel-skeleton contribution. AST extraction of literals with free names and palette-proposed bindings; content-derived seed ids. | Planned |
+| R2a | **Oracle + pytest failed-vs-error stage parser**, with output fixtures. | Planned |
+| R2b | **Data model** — `Seed`, `Exercise`, `Property` tagged union, arity invariant enforced at construction. | Planned |
+| R2c | **Row-level gate chain** + planted defects 1, 3, 4, 7. | Planned |
+| R2d | **Assertion-grammar checker** + planted defects 2, 8. | Planned |
+| R3 | **Seed evaluation + review CLI.** Subprocess evaluator run twice for determinism, repr round-trip enforced. Facts-first review with palette auto-accept and cached binding decisions. Seed dedup by fingerprint bucket. | Planned |
+| R4 | **Coverage analysis + seed authoring.** Grammar-shape × task-type matrix, not API-name coverage. Owner authors seeds filling measured gaps; Self-Instruct's 100–200 is the floor for the combined budget. | Planned |
+| R5 | **Patterns and generation.** Renderers, cross-projection consistency check, composition classifier, pattern registry with approvals keyed on source hash, `audit-pattern`. Planted defects 5, 6. | Planned |
+| R6a | **Oracle cache + process pool**, with cold/warm equivalence tests. | Planned |
+| R6b | **Build-gate integration** — contamination, intra-corpus dedup, composition-mix reporting. | Planned |
+| R6c | **Reports** — `build.md`, committed `dropped.jsonl` with full row content. | Planned |
+| R6d | **Adjudication CLI** + migration report. UI rather than verification; may trail R7. | Planned |
+| R7 | **Pilot + threshold derivation.** ~500 rows; diversity thresholds, classifier tolerance band, contamination drop-rate bound, and review-budget fraction each committed with their derivation. | Planned |
+| R8 | **Scale sweep.** 500 → 2k → 5k, composition held constant, decision rule applied. Absorbs SP3 R4. **Blocked by SP6.** | Planned |
 
-**Done condition:** a corpus of verified, provenance-tagged, stdlib-only
-examples at a scale the harvest path cannot reach, every expected value derived
-by execution, produced with the owner's time spent on seeds and pattern
-approval rather than per-example review — and the scale/diversity curve
-recorded.
+Rungs are deliberately small around verification-heavy work: each planted defect
+is *designed to fail first*, so bundling several into one rung builds in several
+fix rounds — the shape that cost the spike a task needing two fix rounds, a
+pivot, and deletion.
 
-**Prerequisite:** contamination detection must handle **code** similarity,
-not prompt text alone (a prompt-only gate is structurally weakest against
-generated corpora, whose prompts differ in wording even when code is
-duplicated), and must add **intra-corpus** near-duplicate detection, which
-the spike never had. See
-[spike findings](research/2026-07-31-spike-findings.md) §6.4.
+**Done condition (falsifiable — full form in spec §9):** `authoring build
+--no-cache` reproduces the corpus byte-identically from committed inputs; all
+eight planted defects fail live in CI; ≥5k rows within the R7 bands with no
+contamination above bound; human decisions ≤ the R7 review-budget fraction; and
+three composition-matched sweep points recorded with the decision rule's
+verdict — **either verdict counts**, per the negative-result rule above.
+
+**Prerequisite — partially closed.** The code-similarity half is **closed**: the
+spike's dual-axis gate (prompt at 0.85, normalized code at 0.70, thresholds from
+a measured distribution) covers it, though 0.70 was derived from an 11×24
+distribution and must be re-derived at scale. **Intra-corpus** near-duplicate
+detection, which the spike never had, is now owned by SP5 spec §5.1 and gates
+from build one. Note the residual the spike documented: some real duplication is
+uncatchable by text similarity on either axis, so "gate passes" never means "no
+contamination."
 
 ### SP3: Targeted Synthesis
 
-> **Largely superseded by SP5 (2026-07-31).** SP3 assumed synthesis would be a
-> gap-filler after a large harvest; harvest cannot reach scale under
-> stdlib-only sourcing, so SP5 owns primary corpus generation. R3 (contrastive
-> old→new pairs) and R4 (scale sweep) are absorbed into SP5 R3/R6. What may
-> still survive as distinct: R1's gap analysis, run *against* an SP5 corpus
-> rather than a harvested one. Resolve during SP5's brainstorm — open question
-> 5 in the [brief](research/2026-07-31-corpus-authoring-brief.md).
+> **Superseded by SP5 (2026-07-31), resolved at SP5's brainstorm.** SP3 assumed
+> synthesis would be a gap-filler after a large harvest; harvest cannot reach
+> scale under stdlib-only sourcing, so SP5 owns primary corpus generation.
+> Disposition of each rung: **R2** (seeded generator) and **R3** (contrastive
+> old→new pairs, negative coverage) are absorbed into SP5's pattern registry —
+> negative coverage is the `NegativeControl` variant of SP5's `Property` union.
+> **R4** (scale sweep) is SP5 R8. **R1** (gap analysis) survives in altered
+> form as SP5 R4's coverage analysis, run against seeds rather than against a
+> fine-tune's errors; a post-training gap analysis may still earn a rung once
+> SP5 R8 produces a curve.
+>
+> **This sub-project is closed. It will not open as written.**
 
 **Gated on SP2 R4 showing measured gaps.** Does not start merely because
 harvesting finished. If the harvested corpus already clears the baseline gate,
@@ -208,7 +274,7 @@ rung.
 | B-FORMAT | FIM vs chat deployment shape. Deliberately deferred by spec §3.6; corpus is stored format-neutral so both can be trained and compared. | A deployment target is chosen, or SP2 R4 shows format is limiting |
 | B-REPLAY | Replay data to mitigate forgetting. Real per the scaling laws, but forgetting scales with update steps and the placeholder run was ~36 steps — not yet urgent. Mix 10–30% generic verified Python. | Corpus reaches low-thousands scale |
 | B-RANK | LoRA rank sweep with deliberate alpha adjustment (placeholder paired r=16 with alpha=16). Direction is defensible; the specific 64–128 figure is not grounded. | Data stops being the binding constraint |
-| B-HEADER | Prompt-format overfitting: every placeholder example and eval prompt began `# Python 3.14 t-strings:`, a trigger phrase no real user types. Vary comment/docstring/chat framings. | SP1 R1 benchmark authoring |
+| B-HEADER | Prompt-format overfitting: every placeholder example and eval prompt began `# Python 3.14 t-strings:`, a trigger phrase no real user types. Vary comment/docstring/chat framings. **Returns at corpus scale**: SP5's prompts come from a few dozen renderer phrasings, so the model can learn format→answer mappings and transfer nothing. Tracked as SP5's prompt-text diversity metric (spec §5.1), which gates pattern approval. | SP6 benchmark authoring; SP5 R5 renderers |
 | B-TOKENIZER | Confirm how `t"` / `rt"` tokenize. Likely a non-issue — byte-level BPE needs no vocab change, same as `rb"`. Five-minute check, not a workstream. | Cheap; fold into SP1 R4 |
 | B-LOSS-MASK | Whether the chosen trainer masks prompt/header tokens from loss. Placeholder config likely trained on full sequences, spending gradient budget learning the header. | SP2 R4 |
 
