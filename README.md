@@ -3,6 +3,101 @@
 Fine-tune Qwen2.5-Coder-7B on PEP 750 template strings (t-strings) using
 MLX LoRA on Apple Silicon.
 
+---
+
+## Current work: building a corpus that can actually teach t-strings
+
+> The scripts documented further down are **placeholders awaiting retirement**
+> by SP0 R1. They are described here for the moment because they are still what
+> the repo contains — not because they are the plan.
+
+### What this is
+
+A pipeline that manufactures verified training examples for a language feature
+the model has never seen, and the measurement apparatus to tell whether the
+training worked. Two designs govern it:
+
+- [Seed-and-pattern corpus design](docs/superpowers/specs/2026-07-31-seed-and-pattern-corpus-design.md)
+  — the primary corpus source.
+- [Dataset workflow spec](docs/superpowers/specs/2026-07-30-dataset-workflow-design.md)
+  — the surrounding measure → harvest → synthesize sequence.
+
+The [roadmap](docs/superpowers/roadmap.md) sequences the work; the
+[spike findings](docs/superpowers/research/2026-07-31-spike-findings.md) record
+what a throwaway build already established, and should be read before designing
+any rung.
+
+### Why it is needed
+
+**The model does not know t-strings, and actively prefers the wrong answer.**
+Qwen2.5-Coder-7B scores 0/11 on a held-out t-string benchmark — both zero-shot
+and with the PEP 750 API supplied in its prompt. Every failure is the same one:
+it emits syntactically valid Python and never reaches for `t"..."`. f-strings
+are among the most frequent patterns in pretraining, so the competing prior is
+enormous and the feature is post-cutoff.
+
+**A small corpus memorizes instead of generalizing.** A LoRA fine-tune on 24
+examples reproduces its own training prompts at ~100% while still scoring 0% on
+held-out tasks. The pipeline is not the constraint; corpus size is.
+
+**Harvesting real code cannot reach the scale needed.** Training examples must
+teach the language feature and the `string.templatelib` stdlib API — not some
+library's API surface — so no example may import a third-party package. What
+remains admissible is CPython's `test_templatelib.py` (193 lines, 13 test
+methods) plus a few dozen PEP 750 examples: one to two orders of magnitude short.
+
+So the corpus has to be *generated*. The difficulty is that generated training
+data can be **confidently wrong in ways review does not catch** — the failure
+class that dominated the spike, where an example passes its own test while
+teaching the wrong thing.
+
+### How it will work
+
+**Seeds × patterns, with ground truth from execution.** Real t-string literals
+are extracted from open-source projects and hand-authored to fill gaps. Reviewed
+*pattern* functions multiply those seeds into exercises. Every expected value is
+computed by **running the template on the pinned interpreter** — never produced
+by a model.
+
+This inverts the human's role from gate to source. Review effort would scale
+with output volume; seeding effort scales only with the diversity needed, and
+each seed multiplies across every pattern.
+
+Four properties make a large auto-accept path defensible:
+
+1. **No model in the loop.** Patterns are drafted in conversation but land as
+   reviewed source code. Generation is deterministic and offline.
+2. **Bad states made unrepresentable where possible.** A prompt, its reference
+   solution, and its hidden test are all projections of one intent, so they
+   cannot describe different questions. Assertions may reference the candidate's
+   output on only one side, so a test cannot compare two candidate-produced
+   values and thereby encode no expected answer.
+3. **Gates carry adversarial tests.** Where a gate is unavoidable — proving a
+   hidden test can actually discriminate a real solution from a fake one — a
+   planted defect must be demonstrated failing in a live run. Eight are
+   specified, four aimed at the gates themselves, because gates are where this
+   bug class re-hosts.
+4. **Diversity is measured, not assumed.** 200 seeds × 30 patterns is not 6000
+   independent examples. Effective diversity is tracked by structural
+   fingerprinting, and the scale sweep plots held-out score against *that*
+   rather than against row count.
+
+**Third-party code is a seed source, not an example source.** A literal like
+`t"<div class={cls}>{body}</div>"` is 100% stdlib; only the library assertions
+around it are not. Literals are extracted and rebuilt into stdlib-only
+exercises, which is also what supplies domain diversity — SQL, HTML, logging,
+regex, and structured-data literals are shaped nothing alike, and that variety
+is the structural counter to correlated output.
+
+A known limitation is recorded rather than papered over: execution-derived
+ground truth only defines tasks whose answers are mechanically checkable, and
+the current benchmark is drawn from that same restricted distribution. A
+separate benchmark sub-project adds naturalistic completion tasks — authored
+before any pattern exists, so they cannot be shaped to fit what the corpus finds
+easy.
+
+---
+
 ## Pipeline
 
 ```bash
