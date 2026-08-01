@@ -8,6 +8,11 @@
 
 **Tech Stack:** Python 3.14+, uv, pytest, ruff, ty. Hatchling as build backend.
 
+**Convergence status:** This plan remains executable and is deliberately
+limited to reset and quarantine. The corpus schema, oracle, and common gates
+that follow are owned by the Shared Foundation milestone in the roadmap; do not
+extend this plan to implement them.
+
 ## Global Constraints
 
 - **Python 3.14+ required.** t-strings do not parse on earlier interpreters. `requires-python = ">=3.14"`.

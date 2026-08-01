@@ -30,17 +30,34 @@ Research of record: [`DATASET_METHODOLOGY.md`](../../DATASET_METHODOLOGY.md) —
 *shape*, not a spec; every rung gets its own brainstorm → spec → plan before
 code, and its own Definition-of-Done.
 
+## Convergence status
+
+The SP0–SP2 rebuild and SP5 authoring work now converge through one shared
+foundation, not two pipelines. The detailed rationale and required ordering are
+in the [roadmap convergence brief](research/2026-08-01-roadmap-convergence-brief.md).
+
+- SP0 R1 remains the next executable task and is unchanged in scope.
+- The shared foundation after R1 owns the final corpus row, provenance,
+  subprocess verifier, expected-value execution, and common contamination/
+  deduplication controls. `harvest` and `authoring` consume it; neither
+  reimplements it.
+- SP2 is the small, high-trust source and fixture path. SP5 is the primary
+  scale path.
+- SP6 owns the independent measurement instrument. No corpus may be emitted
+  for training until its base and strengthened-docs baselines exist.
+
 ## North-Star Steering
 
 The sequence is **measure → harvest → synthesize**, and the order is
 load-bearing rather than stylistic. Two steering rules govern the whole
 roadmap:
 
-1. **No data work before a number exists.** The cited literature's own results
-   argue against fine-tuning as the default tool — documentation-in-context
-   reaches ~66% executable on post-cutoff API tasks, while the only weight-update
-   evidence cited is negative. SP1 exists to find out which tool wins here before
-   SP2 spends effort.
+1. **No training corpus before a number exists.** Source inventory, seed
+   evaluation, and coverage preparation may proceed, but no corpus is emitted
+   or consumed for training until SP6 has established base and
+   strengthened-docs baselines on its independent benchmark. The cited
+   literature argues against fine-tuning as the default tool; measurement must
+   therefore precede the scale path.
 2. **A negative result is a success.** SP1 R4's gate can legitimately conclude
    that retrieval beats fine-tuning for this project. That verdict closes the
    spec successfully and re-scopes SP3/SP4; it is not a failure to be
@@ -70,24 +87,40 @@ first real evidence arrives in SP1.
 | Rung | Summary | State |
 |------|---------|-------|
 | R1 | **Repo reset.** Retire `main.py`, `make_data.py`, `eval.py`. Preserve the 24 hand-written examples as *seed material only*, tagged as unverified-provenance so they can never silently enter a corpus (their descriptions are the F-CONTAM source and must be quarantined from the benchmark). Establish `docs/superpowers/{specs,plans,research}/`. | Pending |
-| R2 | **Corpus record schema.** The format-neutral row of spec §3.6: task, reference solution, hidden tests, provenance (source file, upstream commit/tag, verifying interpreter version). Renderers to training format come later, deliberately — the FIM-vs-chat decision stays deferred. | Pending |
-| R3 | **Oracle harness** (closes F-BLIND-ORACLE). pytest in a subprocess, with timeout. Three checks per task: hidden asserts, `Template`-was-constructed, and an old-form canary rejecting f-string/`.format()` solutions. **Verification obligation:** a deliberately planted f-string solution to a template task must be demonstrated to *fail*, live — not asserted in prose. | Pending |
-| R4 | **Project-local skills.** `harvest-corpus`, `verify-example`, `eval-run` in `.claude/skills/`, written to encode the conventions R2/R3 actually established. Not written speculatively — a skill describing a convention that does not yet exist is a liability. | Pending |
+| R2 | **Corpus record schema.** Moved into the Shared Foundation so both harvest and authoring consume one format-neutral task/provenance contract. | Planned after R1 |
+| R3 | **Oracle harness** (closes F-BLIND-ORACLE). Moved into the Shared Foundation: isolated subprocess verification, feature and old-form checks, executed expected values, and live adversarial fixtures. | Planned after R1 |
+| R4 | **Project-local skills.** `harvest-corpus`, `verify-example`, `eval-run` in `.claude/skills/`, written after the Shared Foundation establishes their conventions. | Blocked by Shared Foundation |
 
-**Done condition:** the placeholder scripts are gone, a corpus row schema with
-mandatory provenance exists, the oracle rejects a planted f-string solution in a
-live run, and three skills encode the conventions as built.
+**R1 done condition:** the placeholder scripts are gone and the 24 legacy
+examples are inert quarantine records. The remaining former SP0 deliverables
+are owned by the Shared Foundation below.
+
+### Shared Foundation: one verifier and task contract
+
+This milestone is planned immediately after SP0 R1. It reconciles the
+SP0–SP2 threat-model requirements with SP5's seed/exercise/property model
+before either track implements a second core.
+
+| Rung | Summary | State |
+|------|---------|-------|
+| F1 | **Merged design and implementation plan.** Define the final corpus row, provenance union, reference-execution path, verifier stage semantics, and authoring/harvest adapters. The reviewed standalone rebuild implementation plan is not executable as written. | Planned after R1 |
+| F2 | **Verification core.** Subprocess oracle, old-form and feature checks, hidden expectations derived from executed reference code, typed stage outcomes, and live adversarial fixtures. | Blocked by F1 |
+| F3 | **Common gates and adapters.** Benchmark/corpus contamination, intra-corpus dedup, pin enforcement, and adapters from CPython harvest and SP5 rendering into the shared row. | Blocked by F2 |
+
+**Done condition:** one task row verifies through one oracle regardless of
+source; a planted f-string, self-referential hidden test, vacuous test, and
+wrong-stage rejection each fail live; no authoring-specific verifier exists.
 
 ### SP1: Measurement Spine
 
 The gate that decides whether this project trains a model or ships a retrieval
 layer. Produces three numbers on one held-out benchmark, all from the same
-harness. Blocked by SP0 R3 (the oracle is the scoring mechanism).
+harness. It starts after the Shared Foundation; SP6 provides its benchmark.
 
 | Rung | Summary | State |
 |------|---------|-------|
-| R1 | **Held-out benchmark.** t-string tasks with hidden-test oracles, authored to be disjoint from every harvest source. Built and authored: 11 tasks, all stdlib-only, in `benchmark/tasks.py`, from authored fixtures exercising `string.templatelib` directly rather than any third-party library's tasks. | Pending — the spike built an 11-task version worth using as a starting point, but see [spike findings](research/2026-07-31-spike-findings.md) §6.7: n=11 may be too thin to discriminate the §3.2 gate |
-| R2 | **Contamination gate** (closes F-CONTAM). Automated disjointness check between benchmark and every training corpus, at both exact-match and near-paraphrase level. **Fails loudly rather than reporting a score** — a contaminated benchmark must halt the run, not annotate it. | Pending |
+| R1 | **Held-out benchmark.** Superseded by SP6's redesigned 30–40 task benchmark, including a naturalistic pre-pattern slice. | Owned by SP6 |
+| R2 | **Contamination gate** (closes F-CONTAM). Implemented in the Shared Foundation and exercised by SP6 against every corpus source. | Owned by Shared Foundation / SP6 |
 | R3 | **Baseline ladder.** Score base zero-shot and base + PEP 750 docs-in-context through the local oMLX endpoint (`127.0.0.1:8001/v1`, already serving via `mellum2-mlx`). Investigate reusing tainie's `src/tainie/eval/` ladder before building a new harness — it already scores models on tdom tasks (a sibling project's own benchmark; not a source of training data for this project, which is stdlib-only). | Pending |
 | R4 | **Base-model audit.** Compare ≥2 candidate bases zero-shot on R1's benchmark. Qwen2.5-Coder-7B (Sept 2024) predates PEP 750's *acceptance*; a 2025/2026-cutoff base may already half-know this material, which would turn knowledge injection into the much easier problem of reinforcement. Record the choice and its reasoning. **Must happen before SP2 scales any data.** | Pending |
 
@@ -117,10 +150,13 @@ recorded — including if retrieval wins.
 
 ### SP6: Benchmark Redesign
 
-**Blocks SP5 R8 only** — SP5 R1–R7 proceed in parallel. Runs on measurement,
-not corpus, so it belongs outside SP5: the same instrument scores SP1's baseline
-ladder, SP2's harvest path, and SP5's sweep, and SP5 must not own the instrument
-it is itself scored by.
+**Blocks corpus emission for training, pilot training, and SP5 R8.** Source
+inventory and seed preparation may proceed while SP6 is built, but a generated
+corpus cannot become training input before its independent benchmark and
+base/docs baselines exist. Runs on measurement, not corpus, so it belongs
+outside SP5: the same instrument scores SP1's baseline ladder, SP2's harvest
+path, and SP5's sweep, and SP5 must not own the instrument it is itself scored
+by.
 
 The benchmark is **no longer frozen**. The
 [spike findings](research/2026-07-31-spike-findings.md) §5 moved that discipline

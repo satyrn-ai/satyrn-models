@@ -74,8 +74,11 @@ assurance is the wrong unit. Audits are per-pattern.
 
 ## 2. Architecture
 
-`satyrn_model.authoring`, a peer of `harvest`, over a **reimplemented**
+`satyrn_model.authoring`, a peer of `harvest`, over the **shared**
 verification core (`oracle`, `gate`, `corpus`, `provenance`, `contamination`).
+The core is planned once after SP0 R1 and is consumed by both source paths;
+this specification owns authoring-specific stages and failure reporting, not a
+second implementation of the verifier or common gates.
 
 > The spike branch (`worktree-overnight-tstrings-spike`) is reference, not
 > foundation. Per the findings doc: *do not carry the spike's code forward;
@@ -125,7 +128,8 @@ content** — drops referenced only by ID are undebuggable.
 - `render.py` — projects an `Exercise` into prompt, reference solution, and
   hidden test.
 - `generate.py` — applies patterns to seeds, emitting `Exercise` intents.
-- `verify.py` — memoizing, pooling wrapper injected into the gate chain.
+- `verify.py` — authoring adapter around the shared verifier, adding its
+  memoizing and pooling policy without forking the verification contract.
 - `diversity.py` — fingerprints, metrics, intra-corpus dedup.
 - `review.py` — the CLI and decision files.
 
