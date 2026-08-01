@@ -18,8 +18,9 @@ If only three things happen to this project, these, in order:
    baselines it produces decide the strategic question at the bottom of this doc.
 2. **Invert the data pipeline.** Stop hand-writing examples that get validated;
    start generating candidates at volume and letting the interpreter reject them.
-   Seed from `tdom` and the pinned CPython at `~/projects/pauleveritt/cpython-3.14.5`
-   rather than from imagination — see "Ground truth worth mining".
+   Seed from the pinned CPython at `~/projects/pauleveritt/cpython-3.14.5` and
+   PEP 750 rather than from imagination — see "Ground truth worth mining".
+   **Stdlib-only:** no example may import a third-party package.
 3. **Re-audit the base model.** Qwen2.5-Coder-7B predates PEP 750's *acceptance*.
    A newer base may already half-know this material, which turns knowledge
    injection into reinforcement — a much easier problem. One afternoon of work,
@@ -34,8 +35,9 @@ stage, adopting distilabel/Curator, tokenizer work.
 
 ### Defect 1 — train/eval contamination
 
-Seven of the ten prompts in [`eval.py`](eval.py) are byte-identical to training
-descriptions in [`make_data.py`](make_data.py):
+Seven of the ten prompts in `eval.py` were byte-identical to training
+descriptions in `make_data.py` (both files deleted in SP0 R1; quoted here as
+the historical record of the defect):
 
 ```
 build a parameterized SQL query from a template
@@ -58,7 +60,7 @@ that memorized twenty-four strings.
 
 ### Defect 2 — the validator cannot detect the failure it exists to catch
 
-[`validate_snippet`](make_data.py:278) is:
+`make_data.py::validate_snippet` (since deleted) was:
 
 ```python
 exec(compile(code, label, "exec"), {})
@@ -177,19 +179,48 @@ asset in the repo and it's currently filtering 24 hand-written items. Invert it.
 
 Ranked by value per unit of effort, using assets already on this machine.
 
-### 1. `tdom` — the highest-value corpus available
+### 1. ~~`tdom`~~ — RULED OUT, and the ranking below was wrong
 
-`~/projects/t-strings/tdom` is a real HTML templating language built on
-t-strings: ~180 KB of Python in the package, with colocated `*_test.py` files
-(note the suffix — `find -name "test_*.py"` finds nothing here). `processor.py`
-is 37 KB and `processor_test.py` alone is 78 KB.
+⛔ **Corrected 2026-07-31 by the project owner. No training example may import
+`tdom`, or any other third-party package. All sources are stdlib-only.**
 
-This is worth more than any synthetic pipeline because it is *real library code
-that consumes the feature*, not demonstrations of the feature. It exercises
-exactly the idiom the model needs and currently lacks: writing a processing
-function that consumes `.strings` / `.interpolations` to produce a result. It
-also supplies naturally hard, non-toy examples — parsing, escaping, format
-handling, callables, SVG — with tests that serve as ready-made hidden oracles.
+An earlier revision of this document ranked `tdom` as "the highest-value corpus
+available" and built a whole harvest architecture around it. That was a
+category error, and it cost most of a build cycle.
+
+**Why it was wrong:** the goal is to teach a *language feature* — PEP 750
+t-string syntax and the `string.templatelib` stdlib API (`Template`,
+`Interpolation`, `.strings`, `.interpolations`, `.values`, `convert()`).
+Training on tdom would have taught the model **tdom's** API surface
+(`TemplateParser`, `TFragment`, `TElement`, `html()`) and bound its notion of
+t-strings to one niche third-party library. The reasoning below — "real library
+code that consumes the feature" — is true and still irrelevant: consuming the
+feature *through a library's abstractions* is not the skill being taught.
+
+**Two independent failures this produced**, both caught only by review:
+
+1. The two modules actually harvested (`escaping.py`, `callables.py`) contain
+   **zero t-string literals**. A dependency-closure resolver was hardened over
+   two fix rounds to extract examples that did not contain the target feature
+   at all.
+2. Pivoting to tdom's *test* files (which do hold 341 + 62 t-strings) produced
+   329 examples whose hidden tests were **vacuous** — they asserted
+   `_result_0 == _result_1` where both values came from the candidate's own
+   code, so a candidate returning `{k: 1 for k in [...]}` with a dummy
+   t-string passed. Proven exploitable against the real oracle before anything
+   was committed.
+
+The second failure was itself downstream of the first: those junk assertions
+existed only because tdom's tests compare against large structural literals
+(`TFragment(children=(...))`). Stdlib t-string tests assert on small
+self-contained values and need no such transformation.
+
+**Nothing tdom-derived ever entered the corpus** — the defects were caught
+before any training data was committed. The harvesters and the oracle's
+third-party-package machinery have been deleted.
+
+**Standing rule:** a source is only admissible if its examples teach t-strings
+using the standard library alone.
 
 ### 2. CPython's own test suite — now pinned at v3.14.5
 
@@ -242,8 +273,12 @@ care.
 
 ### 4. Real migration diffs
 
-Libraries adopting 3.14 give natural old→new contrastive pairs. `tdom`'s own git
-history may supply some of these directly.
+Libraries adopting 3.14 give natural old→new contrastive pairs, in principle.
+In practice, stdlib migration diffs for a brand-new feature are scarce this
+soon after release, and third-party history (e.g. `tdom`'s) is inadmissible as
+a corpus source under the stdlib-only rule (see section 1 above). Expect
+contrastive old→new pairs to come primarily from synthesis (SP3), not from
+mined migration diffs.
 
 ### On 3.15
 

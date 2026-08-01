@@ -9,6 +9,20 @@ discards the placeholder scripts whose two verified defects
 ([contamination](#verified-findings), [blind oracle](#verified-findings))
 would otherwise contaminate every downstream measurement.
 
+> ## A throwaway spike has already run this roadmap end to end
+>
+> Branch `worktree-overnight-tstrings-spike` executed SP0–SP2 and produced a
+> working measure → harvest → train → evaluate loop, two independent review
+> gates, and a data-scale anchor (n=24 → 0% held-out, ~100% memorized). **Its
+> code is deliberately not merged and should not be reused.**
+>
+> Rungs below therefore read *Pending* against `main`, which still contains the
+> pre-spike placeholder scripts — but they are **informed, not untried**. Before
+> designing any of them, read
+> [spike findings](research/2026-07-31-spike-findings.md): what was proven, the
+> bug class that dominated the work, the technical traps, and the decisions that
+> earned their keep versus the ones that expired.
+
 Design source of record: the
 [measure-harvest-synthesize spec](specs/2026-07-30-dataset-workflow-design.md).
 Research of record: [`DATASET_METHODOLOGY.md`](../../DATASET_METHODOLOGY.md) —
@@ -42,6 +56,7 @@ that the roadmap is built to avoid repeating:
 | F-CONTAM | 7 of 10 `eval.py` prompts are byte-identical to `make_data.py` training descriptions; 2 more differ cosmetically. Reported pass rates are memorization scores. | Open — closed by SP0 R1 + SP1 R3 |
 | F-BLIND-ORACLE | `validate_snippet` defines success as "did not raise," so an f-string answer to a template task passes, as does `pass`. The harness cannot see the prior-fallback failure mode. | Open — closed by SP0 R3 |
 | F-STALE-CPYTHON | The CPython source was a **fork** (`t-strings/cpython`) on an in-progress docs branch dated 2025-06-17, ~4 months pre-3.14.0, missing `string.templatelib.convert()` entirely — the canonical `!r`/`!s`/`!a` helper, and precisely the renderer idiom this project teaches. | **Closed 2026-07-30.** Replaced by a shallow clone of official upstream `python/cpython` at tag `v3.14.5` (`~/projects/pauleveritt/cpython-3.14.5`, 157 MB), matching the verifying interpreter. Old checkout removed; its branch survives on the fork's remote. |
+| F-TDOM-RULED-OUT | An earlier plan ranked `tdom` as the highest-value harvest source and built a harvest architecture around it. Training on tdom would teach tdom's own API surface, not the PEP 750 language feature and stdlib `string.templatelib` API this project exists to teach; two independent failures (zero-t-string examples, vacuous hidden tests) were caught only by review before anything was committed. | **Closed 2026-07-31** by project-owner decision: no training example may import `tdom` or any other third-party package; harvest is stdlib-only. See [`DATASET_METHODOLOGY.md`](../../DATASET_METHODOLOGY.md) section 1 for the full record. |
 
 ## Active
 
@@ -71,9 +86,9 @@ harness. Blocked by SP0 R3 (the oracle is the scoring mechanism).
 
 | Rung | Summary | State |
 |------|---------|-------|
-| R1 | **Held-out benchmark.** t-string/tdom tasks with hidden-test oracles, authored to be disjoint from every harvest source. Draw from `tdom/examples/pico_theme` and authored fixtures rather than from `tdom`'s own package code, which SP2 will harvest. | Pending |
+| R1 | **Held-out benchmark.** t-string tasks with hidden-test oracles, authored to be disjoint from every harvest source. Built and authored: 11 tasks, all stdlib-only, in `benchmark/tasks.py`, from authored fixtures exercising `string.templatelib` directly rather than any third-party library's tasks. | Pending — the spike built an 11-task version worth using as a starting point, but see [spike findings](research/2026-07-31-spike-findings.md) §6.7: n=11 may be too thin to discriminate the §3.2 gate |
 | R2 | **Contamination gate** (closes F-CONTAM). Automated disjointness check between benchmark and every training corpus, at both exact-match and near-paraphrase level. **Fails loudly rather than reporting a score** — a contaminated benchmark must halt the run, not annotate it. | Pending |
-| R3 | **Baseline ladder.** Score base zero-shot and base + PEP 750 docs-in-context through the local oMLX endpoint (`127.0.0.1:8001/v1`, already serving via `mellum2-mlx`). Investigate reusing tainie's `src/tainie/eval/` ladder before building a new harness — it already scores models on tdom tasks. | Pending |
+| R3 | **Baseline ladder.** Score base zero-shot and base + PEP 750 docs-in-context through the local oMLX endpoint (`127.0.0.1:8001/v1`, already serving via `mellum2-mlx`). Investigate reusing tainie's `src/tainie/eval/` ladder before building a new harness — it already scores models on tdom tasks (a sibling project's own benchmark; not a source of training data for this project, which is stdlib-only). | Pending |
 | R4 | **Base-model audit.** Compare ≥2 candidate bases zero-shot on R1's benchmark. Qwen2.5-Coder-7B (Sept 2024) predates PEP 750's *acceptance*; a 2025/2026-cutoff base may already half-know this material, which would turn knowledge injection into the much easier problem of reinforcement. Record the choice and its reasoning. **Must happen before SP2 scales any data.** | Pending |
 
 **Done condition:** three comparable numbers exist on one uncontaminated
@@ -89,13 +104,14 @@ Blocked by SP1 R4 (base choice) and SP0 R2 (row schema).
 | Rung | Summary | State |
 |------|---------|-------|
 | R1 | **Assert the pin.** Source is already pinned (F-STALE-CPYTHON closed 2026-07-30: official upstream at `v3.14.5`). This rung makes it *enforced* — the harvester verifies the tree's tag matches the verifying interpreter's version and **fails the run** otherwise, rather than silently producing pre-release API examples. Use `main` only for 3.15 material, recorded as such. | Pending |
-| R2 | **tdom harvest.** Real function → task: signature + docstring as prompt, body as reference, existing tests as hidden oracle. The harvester must know tdom uses a `*_test.py` suffix — `find -name "test_*.py"` returns zero here. `processor_test.py` alone is 78 KB. | Pending |
+| R2 | **Stdlib-sourced harvest.** Real test function → task: signature/intent as prompt, t-string-bearing body as reference, its own assertions as hidden oracle. Sourced from the pinned CPython test suite and PEP 750/What's New examples only — `tdom` is ruled out as a corpus source (see F-TDOM-RULED-OUT above and `DATASET_METHODOLOGY.md` section 1). | Pending |
 | R3 | **CPython harvest.** `Lib/test/test_string/test_templatelib.py` and the templatelib implementation, from the pinned tree, with provenance recorded per row. | Pending |
 | R4 | **First training run.** mlx-lm directly, not Unsloth's MLX backend (unverified rank/alpha handling and prompt-token loss masking). Score against SP1's baselines with the same harness. | Pending |
 
-**Done condition:** a provenance-complete corpus harvested from a pinned CPython
-and from tdom, one training run scored against the SP1 baselines, and the §3.2
-gate evaluated with its verdict recorded — including if retrieval wins.
+**Done condition:** a provenance-complete corpus harvested from the pinned
+CPython test suite and other stdlib-only sources, one training run scored
+against the SP1 baselines, and the §3.2 gate evaluated with its verdict
+recorded — including if retrieval wins.
 
 ## Planned
 
@@ -138,9 +154,12 @@ by execution, produced with the owner's time spent on seeds and pattern
 approval rather than per-example review — and the scale/diversity curve
 recorded.
 
-**Prerequisite:** the contamination gate's known code-similarity blind spot
-(it compares prompt text only) must be closed before this corpus trains
-anything.
+**Prerequisite:** contamination detection must handle **code** similarity,
+not prompt text alone (a prompt-only gate is structurally weakest against
+generated corpora, whose prompts differ in wording even when code is
+duplicated), and must add **intra-corpus** near-duplicate detection, which
+the spike never had. See
+[spike findings](research/2026-07-31-spike-findings.md) §6.4.
 
 ### SP3: Targeted Synthesis
 

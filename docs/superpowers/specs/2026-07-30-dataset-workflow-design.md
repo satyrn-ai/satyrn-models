@@ -44,7 +44,8 @@ designed so additional 3.14/3.15 features plug in later:
   training corpus;
 - a pytest-based verification harness with subprocess isolation and timeouts;
 - a baseline ladder run through the existing local oMLX endpoint;
-- a harvested corpus drawn from `tdom` and a freshly pinned CPython;
+- a harvested corpus drawn from the freshly pinned CPython test suite, PEP 750,
+  and the What's New docs — stdlib-only, no third-party package sources;
 - one training run measured against those baselines;
 - three project-local Claude skills encoding the conventions above.
 
@@ -81,6 +82,32 @@ base model plus PEP 750 docs in context, and (later) the fine-tune.
 This is stated up front so the result cannot be rationalized after the fact.
 It also means approach C (retrieval-only) is tested as a byproduct rather than
 assumed to lose.
+
+**Amended 2026-07-31 — the gate is SUSPENDED for this spike's own run.**
+
+The gate above assumes a corpus built at the intended scale. This spike will
+instead train on a knowingly-undersized corpus (stdlib-only sourcing leaves
+CPython's 13 `test_templatelib.py` methods plus PEP 750's examples — see
+[SP5's brief](../research/2026-07-31-corpus-authoring-brief.md)), because its
+purpose changed: **settle the machinery and establish a low anchor on the
+data-scale curve**, not decide fine-tuning's fate.
+
+Applying the gate unmodified would manufacture an unsupportable verdict. If a
+fine-tune on ~30 examples fails to beat base-plus-docs, the honest reading is
+**"this corpus size is insufficient"** — *not* "retrieval wins." The literature
+is explicit that nobody has published a volume for this task, which is exactly
+why the low anchor is worth having.
+
+So for this spike, Task 12 reports:
+
+- the three numbers, and
+- **the corpus size that produced them**, as a labelled data point on the
+  scale curve,
+
+and explicitly records that the §3.2 gate was **not** adjudicated. The gate
+resumes, unchanged, once SP5 delivers a corpus at intended scale — at which
+point this spike's anchor becomes the curve's left-hand end rather than a
+verdict.
 
 ### 3.3 The oracle is pytest in a subprocess, never in-process `exec`
 
@@ -121,15 +148,57 @@ claim about what a tree contains.
 
 ### 3.5 Harvest converts real code into tasks; it does not paraphrase it
 
-The unit of harvest is a real function from `tdom` or CPython: its signature and
-docstring become the prompt, its body the reference solution, and its existing
-tests the hidden oracle. `tdom` uses a `*_test.py` suffix (not `test_*.py`), so
-naive test discovery finds nothing — the harvester must know this.
+**Amended 2026-07-31** — see
+[the harvest architecture pivot](../research/2026-07-31-harvest-architecture-pivot.md).
+The principle below is unchanged; the *harvest unit* it originally named was
+wrong and is corrected here. **Further amended 2026-07-31, same day:** the
+harvest-unit correction below was right, but its original instantiation
+against `tdom`'s test files was ruled out separately — see the stdlib-only
+decision at the end of this subsection.
 
-`tdom` is the highest-value source because it is a real library *consuming* the
-feature rather than demonstrating it, exercising precisely the renderer idiom
-(a processing function over `.strings` / `.interpolations`) that the model
-lacks. `processor_test.py` alone is 78 KB.
+**Harvest call sites, not callees.** The unit of harvest is a real **test
+function** exercising the feature: its intent becomes the prompt, its
+t-string-bearing body the reference solution, its own assertions the hidden
+oracle. Call sites are naturally standalone (a t-string literal plus one
+import); callee-side library internals are where dependency closures live.
+This now applies to CPython's own test suite
+(`Lib/test/test_string/test_templatelib.py`), the sole admissible harvest
+source.
+
+The original reading — harvest unit = library-internal function, oracle temp
+dir must be import-free — forced a miniature Python module bundler whose bug
+class survived two fix rounds, to unlock a ceiling of ~21 examples of which
+**the four actually shipped contained zero t-strings**. Neither premise was
+required by the research or the user. Both are dropped.
+
+Consequences:
+
+- Function-level harvest is retained only for **trivial closures** (same-file
+  or stdlib). Cross-module inlining is deleted, not fixed — making the
+  wrong-symbol bug class unrepresentable rather than merely gated.
+
+**Two mandatory invariants on any harvester, unaffected by any of the above:**
+
+1. **Self-verification before emission.** Every Example's `reference_solution`
+   must pass its own `hidden_test` through the real oracle, or be dropped
+   loudly with a reason. This turns any future harvester bug from silent
+   corpus poisoning into visible yield loss. Necessary but not sufficient — a
+   wrong-but-passing example survives any gate, which is why the architecture
+   changed rather than merely acquiring this check.
+2. **On-target filter.** An Example whose prompt, reference solution, and
+   hidden test collectively contain no `TemplateStr` and no `Template`-consuming
+   code does not enter a t-strings corpus, whatever its provenance.
+
+**Stdlib-only, decided 2026-07-31 by the project owner.** No training example
+may import `tdom` or any other third-party package. The project teaches the
+PEP 750 language feature and the `string.templatelib` stdlib API, not any one
+library's abstractions built on top of it. `tdom` is ruled out as a corpus
+source entirely — see
+[`DATASET_METHODOLOGY.md`](../../../DATASET_METHODOLOGY.md) section 1 for the
+full history, including the two independent failures this produced before
+being caught in review. Admissible harvest sources are CPython's own pinned
+test suite and PEP 750/What's New material; synthesis (SP3) supplements both,
+also stdlib-only.
 
 ### 3.6 The corpus is stored format-neutral
 
@@ -152,8 +221,8 @@ guessed constant; note that the placeholder config paired `r=16` with
 Three skills in `.claude/skills/`, written when the convention they encode is
 first established, not speculatively:
 
-- `harvest-corpus` — extraction rules, the `*_test.py` suffix trap, mandatory
-  version pinning and provenance;
+- `harvest-corpus` — extraction rules, the stdlib-only rule, mandatory version
+  pinning and provenance;
 - `verify-example` — the three-check oracle contract of §3.3;
 - `eval-run` — running the ladder, reading it, and the contamination check.
 
@@ -171,13 +240,19 @@ This spec is satisfied when all of the following hold:
   and at least one fine-tune, all produced by the same harness.
 - A base-model audit has compared at least two candidate bases zero-shot, and the
   chosen base is recorded with its reasoning.
-- The harvested corpus draws from `tdom` and the official-upstream CPython
-  checkout pinned at `v3.14.5`, with per-row provenance, and the harvester
-  *enforces* the pin by failing when the tree's tag and the verifying
-  interpreter disagree.
-- One training run has completed and been scored against the baselines, and the
-  §3.2 gate has been evaluated and its verdict recorded — including if the verdict
-  is that retrieval wins.
+- The harvested corpus draws from the official-upstream CPython checkout
+  pinned at `v3.14.5` and other stdlib-only sources (PEP 750, What's New
+  docs), with per-row provenance, and the harvester *enforces* the pin by
+  failing when the tree's tag and the verifying interpreter disagree. No
+  example imports `tdom` or any other third-party package.
+- One training run has completed and been scored against the baselines. For a
+  run at intended corpus scale, the §3.2 gate has been evaluated and its
+  verdict recorded — including if the verdict is that retrieval wins. **For
+  this spike's own run**, per §3.2's 2026-07-31 amendment, the gate is
+  pre-registered as suspended rather than adjudicated, and the criterion is
+  instead that the run records a labelled data-scale anchor (corpus size
+  alongside the three numbers) so it can serve as the left-hand end of a
+  future scale curve once the gate resumes at intended scale.
 - The three project-local skills exist and encode the conventions actually used.
 
 **Non-criteria.** Beating the baseline is *not* a completion criterion. Producing
