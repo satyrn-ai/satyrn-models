@@ -3,6 +3,85 @@
 Produce versioned training datasets for teaching models Python 3.14 template
 strings (t-strings).
 
+## Project context
+
+This repository is an experiment in teaching small local code models
+post-cutoff Python features. The evidence phase found that the base model
+prefers f-strings, that a 24-example corpus memorizes instead of generalizing,
+and that the original workflow could accept examples that were wrong while
+passing their own tests. The durable work is split into two efforts:
+
+- `worktree-tstrings-rebuild` is the provider: versioned task contracts,
+  reference/candidate verification, contamination checks, benchmark, training,
+  and evaluation.
+- `worktree-sp5-corpus-brainstorm` is this SP5 consumer: t-string sources,
+  seeds, extraction, properties, patterns, generated rows, reports, and
+  dataset snapshots.
+
+This branch does not build the provider, train a model, score a benchmark, or
+decide whether fine-tuning beats retrieval.
+
+## Start here
+
+Read these in order before changing anything:
+
+1. [Roadmap](docs/superpowers/roadmap.md) — current phase, dependencies, and
+   next cycle.
+2. [SP5 corpus design](docs/superpowers/specs/2026-07-31-seed-and-pattern-corpus-design.md)
+   — scope, data model, threat model, and Definition of Done.
+3. [SP5 implementation plan](docs/superpowers/plans/2026-08-01-tstring-training-data.md)
+   — TDD tasks and checkpoints.
+4. [Provider/consumer boundary](docs/superpowers/research/2026-08-01-roadmap-convergence-brief.md)
+   — what belongs in this branch and what belongs in the provider.
+5. [Spike findings](docs/superpowers/research/2026-07-31-spike-findings.md)
+   — evidence behind the safeguards.
+6. [Execution readiness](docs/superpowers/research/2026-08-01-sp5-execution-readiness.md)
+   — interpreter pin, source policy, fixtures, and provider blockers.
+
+For the broader experiment, see the [weekend co-development background](https://hackmd.io/@pauleveritt/HJJhQzsSfg),
+[How I Use SDD](https://hackmd.io/@pauleveritt/SkNzlMoHMg), and the
+[PEP 750 specification](https://peps.python.org/pep-0750/).
+
+## First prompt
+
+Use this as the first prompt when starting work on this branch:
+
+```text
+Read docs/superpowers/roadmap.md first. Identify the current SP5 cycle and
+required pre-reading, then read the SP5 design, implementation plan, boundary
+brief, spike findings, and execution-readiness record. Confirm that the
+provider-owned SP0 reset/package baseline has landed on main and that this
+worktree consumes it; do not recreate a scaffold or import another worktree.
+For the next approved SP5 task, propose the failing fixtures, exact files, and
+focused checks before implementing anything. Keep this branch limited to
+t-string training-data production.
+```
+
+## Setup
+
+This branch is pinned to Python 3.14.5 and uses [`uv`](https://docs.astral.sh/uv/):
+
+```bash
+uv sync
+```
+
+Before Task 1, consume the provider-owned SP0 reset/package baseline on
+`main`. Do not recreate its `src/` scaffold or import code from the provider
+worktree. The implementation plan names the focused test command for each
+task; this branch is currently at the specification, fixture, and readiness
+stage.
+
+## Working agreements
+
+- Keep examples stdlib-only; third-party literals may be de-libraryized into
+  seeds, but third-party APIs must not appear in published examples.
+- Treat provider execution as the source of expected observations; never write
+  trusted expected values into a row.
+- Preserve source, seed, occurrence, license, pattern, and decision lineage.
+- Stop on benchmark contamination or a missing sandbox guarantee.
+- Use the SDD cycle: brainstorm, research, spec, plan, implement, review.
+- Record false directions and negative results; they are part of the evidence.
+
 ---
 
 ## Current work: building a corpus that can actually teach t-strings
@@ -13,15 +92,17 @@ strings (t-strings).
 
 ### What this is
 
-A data project that manufactures verified, reproducible training datasets for
-one language feature: Python 3.14 t-strings. It uses the verification,
-contamination, benchmark, training, and evaluation provider being rebuilt on
-`worktree-tstrings-rebuild`; it does not implement those systems itself.
+A data project that produces reproducible, provenance-complete training-data
+candidates for one language feature: Python 3.14 t-strings. The provider being
+rebuilt on `worktree-tstrings-rebuild` verifies and qualifies those candidates;
+it owns the contamination, benchmark, training, and evaluation systems. This
+branch does not implement those systems itself.
 
 This worktree owns source manifests, t-string seed extraction, CPython/PEP
 source-derived rows, authored seeds, properties, patterns, generated rows,
 data-quality reports, a versioned composition profile, provenance lineage, and
-immutable 500/2k/5k dataset snapshots. It stops at the dataset boundary. Model training,
+immutable 500/2k/5k dataset snapshots. It stops at the dataset boundary. Model
+training,
 benchmark scoring, memorization measurement, and the fine-tune-vs-retrieval
 verdict belong to the provider effort.
 
