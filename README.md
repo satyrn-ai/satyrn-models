@@ -25,6 +25,13 @@ the dataset boundary. Model training,
 benchmark scoring, memorization measurement, and the fine-tune-vs-retrieval
 verdict belong to the provider effort.
 
+It has a useful independent first milestone: **collection**. SP5 can pin and
+license sources, extract safe t-string candidates, retain multi-origin seed
+provenance, measure coverage, and author seeds without the provider. Those
+artifacts are explicitly unqualified input—not final rows or publishable
+snapshots—until provider rendering, execution, qualification, and contamination
+checks are available.
+
 The current records are:
 
 - [Seed-and-pattern corpus design](docs/superpowers/specs/2026-07-31-seed-and-pattern-corpus-design.md)
@@ -85,12 +92,13 @@ Four properties make a large auto-accept path defensible:
    reference evidence.
 3. **Gates carry adversarial tests.** Where a gate is unavoidable — proving a
    check can actually discriminate a real solution from a fake one — a
-   planted defect must be demonstrated failing in a live run. Eight are
+   planted defect must be demonstrated failing in a live run. Ten are
    specified, four aimed at the gates themselves, because gates are where this
    bug class re-hosts.
 4. **Diversity is measured, not assumed.** 200 seeds × 30 patterns is not 6000
-   independent examples. Effective diversity is tracked by structural
-   fingerprinting and recorded in every published dataset manifest. The
+   independent examples. Exact repeats are rejected; structural fingerprints
+   are diversity metrics, not duplicate proof, and are recorded in every
+   published dataset manifest. The
    provider later compares model scores against that metric.
 
 **Third-party code is a seed source, not an example source.** A literal like

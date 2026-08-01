@@ -1,7 +1,15 @@
 # SP-DATASET: Measure-Harvest-Synthesize Dataset Workflow
 
-Status: Approved for implementation by the user on 2026-07-30 (approach A plus
-the machinery list, chosen over synthesis-first and retrieval-only).
+> **Historical record — superseded as an executable plan.** The
+> provider/consumer split supersedes this document's implementation ownership.
+> Its research and rationale remain useful, but no SP5 worker may implement its
+> verifier, benchmark, training, evaluation, or skills sections. For current
+> t-string-data work, use the [seed-and-pattern corpus design](2026-07-31-seed-and-pattern-corpus-design.md)
+> and [implementation plan](../plans/2026-08-01-tstring-training-data.md); for
+> the boundary and migration rationale, use the
+> [roadmap-convergence brief](../research/2026-08-01-roadmap-convergence-brief.md).
+
+Historical status: approved on 2026-07-30 before the provider/consumer split.
 
 Research of record: [`DATASET_METHODOLOGY.md`](../../../DATASET_METHODOLOGY.md)
 — literature review, independent critical review, and two defects verified
@@ -29,7 +37,9 @@ entirely — the canonical `!r`/`!s`/`!a` helper, and exactly the renderer idiom
 this project exists to teach. Harvesting from it would have poisoned a dataset
 whose entire purpose is currency. It has been replaced by a shallow clone of
 official upstream `python/cpython` at tag `v3.14.5`
-(`~/projects/pauleveritt/cpython-3.14.5`), matching the verifying interpreter.
+(`~/projects/pauleveritt/cpython-3.14.5`). **Historical assertion:** the
+claimed interpreter match was later found unverified; the current SP5 plan
+requires an exact enforced tag/interpreter check before treating it as closed.
 
 The deeper problem is that no measurement loop is closed. Dataset size is not
 the bottleneck; the absence of a number is. The user has confirmed the existing

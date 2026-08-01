@@ -121,11 +121,10 @@ content** — drops referenced only by ID are undebuggable.
   which demands an exact tag *and* tag ≡ interpreter version; neither
   generalizes to third-party repos. The interpreter check survives as a
   separate global precondition asserted once per run.
-- `extract.py` — AST walk for `ast.TemplateStr`, emitting `Seed` records and
-  self-contained CPython/PEP `SourceExercise` intents. Reads library source;
-  never imports it and never inlines cross-module helpers. The node matcher is
-  isolated for testability, not as a commitment to support other language
-  features here.
+- `extract.py` — AST walk for `ast.TemplateStr`, emitting source occurrences
+  and source-exercise *candidates*. Reads library source; never imports it and
+  never inlines cross-module helpers. Rendering a candidate to a provider task
+  happens only after the provider contract is available.
 - `seeds.py` — the `Seed` record and its JSONL round-trip.
 - `facts.py` — calls the provider's timeout-bounded reference-execution API and
   stores deterministic t-string facts; no local evaluator subprocess.
@@ -157,20 +156,36 @@ may reuse is the stage decomposition and artifact/decision conventions.
 Subprocess execution and its cache remain provider services, not reusable
 authoring modules.
 
+The CPython source tag and verifier are an exact pair, for example
+`v3.14.5` and interpreter `3.14.5`; a declaration such as `.python-version =
+3.14` is insufficient evidence. Each run and snapshot records the resolved
+interpreter build. Until that exact check passes, the historical claim that the
+source pin "matches the verifier" is open rather than closed.
+
 ---
 
 ## 3. Data model
 
-### 3.1 `Seed`
+### 3.1 Collection records and `Seed`
+
+Extraction records every occurrence before normalization. This avoids the
+common provenance loss where a content-derived ID silently discards the second
+repository that supplied the same literal.
 
 ```python
 @dataclass(frozen=True)
+class SeedOccurrence:
+    id: str                                  # sha256(origin + exact span)
+    seed_id: str                             # sha256(literal + bindings)
+    origin: SeedOrigin                       # repo, ref, path, exact span, license
+
+@dataclass(frozen=True)
 class Seed:
-    id: str                                  # embeds sha256(literal + bindings)
+    id: str                                  # sha256(literal + bindings)
     literal: str                             # "t'<div class={cls}>{body}</div>'"
     free_names: tuple[str, ...]
     bindings: tuple[tuple[str, str], ...]    # (('cls', "'card'"), ...)
-    origin: SeedOrigin                       # repo, path, ref, line
+    occurrence_ids: tuple[str, ...]          # one or more SeedOccurrence ids
     kind: Literal["extracted", "authored"]
 ```
 
@@ -181,9 +196,11 @@ throughout, since the dataclass is frozen and hashable; the JSONL round-trip
 normalizes lists back to tuples in `__post_init__` or equality and hashing
 silently break.
 
-Ids are **content-derived** so the `seed_ids` join in provenance is
-tamper-evident. An audit trail whose targets can be edited underneath it is not
-an audit trail.
+Seed IDs are **content-derived** and occurrence IDs bind their exact source
+spans, so both normalization and provenance are tamper-evident. A `Seed` never
+pretends it has one origin; reports resolve every `occurrence_id` to its source
+record. An audit trail whose targets can be edited underneath it is not an
+audit trail.
 
 ### 3.2 `Property` and exercise intents
 
@@ -195,7 +212,8 @@ assertion-grammar forms it may render to.
 | `Introspect` | `target`, `index`, `field` | 1 | fact at that path | consuming |
 | `Render` | `idiom` | 1 | executed rendered output | authoring + consuming |
 | `Transform` | `op`, `arity` | 2+ | facts of the composed expression | authoring |
-| `NegativeControl` | `expected_solution_kind` | 1 | executed non-template solution | negative |
+| `Construct` | `operation` (`Interpolation` or `convert`) | 1 | executed constructed template/value | consuming |
+| `NegativeControl` | `expected_solution_kind`, `requires_template=False` | 1 | executed non-template solution | negative |
 
 ```python
 @dataclass(frozen=True)
@@ -206,19 +224,22 @@ class GeneratedExercise:
     prop: Property
 
 @dataclass(frozen=True)
-class SourceExercise:
+class SourceExerciseCandidate:
     id: str
     origin: SourceOrigin
-    extracted_intent: str
-    reference_program: str
-    prop: Property
+    evidence: SourceEvidence               # method/name/comment/docstring/span
+    intent: TaskIntent                     # canonical derived intent
+    check_spec: LocalCheckIntent           # declarative, not executable Python
 ```
 
-`ExerciseIntent` is the tagged union of these variants. `GeneratedExercise`
-enforces `prop.arity == len(seeds)` at construction. `SourceExercise` carries
-exact source provenance and has no fictional `pattern_id` or `seed_ids`.
-Source extraction accepts only self-contained stdlib programs; it rejects
-cross-module helper dependencies rather than adding a resolver/inliner.
+`TaskIntent` is the canonical source for the authored prompt template,
+property, and translated provider `CheckSpec`; none is independently rewritten
+from `evidence`. The harvest unit is an assertion block/case, not a whole test
+method. A method with multiple assertions, loops/subtests, helper calls, or no
+descriptive evidence is split only when its case can be represented directly;
+otherwise it is rejected with a reason. Cross-module helpers are rejected
+rather than resolved or inlined. `GeneratedExercise` enforces
+`prop.arity == len(seeds)` at construction.
 
 **No expected value is stored on the intent or emitted row.** Nothing would tie
 such a field to its exact intent, so a batching bug would yield a well-formed
@@ -245,9 +266,17 @@ expression rather than the seed, because a composed template's facts are not
 derivable from its parts even in principle: `Template.__add__` collapses
 adjacent strings, so `t"Hello " + t"World"` yields `.strings == ("Hello World",)`.
 
-Every seed is evaluated **twice**; a mismatch rejects it as nondeterministic,
-catching `datetime.now()` and `random` at extraction time rather than as flaky
-provider failures later. Every observation must use a provider-approved
+Before a provider executes third-party-derived material, local extraction
+accepts only a documented pure AST expression subset and bindings from a small
+safe literal/std-lib value palette. It rejects calls, comprehensions, lambdas,
+walrus expressions, dynamic imports (including `__import__`), file/network/
+process primitives, and attribute access other than an explicitly approved
+value palette. The provider additionally executes in its OS sandbox; a timeout
+alone is not a security boundary.
+
+Every seed is evaluated **twice**; a mismatch rejects it as nondeterministic.
+This detects nondeterminism, not side effects or unsafe code, which is why the
+pre-execution gate and provider sandbox are both required. Every observation must use a provider-approved
 serialization or comparison projection. A value with no approved
 representation is rejected; this project does not embed `repr` output into
 executable checks.
@@ -264,7 +293,7 @@ variants rather than filling one shape with fictional values:
 
 - source-derived rows identify repository, immutable ref, path, exact span,
   license record, and verifying interpreter;
-- generated rows identify this project, pattern ID and source hash, all seed
+- generated rows identify this project, pattern ID and input fingerprint, all seed
   IDs, generator version, and verifying interpreter.
 
 Per-seed origins live on the `Seed` records and are reached through `seed_ids`,
@@ -277,10 +306,13 @@ therefore cannot stamp a row with a commit ref that never contained it.
 Split by lifecycle, because the two have different keys and invalidation rules
 and one malformed writer must not corrupt both.
 
-- `patterns/approvals.jsonl` — `{pattern_id, source_sha256, approved_at,
-  audit_sha256, audit_passed_at}`. Editing an approved pattern invalidates both
-  its approval and its audit. `build` refuses a pattern whose current hash has
-  no matching record.
+- `patterns/approvals.jsonl` — `{pattern_id, pattern_input_fingerprint,
+  approved_at, audit_sha256, audit_passed_at}`. The input fingerprint includes
+  pattern source, declared helpers/templates/renderer dependencies, generator
+  version, relevant policy/configuration versions, and rendering-contract
+  version. Editing any input invalidates approval, audit, and generated cache.
+  Patterns must declare dependencies (or be self-contained); `build` refuses a
+  pattern with no matching current fingerprint.
 - `review/decisions.jsonl` — `{kind: "seed" | "row" | "binding", content_sha256,
   verdict, reason, decided_at}`. Because a pattern edit invalidates prior row
   decisions wholesale, `review` emits a migration report ("212 rows changed
@@ -308,6 +340,15 @@ The t-string policy retains the hard-won AST precision below, while the
 provider owns invocation, caching, pooling, and stage preservation.
 The policy is packaged as a dependency-isolated provider plugin: it depends on
 provider contracts but imports no source, seed, pattern, or authoring module.
+
+### 4.1.1 Source and import boundaries
+
+`sources.toml` uses an explicit allowed-license policy. Every published
+snapshot includes a source/license inventory and required attribution or NOTICE
+material. Before rendering, an AST import gate permits only a versioned stdlib
+allowlist and rejects dynamic imports. De-libraryization also rejects retained
+third-party API names that would teach a third-party abstraction despite having
+no import. These are data-production gates, not claims about provider policy.
 
 ### 4.2 Check-spec grammar
 
@@ -400,14 +441,16 @@ because gates are where this bug class re-hosts.
 
 | # | Planted | Must be caught by | Lands in |
 |---|---|---|---|
-| 1 | f-string solution to a template task | provider policy stage | R2c |
-| 2 | attempted candidate-vs-candidate check | provider contract rejection | R2d |
-| 3 | vacuous check (`assert True`-grade intent) | provider task qualification | R2c |
-| 4 | `AnnAssign`/`ClassDef` solution + vacuous check | provider returns *vacuity untested* | R2c |
-| 5 | prompt renderer describing `.values`, test checking `.strings` | cross-projection check | R5 |
-| 6 | row lacking a feature its `Property` implies | classifier | R5 |
-| 7 | `TemplateStr` solution labelled `requires_template=False` | label gate | R2c |
-| 8 | duplicate of a benchmark task | provider contamination halts | R6b |
+| 1 | f-string solution to a template task | provider policy stage | R3 |
+| 2 | attempted candidate-vs-candidate check | provider contract rejection | R3 |
+| 3 | vacuous check (`assert True`-grade intent) | provider task qualification | R3 |
+| 4 | `AnnAssign`/`ClassDef` solution + vacuous check | provider returns *vacuity untested* | R3 |
+| 5 | prompt renderer describing `.values`, test checking `.strings` | cross-projection check | R4 |
+| 6 | row lacking a feature its `Property` implies | classifier | R4 |
+| 7 | `TemplateStr` solution labelled `requires_template=False` | label gate | R3 |
+| 8 | duplicate of a benchmark task | provider contamination halts | R5 |
+| 9 | `__import__`, file read, subprocess/process call, or deterministic side effect in a seed/binding | local safety gate before provider execution | R1 |
+| 10 | valid `t"{v:{w}}"` format spec and an actual nested f-string inside that spec | policy preserves the former and rejects the latter | R3 |
 
 Defect 4 is the one the spike's own code did **not** catch.
 
@@ -426,18 +469,28 @@ Defect 4 is the one the spike's own code did **not** catch.
   The AST metric is structurally blind to it. Renderers must vary surface
   framing (comment / docstring / chat) as a condition of pattern approval.
 - **Embedding clustering** — second lens for paraphrases the AST view calls
-  distinct. Reporting only, never acceptance.
+  distinct. This is an optional external, report-only artifact: it records its
+  pinned model/revision and deterministic settings, and never affects
+  acceptance. The package makes no model call.
 
-**Intra-corpus dedup** lives here, by fingerprint **bucketing** (linear), not
-similarity scoring — the findings doc names it the genuinely missing piece and
-notes the naive form is O(n²). Benchmark × corpus stays with contamination and
-is linear anyway, since the benchmark is fixed.
+Three different operations must not be conflated:
+
+1. **Exact-content duplicates** are a hard, linear build rejection.
+2. **Semantic/near duplicates** are reported (and may become a calibrated gate
+   only with named evidence and adversarial tests).
+3. **Structural fingerprints** erase identifiers/constants and are a diversity
+   metric and optional per-bucket sampling cap, never duplicate proof.
+
+The same distinction applies to source suitability: a source's novel skeleton
+count is a selection/reporting signal, not a rule that rejects all material
+sharing a skeleton. Benchmark × corpus remains with provider contamination.
 
 ### 5.2 Bootstrap
 
-Dedup is **binary**, not distributional — two rows in one bucket are duplicates
-— so it gates from build one. Deferring it would compute the pilot's diversity
-numbers over a corpus still containing the duplicates they exist to detect.
+Exact-content dedup gates from build one. Structural buckets deliberately do
+not: two rows may share a template AST yet teach distinct APIs, static-domain
+text, or semantics. Fixtures therefore retain a same-skeleton/different-
+semantics pair while rejecting an exact repeat.
 
 Diversity *thresholds* wait, and are derived without self-referential
 calibration:
@@ -455,10 +508,12 @@ manifest records the committed thresholds and passes provider eligibility.
 
 ### 5.3 Published scale slices
 
-This project publishes 500, 2k, and 5k dataset snapshots with composition held
-constant and effective diversity reported. `sampling.toml` records the
-selection rule and random seed; each manifest records the selected row IDs and
-all input fingerprints.
+This project publishes nested, stratified 500 ⊂ 2k ⊂ 5k snapshots with
+composition held constant and effective diversity reported. `sampling.toml`
+commits the random seed, row IDs, and strata (source kind, property, pattern,
+and seed); each manifest records all input fingerprints. The calibrated 500 is
+the published 500 snapshot, or the final selected 500 must be recalibrated
+before publication.
 
 The provider trains and scores these slices. Its held-out curve and diagnosis
 (working corpus, correlation, or task-distribution bias) are consumer results,
@@ -479,14 +534,15 @@ metric.
 ## 6. Testing strategy
 
 1. **Unit tests per module.**
-2. **The eight planted defects**, live. A first-class deliverable, not test
+2. **The ten planted defects**, live. A first-class deliverable, not test
    hygiene.
 3. **Golden tests per (Property variant, renderer)**, plus the cross-projection
    check, which per-renderer goldens provably cannot catch.
 4. **Property and invariant tests** — provider-observation determinism and
    serialization compatibility,
-   JSONL round-trip preserving tuple types and frozen-dataclass equality, arity
-   enforcement, content-derived id stability, atomic artifact writes on
+   JSONL round-trip preserving tuple types and frozen-dataclass equality,
+   multi-origin normalization, arity enforcement, content-derived id stability,
+   exact-versus-structural dedup distinction, and atomic artifact writes on
    interrupted builds.
 5. **End-to-end:**
    - **Golden mini-corpus** — 3 fixture seeds × 2 fixture patterns through
@@ -504,20 +560,13 @@ metric.
 
 | Rung | Summary |
 |---|---|
-| R1 | **Source validation + extraction.** `grep -c 't"' ≥ 1` across all candidate repos **before** building extraction — the tdom category error's standing corrective. `sources.toml` records URL, pinned SHA, license, and (post-extraction) novel-skeleton contribution; zero-contribution repos drop from future refreshes. Shallow clones into a gitignored cache, `assert_source_pin`. AST extraction emits literal seeds plus self-contained CPython/PEP `SourceExercise` intents; cross-module helpers are rejected. Content-derived ids. |
-| R2a | **Provider adapter + contract fixtures.** Reference execution, verification, and typed stages are consumed, not implemented. |
-| R2b | **Data model** — `Seed`, `SourceExercise | GeneratedExercise`, `Property`, generated-arity invariant. Pure dataclasses; pulled early because R2c/R2d depend on `Property`. |
-| R2c | **T-string policy + provider qualification integration** + defects 1, 3, 4, 7. No runner. |
-| R2d | **Property-to-`CheckSpec` grammar** + defect 2. The provider owns the generic wire grammar. |
-| R3 | **Seed facts + review CLI.** Call provider reference execution twice and reject unsupported observations. Facts-first review with palette auto-accept and cached `(name, expression)` decisions. Seed dedup by fingerprint bucket. |
-| R4 | **Coverage analysis + seed authoring.** Grammar-shape × task-type matrix (`rt`-strings, implicit concatenation, nested quotes, format-spec nesting, `!r`/`!s`/`!a`, multiline, empty edge cases × emit/introspect/transform/negative). Owner authors seeds filling measured gaps; Self-Instruct's 100–200 is the floor for the combined budget. |
-| R5 | **Patterns and generation.** Renderers, cross-projection check, composition classifier, pattern registry, `audit-pattern`, generation to the fingerprinted cache. Defects 5, 6. |
-| R6a | **Provider integration + generation cache**, with cold/warm provider equivalence and pure-generation cache invalidation tests. |
-| R6b | **Build-gate integration** — provider contamination/eligibility call, local intra-corpus dedup, composition-mix reporting, and defect 8. |
-| R6c | **Reports** — `build.md`, `dropped.jsonl`. |
-| R6d | **Adjudication CLI** + migration report. UI rather than verification; may trail R7. |
-| R7 | **Pilot + threshold derivation.** ~500 rows. Commit diversity thresholds, the classifier tolerance band, and the review-budget fraction with their derivations; supply calibration pairs/rows for provider-owned contamination thresholds. |
-| R8 | **Dataset slice publication.** Immutable 500 → 2k → 5k snapshots, composition held constant, manifests and effective-diversity reports committed. Provider performs the training sweep. |
+| R1 | **Source validation + collection.** `sources.toml` records URL, exact SHA, allowed license, attribution data, and source type. The exact verifying interpreter is recorded and checked against the CPython tag; it is not inferred from a minor-version file. AST extraction emits `SeedOccurrence`, normalized multi-origin `Seed`, and source-exercise candidates. A local pure-expression gate precedes any provider execution. |
+| R2 | **Collection checkpoint: coverage + authoring.** Run Cover→Author→Cover on collection artifacts without the provider: grammar-shape × task/property coverage, source/license inventory, and gaps. Commit reviewed authored seeds and `reports/coverage.md`; this is the independently useful stopping point. |
+| R3 | **Provider rendering, facts, policy, and qualification.** Render minimal `TaskRecord`s from canonical intents, then call provider reference execution twice and qualification. Facts-first review is keyed by content and provider contract; no raw expression is passed to a `TaskRecord` API. Defects 1–4, 7, and 10 prove provider/policy boundaries. |
+| R4 | **Patterns and generation.** Renderers, cross-projection check, composition classifier, and `audit-pattern`. Approval/cache keys use the transitive `pattern_input_fingerprint`; a helper or renderer change halts stale approval. Defects 5–6. |
+| R5 | **Build-gate integration and reports.** Provider contamination/eligibility call, exact intra-corpus dedup, structural diversity reporting, composition reporting, source/license inventory, and full-content drops. Defect 8. |
+| R6 | **Pilot + threshold derivation.** ~500 rows. Commit diversity thresholds, classifier tolerance band, and review-budget fraction with derivations; supply calibration material for provider-owned contamination thresholds. |
+| R7 | **Dataset slice publication.** Immutable nested, stratified 500 ⊂ 2k ⊂ 5k snapshots with composition held constant, manifests, and effective-diversity reports. Provider performs the training sweep. |
 
 Rungs are deliberately small around verification-heavy work: each planted defect
 is *designed to fail first*, so bundling six into one rung builds in six
@@ -526,12 +575,12 @@ rounds, a pivot, and deletion.
 
 ### 7.1 Blocking dependencies
 
-- R2a and every verified-row claim require the provider's versioned dataset,
+- R3 and every verified-row claim require the provider's versioned dataset,
   reference-execution, policy, and typed-stage contract fixtures.
 - Final build publication requires a provider benchmark fingerprint and
   contamination result. Benchmark design and baseline strength are not SP5
   work.
-- R8 requires the R7 composition and diversity thresholds, but not a model run.
+- R7 requires the R6 composition and diversity thresholds, but not a model run.
   Training and evaluation may occur later without changing the published data.
 
 ---
@@ -567,8 +616,8 @@ Falsifiable:
 
 1. On a clean checkout, `authoring build --no-cache` from committed inputs
    reproduces `corpus/tstrings.jsonl` **byte-identically**.
-2. All eight planted defects fail live in CI.
-3. Corpus ≥ 5k rows; distinct-skeleton count and composition mix within the
+2. All ten planted defects fail live in CI.
+3. Corpus ≥ 5k rows; exact duplicates absent, distinct-skeleton count and composition mix within the
    bands committed at R7; zero benchmark contamination conflicts.
 4. Human decisions across both decision files number ≤ the review-budget
    fraction of emitted rows committed at R7 — the measurable form of "the

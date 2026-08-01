@@ -73,7 +73,7 @@ that the roadmap is built to avoid repeating:
 |----|---------|--------|
 | F-CONTAM | 7 of 10 `eval.py` prompts are byte-identical to `make_data.py` training descriptions; 2 more differ cosmetically. Reported pass rates are memorization scores. | Open — closed by SP0 R1 + SP1 R3 |
 | F-BLIND-ORACLE | `validate_snippet` defines success as "did not raise," so an f-string answer to a template task passes, as does `pass`. The harness cannot see the prior-fallback failure mode. | Open — closed by SP0 R3 |
-| F-STALE-CPYTHON | The CPython source was a **fork** (`t-strings/cpython`) on an in-progress docs branch dated 2025-06-17, ~4 months pre-3.14.0, missing `string.templatelib.convert()` entirely — the canonical `!r`/`!s`/`!a` helper, and precisely the renderer idiom this project teaches. | **Closed 2026-07-30.** Replaced by a shallow clone of official upstream `python/cpython` at tag `v3.14.5` (`~/projects/pauleveritt/cpython-3.14.5`, 157 MB), matching the verifying interpreter. Old checkout removed; its branch survives on the fork's remote. |
+| F-STALE-CPYTHON | The CPython source was a **fork** (`t-strings/cpython`) on an in-progress docs branch dated 2025-06-17, ~4 months pre-3.14.0, missing `string.templatelib.convert()` entirely — the canonical `!r`/`!s`/`!a` helper, and precisely the renderer idiom this project teaches. | Official upstream at `v3.14.5` is now present, but the installed worktree interpreter reports `3.14.2`; the former claim of an exact match is therefore **open pending an enforced exact-tag/interpreter check**. |
 | F-TDOM-RULED-OUT | An earlier plan ranked `tdom` as the highest-value harvest source and built a harvest architecture around it. Training on tdom would teach tdom's own API surface, not the PEP 750 language feature and stdlib `string.templatelib` API this project exists to teach; two independent failures (zero-t-string examples, vacuous hidden tests) were caught only by review before anything was committed. | **Closed 2026-07-31** by project-owner decision: no training example may **import** `tdom` or any other third-party package. **Narrowed 2026-07-31:** third-party *literals* remain valid **seed** material — `t"<div class={cls}>{body}</div>"` is 100% PEP 750, and only the surrounding library assertions are not. See SP5 §1.1 ("de-libraryization") and [`DATASET_METHODOLOGY.md`](../../DATASET_METHODOLOGY.md) section 1. |
 
 ## Active
@@ -138,7 +138,7 @@ not a separate package or provider milestone.
 
 | Rung | Summary | State |
 |------|---------|-------|
-| R1 | **Assert the pin.** Source is already pinned (F-STALE-CPYTHON closed 2026-07-30: official upstream at `v3.14.5`). This rung makes it *enforced* — the harvester verifies the tree's tag matches the verifying interpreter's version and **fails the run** otherwise, rather than silently producing pre-release API examples. Use `main` only for 3.15 material, recorded as such. | Pending |
+| R1 | **Assert the pin.** Official upstream is available at `v3.14.5`, but F-STALE-CPYTHON stays open until the harvester verifies an exact tree-tag ↔ verifying-interpreter match and **fails the run** otherwise. Use `main` only for 3.15 material, recorded as such. | Pending |
 | R2 | **Stdlib-sourced harvest.** Real test function → task: signature/intent as prompt, t-string-bearing body as reference program, and assertions translated into declarative provider checks without private CPython helpers. Sourced from pinned CPython and PEP 750/What's New only. | Pending |
 | R3 | **CPython harvest.** `Lib/test/test_string/test_templatelib.py` and the templatelib implementation, from the pinned tree, with provenance recorded per row. | Pending |
 | R4 | **Harvested dataset handoff.** Publish verified rows and a manifest through the provider contract; no training run occurs in this project. | Pending |
@@ -223,20 +223,17 @@ Published precedent:
 
 | Rung | Summary | State |
 |------|---------|-------|
-| R1 | **Source validation + extraction.** `grep -c 't"' ≥ 1` across every candidate repo *before* building extraction — the F-TDOM-RULED-OUT corrective, made standing. `sources.toml` records URL, pinned SHA, license, and novel-skeleton contribution. AST extraction emits literal seeds plus self-contained CPython/PEP source exercises; cross-module helpers are rejected. | Planned |
-| R2a | **Provider adapter + contract fixtures.** Consume reference execution, candidate verification, and typed stages; implement no oracle. | Planned |
-| R2b | **Data model** — `Seed`, `SourceExercise | GeneratedExercise`, `Property` tagged union, generated-arity invariant. | Planned |
-| R2c | **T-string policy + provider qualification integration** + planted defects 1, 3, 4, 7. No runner. | Planned |
-| R2d | **Property-to-`CheckSpec` grammar** + planted defect 2. The provider owns the generic wire grammar. | Planned |
-| R3 | **Seed facts + review CLI.** Call provider reference execution twice for determinism; facts-first review with palette auto-accept and cached binding decisions. | Planned |
-| R4 | **Coverage analysis + seed authoring.** Grammar-shape × task-type matrix, not API-name coverage. Owner authors seeds filling measured gaps; Self-Instruct's 100–200 is the floor for the combined budget. | Planned |
-| R5 | **Patterns and generation.** Renderers, cross-projection consistency check, composition classifier, pattern registry with approvals keyed on source hash, `audit-pattern`. Planted defects 5, 6. | Planned |
+| R1 | **Manifest + local collection model.** Exact source/verifier pins, allowed licenses and attribution, `SeedOccurrence` → multi-origin normalized `Seed`, canonical task intent/property model, and source-exercise candidates. No provider dependency. | Planned |
+| R2 | **Safe extraction + collection checkpoint.** AST extraction never imports sources; a pure-expression safety grammar precedes provider execution. Cover→Author→Cover creates committed coverage, source/license inventory, and an explicitly unqualified collection checkpoint. | Planned |
+| R3a | **Provider adapter + render-to-task fixtures.** Render a minimal `TaskRecord` from canonical intent before consuming reference execution, candidate verification, and typed stages; implement no oracle. | Planned |
+| R3b | **Provider facts, policy, and qualification.** Facts/review are keyed by rendered task and provider environment; t-string policy includes construct/convert and dynamic-format-spec precision. | Planned |
+| R4 | **Patterns and generation.** Renderers, cross-projection consistency check, composition classifier, and `audit-pattern`; approval/cache keys use transitive pattern-input fingerprints, so helper/renderer changes invalidate approval. | Planned |
 | R6a | **Provider integration + generation cache.** Contract compatibility, provider cold/warm equivalence, and pure-generation cache invalidation. | Planned |
-| R6b | **Build-gate integration** — provider contamination/eligibility, local intra-corpus dedup, composition reporting, and planted defect 8. | Planned |
+| R6b | **Build-gate integration** — provider contamination/eligibility, exact intra-corpus dedup, structural diversity reporting/sampling caps, composition reporting, and planted defect 8. | Planned |
 | R6c | **Reports** — `build.md`, committed `dropped.jsonl` with full row content. | Planned |
 | R6d | **Adjudication CLI** + migration report. UI rather than verification; may trail R7. | Planned |
 | R7 | **Pilot + threshold derivation.** ~500 rows; diversity thresholds, classifier tolerance band, and review-budget fraction committed with derivations. Supply calibration material for provider-owned contamination thresholds; any conflict still halts. | Planned |
-| R8 | **Dataset slice publication.** Immutable 500 → 2k → 5k snapshots with composition held constant, manifests and effective-diversity reports. Provider trains and scores them. | Planned |
+| R8 | **Dataset slice publication.** Immutable nested, stratified 500 ⊂ 2k ⊂ 5k snapshots with composition held constant, manifests and effective-diversity reports. Provider trains and scores them. | Planned |
 
 Rungs are deliberately small around verification-heavy work: each planted defect
 is *designed to fail first*, so bundling several into one rung builds in several
@@ -245,7 +242,7 @@ pivot, and deletion.
 
 **Done condition (falsifiable — full form in spec §9):** `authoring build
 --no-cache` reproduces the corpus byte-identically from committed inputs; all
-eight planted defects fail at their expected provider/data-policy stages; ≥5k
+ten planted defects fail at their expected provider/data-policy stages; ≥5k
 rows fall within R7 bands; and immutable, composition-matched 500/2k/5k
 snapshots are published. No model-performance verdict is required here.
 
@@ -253,8 +250,9 @@ snapshots are published. No model-performance verdict is required here.
 similarity need separate axes, but its 0.85/0.70 thresholds came from an 11×24
 distribution and are not carried forward as truth. The provider recalibrates
 them against SP5's 500-row pilot and halts on any benchmark conflict. SP5 owns
-intra-corpus exact/structural dedup from build one. Semantic duplicates that
-score low on both axes remain an explicit residual risk.
+exact intra-corpus dedup from build one; structural fingerprints are diversity
+metrics, not duplicate proof. Semantic duplicates that score low on both axes
+remain an explicit residual risk.
 
 ### SP3: Targeted Synthesis
 
