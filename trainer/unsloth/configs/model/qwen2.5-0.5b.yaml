@@ -1,0 +1,7 @@
+name: Qwen/Qwen2.5-0.5B-Instruct
+
+lora:
+  rank: 16
+  alpha: 16
+  dropout: 0.0
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
