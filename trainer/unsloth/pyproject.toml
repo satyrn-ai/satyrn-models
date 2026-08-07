@@ -1,0 +1,28 @@
+[project]
+name = "satyrn-unsloth"
+version = "0.1.0"
+description = "Satyrn Unsloth Trainer"
+requires-python = ">=3.14"
+dependencies = [
+    "datasets==4.3.0",
+    "trl==0.24.0",
+    "transformers",
+    "unsloth==2026.7.6",
+    "unsloth-zoo==2026.7.7",
+    "pydantic",
+    "hydra-core>=1.4.0.dev8",  # pre-release: first build with the Python 3.14 argparse fix
+    "mlflow==3.15.1",
+    "nvidia-ml-py>=13.610.43",
+    "psutil>=7.2.2",
+    "pyrsmi>=1.1.0",
+]
+
+[project.scripts]
+satyrn-unsloth = "satyrn.trainer.unsloth.run:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/satyrn"]
