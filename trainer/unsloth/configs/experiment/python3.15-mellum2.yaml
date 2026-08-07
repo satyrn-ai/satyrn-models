@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: mellum2
+  - _self_
+
+run_name: python3.15-mellum2
+
+mlflow:
+  experiment_name: Mellum2-12B-A2.5B-Instruct
+
+datasets:
+  cpt: datasets/python3.15/pep750-CPT.jsonl
+
+cpt:
+  num_train_epochs: 30

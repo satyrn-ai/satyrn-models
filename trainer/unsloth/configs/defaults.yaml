@@ -1,0 +1,31 @@
+load_in_4bit: false
+max_seq_length: 8192
+
+batch_size: 8
+gradient_accumulation_steps: 2
+optim: paged_adamw_8bit
+logging_steps: 10
+
+mlflow:
+  tracking_uri: https://mlflow.satyrn.ai
+
+datasets:
+  cpt: null
+  sft: null
+  rl: null
+
+cpt:
+  packing: true
+  num_train_epochs: 1
+  learning_rate: 1e-4
+
+sft:
+  num_train_epochs: 1
+  learning_rate: 2e-4
+
+rl:
+  num_generations: 8
+  max_prompt_length: 1024
+  max_completion_length: 1024
+  learning_rate: 1e-6
+  reward_funcs: ["interpreter_reward"]
