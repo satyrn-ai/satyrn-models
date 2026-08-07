@@ -86,8 +86,6 @@ def main():
         rows = [json.loads(line) for line in fh if line.strip()]
     dataset = Dataset.from_list(rows)
 
-    from unsloth_zoo.mlx.trainer import MLXTrainer, MLXTrainingConfig
-
     training_args = MLXTrainingConfig(
         output_dir="./results",
         per_device_train_batch_size=2,
