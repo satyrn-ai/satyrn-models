@@ -2,15 +2,13 @@
 name = "satyrn-unsloth"
 version = "0.1.0"
 description = "Satyrn Unsloth Trainer"
-requires-python = ">=3.14"
+requires-python = ">=3.13,<3.14"
 dependencies = [
-    "datasets==4.3.0",
-    "trl==0.24.0",
-    "transformers",
-    "unsloth==2026.7.6",
-    "unsloth-zoo==2026.7.7",
+    "unsloth==2026.8.5",
+    "unsloth-zoo==2026.8.5",
     "pydantic",
-    "hydra-core>=1.4.0.dev8",  # pre-release: first build with the Python 3.14 argparse fix
+    "python-dotenv",
+    "hydra-core>=1.3.15",
     "mlflow==3.15.1",
     "nvidia-ml-py>=13.610.43",
     "psutil>=7.2.2",

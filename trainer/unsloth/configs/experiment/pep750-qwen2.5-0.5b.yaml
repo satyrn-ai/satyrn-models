@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: qwen2.5-0.5b
+  - _self_
+
+run_name: pep750-qwen2.5-0.5b
+
+mlflow:
+  experiment_name: Qwen2.5-0.5B-Instruct
+
+datasets:
+  cpt: spikes/pep750/data/pep750.jsonl
+
+cpt:
+  num_train_epochs: 30
