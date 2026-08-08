@@ -22,6 +22,29 @@ dev = [
     "ruff>=0.8",
     "ty",
 ]
+# Training and evaluation tooling for the t-strings spike. Kept out of `dev`
+# because it pulls the whole MLX stack, but synced by default (see
+# `tool.uv.default-groups`) — an unpinned, unlisted mlx-lm is what silently
+# invalidated a cross-session comparison, and an opt-in group would let that
+# recur.
+spike = [
+    "mlx-lm",
+]
+
+[tool.uv]
+default-groups = ["dev", "spike"]
+
+[tool.uv.sources]
+# Pinned to a commit, not a range. `mellum` support exists only on git main:
+# the newest PyPI release (0.31.3) raises `Model type mellum not supported`, so
+# a `uv sync` that resolved to PyPI removed the ability to load the target
+# model at all. Worse than the outage, it was silent across sessions — adapters
+# trained under different mlx-lm builds are not comparable, and the Run A/B
+# results cannot be cleanly compared to the baseline recorded before it.
+#
+# Moving this pin invalidates comparisons against every adapter trained under
+# it. Re-baseline deliberately rather than bumping it in passing.
+mlx-lm = { git = "https://github.com/ml-explore/mlx-lm", rev = "254d153fdeb6f150edd4fc5a54f9828638481fa8" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

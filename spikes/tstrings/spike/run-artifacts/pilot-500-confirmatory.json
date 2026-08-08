@@ -1,0 +1,114 @@
+{
+  "aggregate": {
+    "docs_baseline_passed": 36,
+    "mean_passed": 30.333333333333332,
+    "run_level_95_percent_t_interval": [26.54, 34.13],
+    "sample_standard_deviation": 1.5275252316519468,
+    "seed_scores": [29, 32, 30],
+    "verdict": "does_not_beat_docs_baseline"
+  },
+  "benchmark": {
+    "author_tasks": 30,
+    "consumer_tasks": 70,
+    "fingerprint": "1ba96f45b18e03b328b53668d503ac0a754557bb3c21c180dfc7a652d6243d0c",
+    "total_tasks": 100
+  },
+  "cross_seed": {
+    "passed_by_no_seed": 52,
+    "passed_by_one_seed": 25,
+    "passed_by_two_seeds": 3,
+    "passed_by_three_seeds": 20,
+    "stable_author_passes": 20,
+    "stable_consumer_passes": 0
+  },
+  "data": {
+    "dataset_fingerprint": "553db985ae12f6f74497b9d84e7cbbfbd362379f2943c4e6c5c521fe82bdab94",
+    "distinct_prompts": 35,
+    "rendered_fingerprint": "f00148c8159b576d366ed3713944f8e04a80d8101c2bc008237db5505e7f5373",
+    "split_seed": 17,
+    "train_rows": 450,
+    "validation_rows": 50
+  },
+  "docs_baseline_by_role": {
+    "author": {
+      "passed": 16,
+      "total": 30
+    },
+    "consumer": {
+      "passed": 20,
+      "total": 70
+    }
+  },
+  "model": {
+    "id": "mlx-community/Qwen2.5-Coder-7B-Instruct-8bit",
+    "revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e",
+    "tokenizer_revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e"
+  },
+  "run_kind": "three-seed one-epoch confirmatory pilot",
+  "runs": [
+    {
+      "adapter_sha256": "7f6253bc81f184d616307f77d5564398b77c9c7d9c0dcbfdd7b40379f01a0388",
+      "failure_stages": {
+        "candidate_execute": 26,
+        "candidate_parse": 4,
+        "policy": 19,
+        "semantic_check": 22
+      },
+      "passed": 29,
+      "passed_by_role": {
+        "author": 20,
+        "consumer": 9
+      },
+      "result": "results/eval-confirmatory-qwen-pilot-seed42-v1.json",
+      "seed": 42,
+      "train_loss": [1.581, 0.675, 0.291, 0.186, 0.127, 0.091],
+      "validation_loss": [2.306, 0.479, 0.45, 0.499]
+    },
+    {
+      "adapter_sha256": "02125404ebb92fd9c12c9169f3971d53435470bfb754129e2053f0707c0c8faa",
+      "failure_stages": {
+        "candidate_execute": 8,
+        "policy": 13,
+        "semantic_check": 47
+      },
+      "passed": 32,
+      "passed_by_role": {
+        "author": 20,
+        "consumer": 12
+      },
+      "result": "results/eval-confirmatory-qwen-pilot-seed43-v1.json",
+      "seed": 43,
+      "train_loss": [1.595, 0.601, 0.315, 0.163, 0.123, 0.125],
+      "validation_loss": [2.306, 0.464, 0.472, 0.524]
+    },
+    {
+      "adapter_sha256": "ccd315008b13da70b35e66067c3edf15525b7941486c3919482145adefadae18",
+      "failure_stages": {
+        "candidate_execute": 37,
+        "policy": 20,
+        "semantic_check": 13
+      },
+      "passed": 30,
+      "passed_by_role": {
+        "author": 30,
+        "consumer": 0
+      },
+      "result": "results/eval-confirmatory-qwen-pilot-seed44-v1.json",
+      "seed": 44,
+      "train_loss": [1.635, 0.597, 0.29, 0.182, 0.131, 0.098],
+      "validation_loss": [2.306, 0.471, 0.498, 0.538]
+    }
+  ],
+  "training": {
+    "batch_size": 8,
+    "effective_rank": 8,
+    "effective_scale": 20.0,
+    "gradient_accumulation": 1,
+    "iterations": 57,
+    "learning_rate": 2e-05,
+    "mask_prompt": true,
+    "max_sequence_length": 1024,
+    "num_layers": 8,
+    "peak_memory_gb": 14.801
+  }
+}
