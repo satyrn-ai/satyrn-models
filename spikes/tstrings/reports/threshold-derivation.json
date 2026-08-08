@@ -1,0 +1,37 @@
+{
+  "composition_tolerance": {
+    "compose_templates": [
+      0.0,
+      0.1
+    ],
+    "construct": [
+      -0.04,
+      0.06
+    ],
+    "join_static_parts": [
+      -0.01,
+      0.09
+    ],
+    "negative": [
+      -0.03,
+      0.07
+    ],
+    "render_subskill": [
+      0.4,
+      0.5
+    ],
+    "select_result": [
+      0.38,
+      0.48
+    ]
+  },
+  "derived_at": "2026-08-04T05:26:01.032600+00:00",
+  "diversity": {
+    "distinct_prompts": 500,
+    "distinct_skeletons": 147
+  },
+  "profile_version": 5,
+  "review_budget": 0.1,
+  "semantic_near_gate": null,
+  "target_rows": 500
+}

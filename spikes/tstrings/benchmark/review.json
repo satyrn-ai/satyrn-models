@@ -1,0 +1,23 @@
+{
+  "disjointness": {
+    "exact_overlap": 0,
+    "semantic_overlap": 0,
+    "sp5_generated_candidates": 242,
+    "structural_skeleton_overlap": 0
+  },
+  "fingerprint": "1ba96f45b18e03b328b53668d503ac0a754557bb3c21c180dfc7a652d6243d0c",
+  "qualification": {
+    "failed": 0,
+    "policy": "tstring-v1",
+    "qualified": 100,
+    "sandbox_backend": "macos-seatbelt",
+    "sandbox_profile_version": "1"
+  },
+  "review_status": "reviewed_and_frozen",
+  "reviewed_at": "2026-08-03T17:05:00+02:00",
+  "roles": {
+    "author": 30,
+    "consumer": 70
+  },
+  "task_count": 100
+}

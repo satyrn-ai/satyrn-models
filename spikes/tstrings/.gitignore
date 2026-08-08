@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# SP5 generated artifacts
+reports/
+!reports/
+reports/*
+!reports/pilot-capacity.md
+!reports/pilot.jsonl
+!reports/threshold-derivation.json
+!reports/threshold-derivation.md
+!reports/collection-checkpoint.md
+!reports/build.md
+!reports/dropped.jsonl
+!reports/threshold-derivation.md
+!reports/threshold-derivation.json
+corpus/
+!corpus/tstrings.jsonl
+
+# Training artifacts
+qwen2.5-coder-pep750/
+results/
+unsloth_compiled_cache/

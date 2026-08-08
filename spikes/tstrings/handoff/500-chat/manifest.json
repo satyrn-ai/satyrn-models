@@ -1,0 +1,11 @@
+{
+  "benchmark_fingerprint": "3ec463605766f8229134698917a68406c384f3b07b9656bf0ddfaf637bdd894a",
+  "dataset_fingerprint": "713010299ea7eabfb187231d496a41b55eb9730a498a14c123614c64c13892ed",
+  "format": "chat",
+  "loss_masking": "assistant_only",
+  "rendered_fingerprint": "a60a5cc4e774cd710af89bf87c94c2ed79493090105d9ce7a1da1de5690d8b5e",
+  "split_seed": 17,
+  "train_rows": 450,
+  "validation_fraction": 0.1,
+  "validation_rows": 50
+}
