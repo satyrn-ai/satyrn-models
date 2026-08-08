@@ -99,13 +99,39 @@ def _execute(
                 stage="subprocess",
                 reason=f"collector exited {result.returncode}",
             )
+        return _decode(result.stdout)
+
+
+def _decode(stdout: str) -> dict[str, Any] | InfrastructureFailure:
+    """Read the collector's verdict from stdout the candidate also writes to.
+
+    The candidate runs in the collector's process, so anything it prints lands
+    on the same stream, ahead of the verdict. Parsing the whole of stdout
+    therefore fails on any program that ends with a demonstrative ``print()``
+    — and marks it an infrastructure failure, which scores as wrong.
+
+    That is not evenly distributed across arms. Printing a result is an
+    untrained habit: on `ood-v2` it hit 7 candidates, **all of them in the
+    untrained control arm and none in any of the six adapter arms**, which
+    silently deflated the baseline that every adapter was compared against.
+
+    The verdict is the last JSON object on the stream, so scan backwards.
+    """
+    lines = stdout.strip().splitlines()
+    for line in reversed(lines):
+        line = line.strip()
+        if not line:
+            continue
         try:
-            return json.loads(result.stdout)
+            decoded = json.loads(line)
         except json.JSONDecodeError:
-            return InfrastructureFailure(
-                stage="subprocess",
-                reason=f"non-JSON output: {result.stdout[:200]}",
-            )
+            continue
+        if isinstance(decoded, dict) and "status" in decoded:
+            return decoded
+    return InfrastructureFailure(
+        stage="subprocess",
+        reason=f"non-JSON output: {stdout[:200]}",
+    )
 
 
 def _interpreter_version() -> str:

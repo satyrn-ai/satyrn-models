@@ -27,7 +27,24 @@ class TStringPolicy:
     policy_id: str = "tstring"
     version: int = 1
 
-    def __init__(self) -> None:
+    def __init__(self, strict_old_form: bool = True) -> None:
+        """``strict_old_form`` rejects any old-form formatting in a candidate.
+
+        That is the shipped default, and it is probably wrong: scoring the 100
+        `ood-v2` gold references against it **rejects 4 of them** — two for an
+        f-string and two for `%`-formatting, in programs that also build a
+        genuine `Template`. A gate that rejects the correct answer is not
+        measuring correctness, and SP5 should consider changing the default.
+
+        It is left as the default here because this policy is a cross-boundary
+        contract installed by the provider's adversarial registry in CI, so
+        flipping it silently would change behaviour for callers who did not ask.
+        Evaluation in this spike passes ``strict_old_form=False``, which
+        enforces only the requirement the check exists for: a candidate must
+        build a `Template` where the reference builds one. See
+        `spikes/tstrings/PREREGISTRATION.md`.
+        """
+        self.strict_old_form = strict_old_form
         # Per-task state populated by analyze_reference
         self._ref_uses_tstring: bool = False
         self._ref_tstring_count: int = 0
@@ -61,21 +78,22 @@ class TStringPolicy:
         has_format = ".format(" in candidate
         has_percent = _has_percent_format(candidate)
 
-        if has_fstring:
-            return PolicyResult(
-                passed=False,
-                reason="old-form f-string detected where t-string required",
-            )
-        if has_format:
-            return PolicyResult(
-                passed=False,
-                reason="old-form .format() detected where t-string required",
-            )
-        if has_percent:
-            return PolicyResult(
-                passed=False,
-                reason="old-form %-formatting detected where t-string required",
-            )
+        if self.strict_old_form:
+            if has_fstring:
+                return PolicyResult(
+                    passed=False,
+                    reason="old-form f-string detected where t-string required",
+                )
+            if has_format:
+                return PolicyResult(
+                    passed=False,
+                    reason="old-form .format() detected where t-string required",
+                )
+            if has_percent:
+                return PolicyResult(
+                    passed=False,
+                    reason="old-form %-formatting detected where t-string required",
+                )
         if not has_tstring:
             return PolicyResult(
                 passed=False,
