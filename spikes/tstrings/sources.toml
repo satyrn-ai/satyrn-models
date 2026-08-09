@@ -32,3 +32,63 @@ Licensed under the Python Software Foundation License Version 2.
 [source.expected_contribution]
 test_methods = "Lib/test/test_string/test_templatelib.py"
 literals = ">=0"
+
+[[source]]
+id = "regex-template-2026"
+url = "https://github.com/treyhunner/regex-template"
+sha = "f4ea6979113623760153eb6666a3aacdbe681fa3"
+license = "MIT"
+attribution = "Trey Hunner (github.com/treyhunner). regex-template, commit f4ea6979113."
+source_class = "third-party"
+extraction_mode = "ast"
+
+[source.expected_contribution]
+literals = ">=0"
+
+[[source]]
+id = "t-sql-2026"
+url = "https://github.com/nhumrich/t-sql"
+sha = "01275e310804ff4409aa206afd4b2ddae5082ecd"
+license = "MIT"
+attribution = "Nick Humrich (github.com/nhumrich). t-sql, commit 01275e31080."
+source_class = "third-party"
+extraction_mode = "ast"
+
+[source.expected_contribution]
+literals = ">=0"
+
+[[source]]
+id = "tdom-2026"
+url = "https://github.com/ianjosephwilson/tdom"
+sha = "98264091b3154a36f4af2e205ac6c3b7c793fb20"
+license = "MIT"
+attribution = "Ian Wilson (github.com/ianjosephwilson). tdom, commit 982640913."
+source_class = "third-party"
+extraction_mode = "ast"
+
+[source.expected_contribution]
+literals = ">=0"
+
+[[source]]
+id = "storyville-2026"
+url = "https://github.com/pauleveritt/storyville"
+sha = "5fe71ce49dcf15674dbda063135f8dd4a3a9c954"
+license = "MIT"
+attribution = "Paul Everitt (github.com/pauleveritt). storyville, commit 5fe71ce49dc."
+source_class = "third-party"
+extraction_mode = "ast"
+
+[source.expected_contribution]
+literals = ">=0"
+
+[[source]]
+id = "tdom-svcs-2026"
+url = "https://github.com/pauleveritt/tdom-svcs"
+sha = "d2f6e3a1f7f0ff9295fe596ea29316e024c3befd"
+license = "MIT"
+attribution = "Paul Everitt (github.com/pauleveritt). tdom-svcs, commit d2f6e3a1f7f."
+source_class = "third-party"
+extraction_mode = "ast"
+
+[source.expected_contribution]
+literals = ">=0"

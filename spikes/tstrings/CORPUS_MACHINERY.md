@@ -43,6 +43,17 @@ specific, previously-measured failure modes.
    most of a build cycle mining a third-party library (`tdom`) before
    realizing it taught the library's API, not the language feature (see
    `pep750/DATASET_METHODOLOGY.md` §"Ground truth worth mining").
+   **One-time exception (2026-08-09):** five third-party, MIT-licensed
+   sources (`regex-template-2026`, `t-sql-2026`, `tdom-2026`,
+   `storyville-2026`, `tdom-svcs-2026`) were admitted for regex/sql/html
+   seeds, since no stdlib module uses t-strings for those domains yet. Each
+   was checked against the same failure mode the `tdom` incident exposed —
+   does it teach the language feature or a library's API surface — and two
+   near-misses (`pgjones/sql-tstring`, `ilotoki0804/tstr`) were rejected for
+   not using real PEP 750 syntax at all. See
+   `docs/superpowers/specs/2026-08-09-sp5-seed-sourcing-design.md` for the
+   full record. This does not reopen the stdlib-only rule as a standing
+   policy — future third-party sources need the same review.
 3. **Extraction** (`extract.py`). Finds t-string literals in a source file via
    AST parsing only — it never imports the source module, so a candidate
    can't execute arbitrary code from a third-party source during extraction.
