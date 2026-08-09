@@ -2,7 +2,7 @@
 
 Addresses `SP5_SCALE_BRIEF.md` Priority 1, scoped to three of its four gap
 domains: bring regex, sql, and html to 12-15 distinct seeds (currently regex
-3, sql 7, html 7, against text 17 and data 16). **Logging is deliberately
+3, sql 7, html 7, against text 17 and data 6). **Logging is deliberately
 skipped in this pass** — see below. Everything else in the brief — patterns,
 `construct`/`compose_templates` population, extraction breadth beyond this —
 is explicitly lower-priority and gated on this landing first, and stays out
