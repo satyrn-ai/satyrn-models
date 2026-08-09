@@ -139,3 +139,17 @@ established" for the actual numbers, and `adapters/m2i-runA-*/` for the
 trained adapters themselves — `corpus-sft/` (this pipeline's published
 output, re-shaped into Mellum2's SFT schema) is their only connection to
 everything above.
+
+## A note on this file's relationship to any given session's seed/pattern count
+
+Every seed/pattern count anywhere in this repo's design docs is a
+**candidate-pool** number — the output of `generate_all` over the current
+`CATALOG` and seed files, before static gates, provider qualification, or
+dedup. The committed `reports/build.md`, `reports/pilot.jsonl`, and
+`reports/dropped.jsonl` reflect whatever pool existed the last time
+`authoring build` actually ran, which may be older than the seeds/patterns
+currently in `seeds/`/`patterns/catalog.py`. Growing the candidate pool
+(adding seeds, adding patterns) does not by itself update the published
+corpus — a full build is a separate, deliberate step. Don't infer from a
+design doc's "N rows in the candidate pool" that those rows have been
+qualified or published.

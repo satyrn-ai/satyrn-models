@@ -92,7 +92,9 @@ seven seeds.
 
 > This table is a historical diagnostic snapshot and is left unmodified. The
 > domain floors it calls for have since been partially addressed — see
-> `docs/superpowers/specs/2026-08-09-sp5-seed-sourcing-design.md`.
+> `docs/superpowers/specs/2026-08-09-sp5-seed-sourcing-design.md` (regex was
+> deliberately accepted at 11, one under the original 12-15 ask — see the
+> data/logging floors design for why).
 
 ### 2. Extraction is confined to two domains
 
@@ -100,6 +102,11 @@ Only **10 of 54 seeds** supply `extracted` rows, and they cover only `data` and
 `text`. So the 20% extracted quota is filled from a narrow slice, and the model
 never sees real-world t-string usage in the domains where the feature is most
 motivated.
+
+> This diagnosis is a historical snapshot and is left unmodified. Extraction
+> breadth has since been substantially addressed for sql/html/regex/logging
+> — see `docs/superpowers/specs/2026-08-09-sp5-seed-sourcing-design.md` and
+> `docs/superpowers/specs/2026-08-09-sp5-logging-extraction-design.md`.
 
 Extracted seeds in `sql`, `html` and `logging` would be worth more than
 authored ones — they carry structure nobody on this project would think to
@@ -117,6 +124,13 @@ write.
 has ten rows in the entire pool. It is a legitimate and tested part of the API;
 `ood-v2` includes such tasks and our scoring had to be widened to accept them.
 Ten rows cannot teach it.
+
+> This diagnosis is a historical snapshot and is left unmodified.
+> `construct` has since grown from 10 to 16 rows (still a partial fix, not
+> a claim of completion) — see
+> `docs/superpowers/specs/2026-08-09-sp5-construct-patterns-design.md`.
+> `compose_templates` was left untouched — see that same design doc's "Why
+> `compose_templates` is out of scope" section for why.
 
 ## What would change the outcome
 

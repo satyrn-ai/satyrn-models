@@ -21,7 +21,7 @@ for:
 | --- | --- | --- |
 | logging | 6 | prior branch closed extraction (0→2) but never raised the floor |
 | data | 6 | never touched by any prior branch — outside Priority 1's original weighting ("regex, logging, sql, html") |
-| regex | 11 | reached |
+| regex | 11 | accepted at 11 (one under the original 12-15 floor; see seed-sourcing design's 11-13 target) |
 | html | 15 | reached |
 | sql | 15 | reached |
 | text | 17 | reached |
@@ -99,5 +99,6 @@ No pattern authoring, no `composition.toml`/`sampling.toml` changes. Both
 domains land at 13 — inside the brief's 12–15 floor but not at the top of
 it, matching how `regex` was accepted at 11 in the prior branch. Priority 4
 (new patterns generally) is deferred again, now on firmer ground: once this
-lands, every domain is at or above floor and the seed:pattern ratio is
-closer to the brief's target proportions.
+lands, every domain is at or above floor except regex, deliberately accepted
+one seed under at 11, and the seed:pattern ratio is closer to the brief's
+target proportions.

@@ -34,6 +34,11 @@ test_methods = "Lib/test/test_string/test_templatelib.py"
 grammar_tests = "Lib/test/test_tstring.py"
 literals = ">=0"
 
+# extraction_mode="ast" here means literals were verified as real
+# ast.TemplateStr nodes at this exact commit (see the design doc this
+# source was added in), not that scripts/extract.py's AST walker ran
+# against this source automatically -- selection and line-number
+# transcription were manual.
 [[source]]
 id = "regex-template-2026"
 url = "https://github.com/treyhunner/regex-template"
@@ -49,6 +54,11 @@ extraction_mode = "ast"
 [source.expected_contribution]
 literals = ">=8"
 
+# extraction_mode="ast" here means literals were verified as real
+# ast.TemplateStr nodes at this exact commit (see the design doc this
+# source was added in), not that scripts/extract.py's AST walker ran
+# against this source automatically -- selection and line-number
+# transcription were manual.
 [[source]]
 id = "t-sql-2026"
 url = "https://github.com/nhumrich/t-sql"
@@ -64,6 +74,11 @@ extraction_mode = "ast"
 [source.expected_contribution]
 literals = ">=8"
 
+# extraction_mode="ast" here means literals were verified as real
+# ast.TemplateStr nodes at this exact commit (see the design doc this
+# source was added in), not that scripts/extract.py's AST walker ran
+# against this source automatically -- selection and line-number
+# transcription were manual.
 [[source]]
 id = "tdom-2026"
 url = "https://github.com/ianjosephwilson/tdom"
@@ -79,6 +94,11 @@ extraction_mode = "ast"
 [source.expected_contribution]
 literals = ">=5"
 
+# extraction_mode="ast" here means literals were verified as real
+# ast.TemplateStr nodes at this exact commit (see the design doc this
+# source was added in), not that scripts/extract.py's AST walker ran
+# against this source automatically -- selection and line-number
+# transcription were manual.
 [[source]]
 id = "storyville-2026"
 url = "https://github.com/pauleveritt/storyville"
@@ -94,6 +114,11 @@ extraction_mode = "ast"
 [source.expected_contribution]
 literals = ">=2"
 
+# extraction_mode="ast" here means literals were verified as real
+# ast.TemplateStr nodes at this exact commit (see the design doc this
+# source was added in), not that scripts/extract.py's AST walker ran
+# against this source automatically -- selection and line-number
+# transcription were manual.
 [[source]]
 id = "tdom-svcs-2026"
 url = "https://github.com/pauleveritt/tdom-svcs"
@@ -109,6 +134,11 @@ extraction_mode = "ast"
 [source.expected_contribution]
 literals = ">=1"
 
+# extraction_mode="ast" here means literals were verified as real
+# ast.TemplateStr nodes at this exact commit (see the design doc this
+# source was added in), not that scripts/extract.py's AST walker ran
+# against this source automatically -- selection and line-number
+# transcription were manual.
 [[source]]
 id = "pep750-examples-2026"
 url = "https://github.com/t-strings/pep750-examples"

@@ -1,7 +1,7 @@
 """Two construct-interpolation-* descriptions became ambiguous once the
 2026-08-09 construct-patterns batch added siblings that name their
-conversion/expression explicitly. See docs/superpowers/plans/
-2026-08-09-sp5-construct-prompt-fix.md."""
+conversion/expression explicitly. See docs/superpowers/specs/
+2026-08-09-sp5-construct-patterns-design.md."""
 
 from pathlib import Path
 

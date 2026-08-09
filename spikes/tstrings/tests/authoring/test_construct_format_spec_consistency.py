@@ -1,7 +1,7 @@
 """construct-interpolation-expression-format used a >10 width, inconsistent
 with the >8 convention every other format-bearing construct pattern uses,
-and unstated in its prompt either way. See docs/superpowers/plans/
-2026-08-09-sp5-construct-width-fix.md."""
+and unstated in its prompt either way. See docs/superpowers/specs/
+2026-08-09-sp5-construct-patterns-design.md."""
 
 from pathlib import Path
 
