@@ -31,6 +31,7 @@ Licensed under the Python Software Foundation License Version 2.
 
 [source.expected_contribution]
 test_methods = "Lib/test/test_string/test_templatelib.py"
+grammar_tests = "Lib/test/test_tstring.py"
 literals = ">=0"
 
 [[source]]

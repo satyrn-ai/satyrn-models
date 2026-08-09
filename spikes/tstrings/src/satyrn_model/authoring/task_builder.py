@@ -412,10 +412,13 @@ def _ref_compose_templates(
 def _ref_negative(prop: NegativeControl, seeds: tuple[Seed, ...] | None) -> str:
     if seeds:
         literal = seeds[0].literal
-        if literal.startswith('t"'):
-            fallback = "f" + literal[1:]
-        elif literal.startswith("t'"):
-            fallback = "f" + literal[1:]
+        quote_pos = next(
+            (i for i, ch in enumerate(literal) if ch in "'\""), None
+        )
+        if quote_pos is not None:
+            prefix = literal[:quote_pos]
+            fstring_prefix = prefix.replace("t", "f").replace("T", "F")
+            fallback = fstring_prefix + literal[quote_pos:]
         else:
             fallback = literal
         preamble = _bindings_lines(seeds[0])
