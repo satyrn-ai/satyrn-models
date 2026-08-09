@@ -49,3 +49,9 @@
 {"approved_at": "2026-08-04T05:13:28.548598+00:00", "pattern_id": "render-subskill-render_interpolation", "pattern_input_fingerprint": "24dc706b5956d263b9cbb71baeb149112132a251d151663f46e0f860e73a2361"}
 {"approved_at": "2026-08-04T05:13:28.549129+00:00", "pattern_id": "render-subskill-render_template", "pattern_input_fingerprint": "4e5e35aa2e34755b5f33fd44348f80bd987fd4b446c514ba26d86f79102b6eaa"}
 {"approved_at": "2026-08-04T05:13:28.549570+00:00", "pattern_id": "render-subskill-author-template", "pattern_input_fingerprint": "ca2fea7e6e1c1d009b3f7715c7894154fd993da1aec83d36169a80ac55038cc0"}
+{"approved_at": "2026-08-09T16:32:07.560199+00:00", "pattern_id": "construct-interpolation-subscript", "pattern_input_fingerprint": "a743887d39ec5a40c82ebced4f45cfa9c5cded3bf09431d814fd6b701d8b2c93"}
+{"approved_at": "2026-08-09T16:32:07.641797+00:00", "pattern_id": "construct-interpolation-call", "pattern_input_fingerprint": "4243e30bb748e58c91ecd6990c7436381d63e5f6b87252b48dd62700d2f02254"}
+{"approved_at": "2026-08-09T16:32:07.723712+00:00", "pattern_id": "construct-interpolation-expression-r", "pattern_input_fingerprint": "3f43afb48b2fb28240cb00094da5398d17b117973bd58d5b3dc610d88958d68e"}
+{"approved_at": "2026-08-09T16:32:07.804801+00:00", "pattern_id": "construct-interpolation-expression-format", "pattern_input_fingerprint": "5919fb68c220d968a027a270b0dfcee2b835eb81ab49ca074a6922d587eadf15"}
+{"approved_at": "2026-08-09T16:32:07.886834+00:00", "pattern_id": "construct-interpolation-s-format", "pattern_input_fingerprint": "a26f559f80138d1594d522c0be6f17d7591e76450790dba98a7b88dab46cb84a"}
+{"approved_at": "2026-08-09T16:32:07.971201+00:00", "pattern_id": "construct-interpolation-a-format", "pattern_input_fingerprint": "7c51c976c9849d862523685a93b42beae08284a1939bd9e99b69a36941ff7d33"}

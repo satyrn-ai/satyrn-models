@@ -412,6 +412,48 @@ CATALOG: tuple[Pattern, ...] = (
                 "value",
                 ">8",
             ),
+            (
+                "construct-interpolation-subscript",
+                "construct an Interpolation preserving a subscript source expression",
+                None,
+                "items[0]",
+                "",
+            ),
+            (
+                "construct-interpolation-call",
+                "construct an Interpolation preserving a call source expression",
+                None,
+                "get_name()",
+                "",
+            ),
+            (
+                "construct-interpolation-expression-r",
+                "construct an Interpolation with an attribute expression and !r conversion metadata",
+                "r",
+                "user.name",
+                "",
+            ),
+            (
+                "construct-interpolation-expression-format",
+                "construct an Interpolation with an attribute expression and a format spec",
+                None,
+                "user.name",
+                ">10",
+            ),
+            (
+                "construct-interpolation-s-format",
+                "construct an Interpolation with !s conversion and format metadata",
+                "s",
+                "value",
+                ">8",
+            ),
+            (
+                "construct-interpolation-a-format",
+                "construct an Interpolation with !a conversion and format metadata",
+                "a",
+                "value",
+                ">8",
+            ),
         )
     ),
     *tuple(
