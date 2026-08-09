@@ -494,6 +494,10 @@ CATALOG: tuple[Pattern, ...] = (
             witnesses=("contrastive-result",),
         )
         for outcome, description in (
+            (
+                "template",
+                "define a typed template function returning the template itself",
+            ),
             ("strings", "define a typed template function returning template.strings"),
             ("values", "define a typed template function returning template.values"),
             (
