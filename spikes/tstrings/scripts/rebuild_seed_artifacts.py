@@ -350,6 +350,63 @@ THIRD_PARTY_SEEDS = (
         61,
         "logging",
     ),
+    # cpython-v3.14.5, Lib/test/test_tstring.py (data domain)
+    (
+        "cpython-v3.14.5",
+        "Lib/test/test_tstring.py",
+        ('t"Sum: {a + b}"', (("a", "10"), ("b", "20"))),
+        38,
+        38,
+        "data",
+    ),
+    (
+        "cpython-v3.14.5",
+        "Lib/test/test_tstring.py",
+        ('t"Pi: {value:.2f}"', (("value", "3.14159"),)),
+        85,
+        85,
+        "data",
+    ),
+    (
+        "cpython-v3.14.5",
+        "Lib/test/test_tstring.py",
+        ('t"Object: {obj!s}"', (("obj", "42"),)),
+        94,
+        94,
+        "data",
+    ),
+    (
+        "cpython-v3.14.5",
+        "Lib/test/test_tstring.py",
+        ('t"ASCII: {text!a}"', (("text", "'Café'"),)),
+        105,
+        105,
+        "data",
+    ),
+    (
+        "cpython-v3.14.5",
+        "Lib/test/test_tstring.py",
+        ('t"Value: {value=}"', (("value", "3.14159"),)),
+        117,
+        117,
+        "data",
+    ),
+    (
+        "cpython-v3.14.5",
+        "Lib/test/test_tstring.py",
+        ('t"Value: {value=:.2f}"', (("value", "3.14159"),)),
+        124,
+        124,
+        "data",
+    ),
+    (
+        "cpython-v3.14.5",
+        "Lib/test/test_tstring.py",
+        ('rt"{path}\\Documents"', (("path", "'C:'"),)),
+        145,
+        145,
+        "data",
+    ),
 )
 
 _THIRD_PARTY_LICENSES = {
@@ -359,6 +416,7 @@ _THIRD_PARTY_LICENSES = {
     "storyville-2026": "MIT",
     "tdom-svcs-2026": "MIT",
     "pep750-examples-2026": "MIT",
+    "cpython-v3.14.5": "PSF-2.0",
 }
 
 
