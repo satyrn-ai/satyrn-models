@@ -21,7 +21,7 @@ def test_extracted_seeds_resolve_to_pinned_source_occurrences() -> None:
     }
     sources = {source.id: source for source in load_sources(ROOT / "sources.toml")}
 
-    assert len(seeds) == len(occurrences) == 36
+    assert len(seeds) == len(occurrences) == 43
     for seed in seeds:
         assert seed.id == seed_id(seed.literal, seed.bindings)
         assert len(seed.occurrence_ids) == 1
@@ -57,7 +57,7 @@ def test_active_seeds_have_explicit_reviewed_domains() -> None:
         if line
     ]
 
-    assert len(records) == 70
+    assert len(records) == 84
     assert all(record.get("domain") in DOMAINS for record in records)
     assert {record["domain"] for record in records} == DOMAINS
 
@@ -108,4 +108,5 @@ def test_regex_sql_html_reach_their_domain_floors() -> None:
     assert counts["regex"] >= 11, counts["regex"]
     assert counts["sql"] >= 15, counts["sql"]
     assert counts["html"] >= 15, counts["html"]
-    assert counts["logging"] >= 6, counts["logging"]
+    assert counts["logging"] >= 13, counts["logging"]
+    assert counts["data"] >= 13, counts["data"]

@@ -99,6 +99,6 @@ def test_logging_extraction_seeds_are_present_and_source_resolved() -> None:
         assert occ.origin.license == "MIT"
 
 
-def test_extracted_seed_count_grew_to_thirty_six() -> None:
+def test_extracted_seed_count_grew_to_forty_three() -> None:
     seeds = read_seeds_jsonl(ROOT / "seeds/extracted.jsonl")
-    assert len(seeds) == 36
+    assert len(seeds) == 43
