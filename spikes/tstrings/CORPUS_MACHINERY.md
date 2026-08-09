@@ -38,7 +38,8 @@ specific, previously-measured failure modes.
    location.
 2. **Sourcing** (`sources.py`, `sources.toml`). A `Seed` may only come from a
    `[[source]]` pinned by an exact commit SHA, an allow-listed SPDX license,
-   and attribution. Currently one source: CPython, tag `v3.14.5`. This rule —
+   and attribution. Currently: CPython (tag `v3.14.5`), plus five one-time
+   third-party sources for regex/sql/html seeds (see below). This rule —
    stdlib-only, exact version pins — exists because an earlier revision spent
    most of a build cycle mining a third-party library (`tdom`) before
    realizing it taught the library's API, not the language feature (see

@@ -90,6 +90,10 @@ SQL and HTML matter disproportionately: escaping and parameterisation are the
 motivating use cases for t-strings existing at all, and each currently rests on
 seven seeds.
 
+> This table is a historical diagnostic snapshot and is left unmodified. The
+> domain floors it calls for have since been partially addressed — see
+> `docs/superpowers/specs/2026-08-09-sp5-seed-sourcing-design.md`.
+
 ### 2. Extraction is confined to two domains
 
 Only **10 of 54 seeds** supply `extracted` rows, and they cover only `data` and
