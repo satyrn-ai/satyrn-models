@@ -42,18 +42,26 @@ re-counted precisely at 31 real literals, 26 distinct, via direct AST
 parse) and it was never revisited. No new `[[source]]`, no licensing
 question — this is finishing extraction on a source already admitted.
 
-Seven candidates, all with real bindings read directly from the
-surrounding test code (same rigor as the original `CPYTHON_SEEDS`):
+Seven candidates. The literal text and line numbers are copied
+byte-for-byte from the pinned commit; bindings are deliberate
+substitutions of the real upstream values, not a copy of them — worth
+being precise about, since the two aren't the same claim. Where upstream's
+own value is unsuitable for a seed (`object()` has no useful concrete
+repr; `r"C:\Users"` isn't needed when the point is just the raw-prefix
+shape), or where reusing one value across several seeds aids consistency
+(`3.14159` at lines 117/124, where upstream separately uses `42`), a
+different concrete value was chosen instead. Every substitution still
+executes correctly under the real interpolation shape:
 
 | literal | line | bindings | why |
 | --- | --- | --- | --- |
-| `t"Sum: {a + b}"` | 38 | `a=10`, `b=20` | binop expression, source: `a = 10; b = 20` above it |
-| `t"Pi: {value:.2f}"` | 85 | `value=3.14159` | plain format spec |
-| `t"Object: {obj!s}"` | 94 | `obj=42` | `!s` conversion |
-| `t"ASCII: {text!a}"` | 105 | `text='Café'` | `!a` conversion on real non-ASCII text, matches upstream's own motivating case |
-| `t"Value: {value=}"` | 117 | `value=3.14159` | the self-documenting `=` debug specifier — **absent from the entire corpus today** |
-| `t"Value: {value=:.2f}"` | 124 | `value=3.14159` | debug specifier + format combined — also absent |
-| `rt"{path}\Documents"` | 145 | `path='C:'` | raw+template string-prefix combination — **also absent from the entire corpus** |
+| `t"Sum: {a + b}"` | 38 | `a=10`, `b=20` | binop expression, matches upstream's own `a = 10; b = 20` exactly |
+| `t"Pi: {value:.2f}"` | 85 | `value=3.14159` | plain format spec, matches upstream exactly |
+| `t"Object: {obj!s}"` | 94 | `obj=42` | `!s` conversion; upstream uses `object()`, substituted for a value with a legible repr |
+| `t"ASCII: {text!a}"` | 105 | `text='Café'` | `!a` conversion on real non-ASCII text, matches upstream's own motivating case exactly |
+| `t"Value: {value=}"` | 117 | `value=3.14159` | the self-documenting `=` debug specifier — **absent from the entire corpus today**; upstream uses `42`, reused `3.14159` here for consistency with the next row |
+| `t"Value: {value=:.2f}"` | 124 | `value=3.14159` | debug specifier + format combined — also absent; same substitution as above |
+| `rt"{path}\Documents"` | 145 | `path='C:'` | raw+template string-prefix combination — **also absent from the entire corpus**; upstream uses `r"C:\Users"`, shortened since only the prefix shape matters here |
 
 All are real, executed CPython test code — no format-spec validity check
 needed the way the third-party sourcing branches required, since these
