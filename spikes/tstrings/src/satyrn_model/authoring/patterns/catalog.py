@@ -400,14 +400,14 @@ CATALOG: tuple[Pattern, ...] = (
             ),
             (
                 "construct-interpolation-expression",
-                "construct an Interpolation preserving its source expression",
+                "construct an Interpolation preserving an attribute source expression",
                 None,
                 "user.name",
                 "",
             ),
             (
                 "construct-interpolation-conversion-format",
-                "construct an Interpolation with conversion and format metadata",
+                "construct an Interpolation with !r conversion and format metadata",
                 "r",
                 "value",
                 ">8",

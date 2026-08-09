@@ -31,8 +31,6 @@
 {"approved_at": "2026-08-04T05:13:28.543887+00:00", "pattern_id": "construct-interpolation-s", "pattern_input_fingerprint": "2d8e5f9cee52ccf1ec159898fe1f43c102ba0db4589977632ab68cfcacfbd35e"}
 {"approved_at": "2026-08-04T05:13:28.544091+00:00", "pattern_id": "construct-interpolation-a", "pattern_input_fingerprint": "40e1d988b255952bb1d8464e22cf4de91cfa80fc35883e383d2e1663319ae14d"}
 {"approved_at": "2026-08-04T05:13:28.544299+00:00", "pattern_id": "construct-interpolation-format", "pattern_input_fingerprint": "e5c64933216f112e4e3d1191a36e3eefd02544a4eead7a416520eea721ba2e7b"}
-{"approved_at": "2026-08-04T05:13:28.544669+00:00", "pattern_id": "construct-interpolation-expression", "pattern_input_fingerprint": "7d49c94cd99fa3b6165c317d952aa9516d882a0a122ccd115b06ed33c42f3ec0"}
-{"approved_at": "2026-08-04T05:13:28.544931+00:00", "pattern_id": "construct-interpolation-conversion-format", "pattern_input_fingerprint": "2bb6469a346fed85f9709940803c7663e6ce03a7fb94e4f59acf9216d454ef22"}
 {"approved_at": "2026-08-04T05:13:28.545169+00:00", "pattern_id": "contrast-template", "pattern_input_fingerprint": "1f87c240f0778dc494c3c0765a8ab4e3339ad75de0cff054de60271c46099223"}
 {"approved_at": "2026-08-04T05:13:28.545402+00:00", "pattern_id": "contrast-strings", "pattern_input_fingerprint": "15ae70eb32d658dcad5a9db23cd2834ef0e9e5fc21aeabbbdae150e243a52ffb"}
 {"approved_at": "2026-08-04T05:13:28.545625+00:00", "pattern_id": "contrast-values", "pattern_input_fingerprint": "4f5d38b4751f36172789dbd981d5abcdade56030e14faabd091ac6b1b4cc6906"}
@@ -55,3 +53,5 @@
 {"approved_at": "2026-08-09T16:32:07.804801+00:00", "pattern_id": "construct-interpolation-expression-format", "pattern_input_fingerprint": "5919fb68c220d968a027a270b0dfcee2b835eb81ab49ca074a6922d587eadf15"}
 {"approved_at": "2026-08-09T16:32:07.886834+00:00", "pattern_id": "construct-interpolation-s-format", "pattern_input_fingerprint": "a26f559f80138d1594d522c0be6f17d7591e76450790dba98a7b88dab46cb84a"}
 {"approved_at": "2026-08-09T16:32:07.971201+00:00", "pattern_id": "construct-interpolation-a-format", "pattern_input_fingerprint": "7c51c976c9849d862523685a93b42beae08284a1939bd9e99b69a36941ff7d33"}
+{"approved_at": "2026-08-09T16:59:57.169470+00:00", "pattern_id": "construct-interpolation-expression", "pattern_input_fingerprint": "29e31cf74d98a1216529da45293a3997e6b15b330efa4c5131d35dad60fb9cce"}
+{"approved_at": "2026-08-09T16:59:57.274490+00:00", "pattern_id": "construct-interpolation-conversion-format", "pattern_input_fingerprint": "daeb93373d839cf3adc96b02db9f0024898e92e620f811907a5faf213b3a9a5e"}
