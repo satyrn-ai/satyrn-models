@@ -20,11 +20,13 @@ if n == 0:
     continue
 ```
 
-One row, per pattern, always — no loop over seeds, no loop over prompt
-variants (none of the construct patterns declare more than one). Counted
-the catalog directly: 9 `construct`-kind patterns are approved
-(`patterns/approvals.jsonl` confirms all 9), which is where the brief's "10
-rows" comes from almost exactly. **This means no amount of seed-sourcing —
+One row, per pattern, always — no loop over seeds. (Every pattern actually
+declares 3 prompt variants via the shared `_p()` helper; the arity-0 branch
+just never uses more than `variants[0]`, which is the real reason variant
+count doesn't matter here.) Counted the catalog directly: 10 `construct`-
+kind patterns are approved (`patterns/approvals.jsonl` confirms all 10),
+which matches the brief's "10 rows" exactly. **This means no amount of
+seed-sourcing —
 which is what the two prior branches on this integration branch already
 did — can move this number.** The only lever is patterns themselves, which
 is why this is scoped as a small carve-out from Priority 4's general
@@ -34,9 +36,10 @@ is why this is scoped as a small carve-out from Priority 4's general
 ## What each pattern actually builds
 
 Traced `task_builder.py:_ref_construct` (lines 333-349) for the
-`operation="Interpolation"` family (7 of the 9 existing patterns; the other
-2 cover `operation="convert"`, which only varies by `conversion` and is
-already exhaustively covered — `r`/`s`/`a`, 3 values, 3 patterns, no gap):
+`operation="Interpolation"` family (7 of the 10 existing patterns; the
+other 3 cover `operation="convert"`, which only varies by `conversion` and
+is already exhaustively covered — `r`/`s`/`a`, 3 values, 3 patterns, no
+gap):
 
 ```python
 return (
@@ -105,7 +108,7 @@ any string — re-verified `format("World", ">10")` and `format("World",
 ">8")` both succeed, matching the existing `conversion-format` pattern's
 already-proven `>8`.
 
-This brings `construct` from 9-10 rows to 15-16 — a genuine ~60% increase
+This brings `construct` from 10 rows to 16 — a genuine 60% increase
 in real combinatorial coverage, not padding (zero overlap with the existing
 7: two new expression shapes, plus the s/a+format and attribute+conversion/
 format combinations that were missing).

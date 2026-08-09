@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add 6 new `construct`-kind patterns to `patterns/catalog.py`,
-raising `construct`'s candidate-pool row count from 9-10 to 15-16, per
+raising `construct`'s candidate-pool row count from 10 to 16, per
 `SP5_SCALE_BRIEF.md` Priority 3 and the approved design at
 `docs/superpowers/specs/2026-08-09-sp5-construct-patterns-design.md`.
 
@@ -69,7 +69,7 @@ from satyrn_model.authoring.patterns.approvals import read_approvals
 from satyrn_model.authoring.patterns.catalog import CATALOG
 from satyrn_model.authoring.patterns.registry import classify
 
-APPROVALS_PATH = Path("patterns/approvals.jsonl")
+APPROVALS_PATH = Path(__file__).resolve().parents[2] / "patterns" / "approvals.jsonl"
 
 NEW_PATTERN_IDS = {
     "construct-interpolation-subscript",
