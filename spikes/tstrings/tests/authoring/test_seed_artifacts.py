@@ -20,7 +20,7 @@ def test_extracted_seeds_resolve_to_pinned_source_occurrences() -> None:
     }
     sources = {source.id: source for source in load_sources(ROOT / "sources.toml")}
 
-    assert len(seeds) == len(occurrences) == 10
+    assert len(seeds) == len(occurrences) == 34
     for seed in seeds:
         assert seed.id == seed_id(seed.literal, seed.bindings)
         assert len(seed.occurrence_ids) == 1
@@ -56,7 +56,7 @@ def test_active_seeds_have_explicit_reviewed_domains() -> None:
         if line
     ]
 
-    assert len(records) == 44
+    assert len(records) == 68
     assert all(record.get("domain") in DOMAINS for record in records)
     assert {record["domain"] for record in records} == DOMAINS
 
@@ -88,3 +88,24 @@ def test_review_decisions_cover_exactly_the_active_seed_content() -> None:
         decision = decisions[seed.id]
         assert decision.verdict == "accepted"
         assert decision.content_sha256 == seed_content_sha256(seed)
+
+
+def test_regex_sql_html_reach_their_domain_floors() -> None:
+    """SP5_SCALE_BRIEF.md Priority 1: bring regex/sql/html to 12-15+ seeds.
+
+    This plan brought regex from 3 to 11, sql from 7 to 15, html from 7 to
+    15 -- the exact per-domain deltas the design doc's seed table lists.
+    """
+    import collections
+
+    records = [
+        json.loads(line)
+        for path in (ROOT / "seeds/authored.jsonl", ROOT / "seeds/extracted.jsonl")
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    counts = collections.Counter(record["domain"] for record in records)
+
+    assert counts["regex"] >= 11, counts["regex"]
+    assert counts["sql"] >= 15, counts["sql"]
+    assert counts["html"] >= 15, counts["html"]
