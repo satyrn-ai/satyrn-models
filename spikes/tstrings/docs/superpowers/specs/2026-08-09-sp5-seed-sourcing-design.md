@@ -127,6 +127,43 @@ After the screen, standard `seeds.py` dedup applies: identical `(literal,
 bindings)` collapses to one `Seed` with multiple `occurrence_ids`, exactly as
 CPython occurrences already do.
 
+## Shape verification: confirming these are new shapes, not new volume
+
+`SP5_SCALE_BRIEF.md` is explicit that row/literal *count* is the misleading
+number — "structure is what the model learns from," and 5035 rows already
+collapse onto 270 shapes. A sourcing plan that hits domain floor counts
+without adding new structure would repeat that problem at smaller scale. So
+before trusting the pool sizes above, each candidate pool was checked against
+the *current* 44 seeds using a shape fingerprint at the seed level: each
+interpolation's expression kind (name/attribute/call/subscript/binop/const),
+conversion (`!r`/`!s`/`!a`/none), and format-spec presence (yes/no), with
+identifiers and literal constants erased — the same
+identifiers-and-constants-erased-skeleton principle `diversity.py` already
+applies to generated task references, just computed one layer earlier, on
+raw seed literals rather than post-pattern output.
+
+| domain | shapes in current seeds | new distinct shapes in candidate pool | overlap |
+| --- | --- | --- | --- |
+| regex | 2 | 14 | 0 |
+| sql | 5 | 47 | 3 |
+| html | 3 | 78 | 2 |
+
+Near-zero overlap in all three: the candidate pools land almost entirely on
+structure the current 44 seeds don't have — multi-interpolation literals,
+conversion + format-spec combinations, attribute/subscript/call expressions
+instead of bare names, CTEs and UNIONs in sql, SVG and comments in html. This
+is what makes the "8-10 new seeds per domain" selection in the next section
+a real coverage move rather than duplication dressed as coverage (the exact
+failure mode the brief warns about for the existing 5035-row pool).
+
+One methodological caveat: this shape fingerprint is a *proxy* for the
+project's actual diversity metric, which operates on generated `TaskRecord`
+references after pattern application, not raw seed literals — patterns are
+explicitly out of scope here (see "What this does not do" below). The
+fingerprint above measures interpolation-structure diversity at the seed
+level only; it doesn't (and can't yet) confirm downstream pattern-generated
+shape diversity, since no patterns exist against these seeds yet.
+
 ## Selection down to seed counts
 
 Raw pools (506 html, 214 sql, 33 regex, 2 logging) are all larger than the
@@ -155,10 +192,23 @@ Target roughly 8-10 new seeds each for html, sql, regex (bringing them to
 Even after the widened hunt, real logging usage is thin: `pep750-examples`
 (`davepeck/pep750-examples`, MIT, already vendored locally) has exactly 2
 distinct literals — `t"Hello, {name}!"` and `t"${amount:0.2f}"` — both via
-`logger.info(t"...")`. `NMRhub/tstring-logger` and `pR0Ps/tstringlogger` are
-libraries with no usage examples to mine (the latter is also unlicensed).
+`logger.info(t"...")`. `NMRhub/tstring-logger` has no usage examples to mine.
 This isn't a gap in the hunt; adoption genuinely hasn't happened yet for this
 domain.
+
+`pR0Ps/tstringlogger` was checked specifically and rejected as a *source*,
+but is worth naming because its shapes are the richest logging-domain
+material found — e.g. `t"{hello} {w!r}: {pi=:.2f} {d['a']} {obj.b}"` combines
+the `=` self-documenting specifier with subscript and attribute-access
+interpolations in one literal, more structure than anything currently in the
+logging domain. It's inadmissible: `pyproject.toml` declares
+`license = "LGPL-3.0-only"` explicitly, and the repo has no `LICENSE` file
+either — the same license category as psycopg, checked and confirmed via
+`gh api`, not assumed. **Use it as a shape reference for hand-authoring, not
+a source**: write original literals inspired by that structural idiom
+(debug-specifier + subscript + attribute access together) without importing
+or copying its code, the same relationship CPython's `%`-format idioms
+already have to seeds elsewhere in this pipeline.
 
 Plan: add `pep750-examples` as a fifth `[[source]]` (MIT, already local,
 straightforward pin) contributing its 2 literals as `extracted` seeds, then
@@ -170,6 +220,9 @@ matching `authored.jsonl`'s current pattern — under this rubric:
 - Cover both `logger.info(t"...")`-style direct calls and structured
   fields (`t"user={user} action={action} status={status}"`), since real
   logging idioms split roughly along that line.
+- Include at least one literal combining a conversion/debug-specifier with
+  a subscript or attribute-access interpolation (the `tstringlogger`-derived
+  shape above) — today's 4 logging seeds are all bare-name interpolations.
 - Bindings should include at least one non-string type (elapsed time as
   float, status code as int, a boolean flag) — today's logging seeds are
   all-string bindings.
