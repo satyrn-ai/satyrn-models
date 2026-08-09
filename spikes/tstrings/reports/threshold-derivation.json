@@ -25,10 +25,10 @@
       0.48
     ]
   },
-  "derived_at": "2026-08-04T05:26:01.032600+00:00",
+  "derived_at": "2026-08-09T21:08:16.747132+00:00",
   "diversity": {
     "distinct_prompts": 500,
-    "distinct_skeletons": 147
+    "distinct_skeletons": 168
   },
   "profile_version": 5,
   "review_budget": 0.1,
