@@ -34,6 +34,54 @@ instead of reusing this spike's eval.
 | `src/satyrn_model/quarantine.py`, `scripts/quarantine_legacy_examples.py`, `corpus/quarantine/` | A later, unrelated addition: 24 hand-written legacy examples preserved as inert, permanently-`"unverified"` records. They cannot become a corpus row or benchmark task — see the module docstring. Not part of the original spike; kept here because this is where they were added. |
 | `docs/superpowers/` | The original SDD roadmap, specs, and research notes for this spike, left as historical record. |
 
+## Stack
+
+- **Base model:** Qwen2.5-Coder-7B — chosen because it predates PEP 750's
+  acceptance, small enough to fine-tune locally, and fast/cheap to iterate on.
+  Not the intended long-term model, a proving ground.
+- **Fine-tuning:** [Unsloth](https://github.com/unslothai/unsloth) +
+  `unsloth_zoo.mlx.trainer` (`MLXTrainer`/`MLXTrainingConfig`) — LoRA on
+  Apple's MLX backend, so training runs on-device rather than needing CUDA.
+- **Data:** Hugging Face `datasets`, with a Python 3.14 compatibility shim in
+  `main.py`/`eval.py` for a `datasets` 4.x/`dill` incompatibility (3.14 changed
+  `pickle._Pickler._batch_setitems`'s signature; the shim patches around it —
+  see the comment block at the top of either file).
+- **Environment:** `uv` + `hatchling`, Python 3.14+ required for t-strings
+  themselves, independent of `spikes/tstrings/`'s own environment.
+
+## Methodology
+
+The full literature review and reasoning live in `DATASET_METHODOLOGY.md`
+(342 lines) — this is the short version. Three things mattered most, in
+order: **fix the eval** (it was measuring memorization, not learning — see
+"Known wrong" above), **invert the data pipeline** (generate candidates at
+volume and let the interpreter reject them, instead of hand-writing 24
+examples), and **re-audit the base model** (a newer base may already
+half-know PEP 750, turning knowledge injection into the much easier problem
+of reinforcement).
+
+The literature review's central finding: post-cutoff API knowledge is hard to
+inject by fine-tuning, and the evidence at the time argued *against*
+fine-tuning more than for it — base-model-plus-documentation-in-context
+reached 66% executable on a comparable task in one cited paper, against only
+negative published fine-tuning results. That's why the doc states an explicit
+decision criterion rather than assuming fine-tuning wins by default:
+
+> The fine-tuned model must beat base-model-plus-docs-in-context on the
+> held-out eval. If it doesn't, the right answer is a docs/retrieval layer.
+
+`spikes/tstrings/README.md` answers this question with real numbers on a
+different base model (Mellum2): documentation-in-prompt beats the adapter,
+not the other way around — consistent with what this document predicted
+before any of that training happened.
+
+A stdlib-only sourcing rule also came out of this doc the hard way: an
+earlier revision spent most of a build cycle mining `tdom` (a third-party
+template library) before catching that it teaches the model *tdom's* API
+surface, not the PEP 750 language feature itself. See "Ground truth worth
+mining" §1 in `DATASET_METHODOLOGY.md` for the full account — it's kept as
+the record of that mistake, not as current guidance to follow.
+
 ## Running it
 
 ```bash
