@@ -48,3 +48,5 @@ results/*
 !results/eval-v2-runA-seed44-docs.json
 !results/eval-m2i-ood-runA-repair-v2.json
 !results/eval-m2i-ood-runA-repair-v2-docs.json
+!results/eval-v2-base.json
+!results/eval-v2-base-docs.json

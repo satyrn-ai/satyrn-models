@@ -40,14 +40,15 @@ weights were not kept, and it is not part of what this bundle claims. See
 
 On Mellum2-12B-A2.5B-Instruct against `ood-v2`, exact match plus a mechanism
 check, scored by `spike/reverify.py`. Every arm below is a real file in
-`adapters/` and `results/`, not just a number:
+`results/`, and the trained adapters themselves are in `adapters/` — nothing
+here is asserted without something to re-run:
 
-| arm | score |
-| --- | --- |
-| bare model | **5 / 100** — reaches for t-strings in 7 of 100 |
-| + adapter, per seed (`adapters/m2i-runA-{repair-v2,seed43,seed44,seed45,seed46,seed47}`) | 54, 58, 48, 56, 61, 58 — **mean 55.8** |
-| + documentation in prompt | **76** |
-| + adapter + documentation (3 of the 6 seeds only: `repair-v2`, `seed43`, `seed44`) | 80, 76, 80 — **mean ~78.7** |
+| arm | score | evidence |
+| --- | --- | --- |
+| bare model | **5 / 100** — reaches for t-strings in 7 of 100 | `results/eval-v2-base.json` |
+| + adapter, per seed (`adapters/m2i-runA-{repair-v2,seed43,seed44,seed45,seed46,seed47}`) | 54, 58, 48, 56, 61, 58 — **mean 55.8** | `results/eval-v2-runA{,-seed43,-seed44,-seed45,-seed46,-seed47}.json` |
+| + documentation in prompt | **76** | `results/eval-v2-base-docs.json` — its `score` field (0.61) predates the lenient-policy correction below; `passed` (76) is the current, correct count |
+| + adapter + documentation (3 of the 6 seeds only: `repair-v2`, `seed43`, `seed44` — the other three were never run with the docs arm) | 80, 76, 80 — **mean ~78.7** | `results/eval-v2-runA{,-seed43,-seed44}-docs.json` |
 
 **Training a 12B model on a language feature it has never seen works**: 5 → 56
 with **zero regressions**, from 443 rows. That is the result worth having,
