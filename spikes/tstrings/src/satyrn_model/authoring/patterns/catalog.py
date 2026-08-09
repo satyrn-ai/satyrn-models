@@ -438,7 +438,7 @@ CATALOG: tuple[Pattern, ...] = (
                 "construct an Interpolation with an attribute expression and a format spec",
                 None,
                 "user.name",
-                ">10",
+                ">8",
             ),
             (
                 "construct-interpolation-s-format",

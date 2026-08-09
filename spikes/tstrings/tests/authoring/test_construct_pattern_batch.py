@@ -26,7 +26,7 @@ EXPECTED_SHAPES = {
     "construct-interpolation-subscript": (None, "items[0]", ""),
     "construct-interpolation-call": (None, "get_name()", ""),
     "construct-interpolation-expression-r": ("r", "user.name", ""),
-    "construct-interpolation-expression-format": (None, "user.name", ">10"),
+    "construct-interpolation-expression-format": (None, "user.name", ">8"),
     "construct-interpolation-s-format": ("s", "value", ">8"),
     "construct-interpolation-a-format": ("a", "value", ">8"),
 }
