@@ -1,4 +1,4 @@
-"""One-off: record accepted review decisions for the 24 third-party seeds
+"""One-off: record accepted review decisions for the 26 third-party seeds
 added in scripts/rebuild_seed_artifacts.py. Run once, then delete or keep
 as a record — it is idempotent (re-running just re-writes the same content
 since ReviewDecision.decided_at is the only non-deterministic field, and
@@ -53,9 +53,11 @@ THIRD_PARTY_LITERALS = {
 REASON = (
     "owner-approved recommendation: extracted from an approved one-time "
     "third-party source (see docs/superpowers/specs/"
-    "2026-08-09-sp5-seed-sourcing-design.md); unique, fully bound, "
-    "executable PEP 750 seed; screened against tdom-specific component "
-    "and attribute-spread conventions where applicable"
+    "2026-08-09-sp5-seed-sourcing-design.md and "
+    "docs/superpowers/specs/2026-08-09-sp5-logging-extraction-design.md); "
+    "unique, fully bound, executable PEP 750 seed; screened against "
+    "tdom-specific component and attribute-spread conventions where "
+    "applicable"
 )
 
 FIXED_DECIDED_AT = "2026-08-09T00:00:00+00:00"

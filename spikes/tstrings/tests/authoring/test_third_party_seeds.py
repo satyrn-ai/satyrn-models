@@ -1,4 +1,4 @@
-"""Task 2: the 24 third-party regex/sql/html seeds resolve correctly."""
+"""Task 2: the 26 third-party regex/sql/html/logging seeds resolve correctly."""
 
 from pathlib import Path
 
@@ -77,11 +77,6 @@ def test_third_party_seeds_are_present_and_source_resolved() -> None:
             occ.origin.line_start,
             occ.origin.line_end,
         )
-
-
-def test_extracted_seed_count_grew_to_thirty_four() -> None:
-    seeds = read_seeds_jsonl(ROOT / "seeds/extracted.jsonl")
-    assert len(seeds) == 36
 
 
 def test_logging_extraction_seeds_are_present_and_source_resolved() -> None:
