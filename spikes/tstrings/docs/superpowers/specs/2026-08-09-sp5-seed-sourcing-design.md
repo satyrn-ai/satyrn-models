@@ -1,11 +1,12 @@
-# SP5 seed sourcing: ~30 new seeds for regex, logging, sql, html
+# SP5 seed sourcing: ~20 new seeds for regex, sql, html
 
-Addresses `SP5_SCALE_BRIEF.md` Priority 1 only: bring every domain to 12-15
-distinct seeds (currently regex 3, logging 4, sql 7, html 7, against text 17
-and data 16). Everything else in the brief — patterns, `construct`/
-`compose_templates` population, extraction breadth beyond this — is
-explicitly lower-priority and gated on this landing first, and stays out of
-scope here.
+Addresses `SP5_SCALE_BRIEF.md` Priority 1, scoped to three of its four gap
+domains: bring regex, sql, and html to 12-15 distinct seeds (currently regex
+3, sql 7, html 7, against text 17 and data 16). **Logging is deliberately
+skipped in this pass** — see below. Everything else in the brief — patterns,
+`construct`/`compose_templates` population, extraction breadth beyond this —
+is explicitly lower-priority and gated on this landing first, and stays out
+of scope here.
 
 ## Why this isn't a simple "extract more from CPython" job
 
@@ -32,7 +33,8 @@ Priority 1.**
 ## The one-time exception
 
 Approved explicitly for this task: a small set of **third-party, stdlib-only,
-permissively-licensed** sources may supply seeds for the four gap domains.
+permissively-licensed** sources may supply seeds for the gap domains in
+scope (regex, sql, html).
 This is not a reopening of the stdlib-only rule that `DATASET_METHODOLOGY.md`
 established after the `tdom` incident (`CORPUS_MACHINERY.md`'s "Why not an
 off-the-shelf synthetic-data tool" section) — it is a scoped, reviewed,
@@ -86,8 +88,6 @@ value, distinct from `"cpython"`) so provenance stays legible in
 CPython's. `sources.py`'s `assert_source_pin` already generalizes to
 non-CPython repos by design (its docstring says so explicitly) — no code
 change needed there, only new TOML entries plus attribution text per repo.
-
-`logging` gets no new `[[source]]` entry: see below.
 
 ## The screen: what gets mined vs. discarded
 
@@ -166,16 +166,16 @@ shape diversity, since no patterns exist against these seeds yet.
 
 ## Selection down to seed counts
 
-Raw pools (506 html, 214 sql, 33 regex, 2 logging) are all larger than the
-12-15 target floors, so selection — not scarcity — governs the final set.
-Within each domain, prefer literals that:
+Raw pools (506 html, 214 sql, 33 regex) are all larger than the 12-15 target
+floors, so selection — not scarcity — governs the final set. Within each
+domain, prefer literals that:
 
 1. Have at least one interpolation (a handful of static-only literals are
    fine for `join_static_parts`/negative coverage, but the pool shouldn't be
    dominated by them).
 2. Vary binding type across the selected set — string, int, bool, float,
    expression, attribute access — so the domain doesn't collapse onto one
-   binding shape the way `logging`'s current 4 seeds do.
+   binding shape.
 3. Vary conversion/format-spec presence (`!r`, `:.2f`, bare) where the
    source has it, since `SP5_SCALE_BRIEF.md`'s `render_subskill` marginal
    depends on this variety existing at the seed level.
@@ -184,56 +184,30 @@ Within each domain, prefer literals that:
    already applies to authored seeds, applied here at selection time so the
    pipeline's own dedup isn't doing double duty.
 
-Target roughly 8-10 new seeds each for html, sql, regex (bringing them to
-15-17, 15-17, 11-13 respectively) and the rest from logging's hand-authoring.
+Target roughly 8-10 new seeds each for html, sql, regex, bringing them to
+15-17, 15-17, and 11-13 respectively.
 
-## Logging: hand-authored, not mined
+## Logging: skipped in this pass
 
-Even after the widened hunt, real logging usage is thin: `pep750-examples`
-(`davepeck/pep750-examples`, MIT, already vendored locally) has exactly 2
+Explicitly out of scope for this task, by decision, not oversight. Record
+of why it would have been the hard case, so a future pass doesn't have to
+re-derive it: even after the widened hunt, real logging usage is thin.
+`davepeck/pep750-examples` (MIT, already vendored locally) has exactly 2
 distinct literals — `t"Hello, {name}!"` and `t"${amount:0.2f}"` — both via
-`logger.info(t"...")`. `NMRhub/tstring-logger` has no usage examples to mine.
-This isn't a gap in the hunt; adoption genuinely hasn't happened yet for this
-domain.
-
-`pR0Ps/tstringlogger` was checked specifically and rejected as a *source*,
-but is worth naming because its shapes are the richest logging-domain
-material found — e.g. `t"{hello} {w!r}: {pi=:.2f} {d['a']} {obj.b}"` combines
-the `=` self-documenting specifier with subscript and attribute-access
-interpolations in one literal, more structure than anything currently in the
-logging domain. It's inadmissible: `pyproject.toml` declares
-`license = "LGPL-3.0-only"` explicitly, and the repo has no `LICENSE` file
-either — the same license category as psycopg, checked and confirmed via
-`gh api`, not assumed. **Use it as a shape reference for hand-authoring, not
-a source**: write original literals inspired by that structural idiom
-(debug-specifier + subscript + attribute access together) without importing
-or copying its code, the same relationship CPython's `%`-format idioms
-already have to seeds elsewhere in this pipeline.
-
-Plan: add `pep750-examples` as a fifth `[[source]]` (MIT, already local,
-straightforward pin) contributing its 2 literals as `extracted` seeds, then
-hand-author the remaining ~8-10 in the existing `occ-auth-N` style —
-matching `authored.jsonl`'s current pattern — under this rubric:
-
-- Cover at least `DEBUG`/`INFO`/`WARNING`/`ERROR` call sites, not just one
-  level repeated (today's 4 seeds are undifferentiated by level).
-- Cover both `logger.info(t"...")`-style direct calls and structured
-  fields (`t"user={user} action={action} status={status}"`), since real
-  logging idioms split roughly along that line.
-- Include at least one literal combining a conversion/debug-specifier with
-  a subscript or attribute-access interpolation (the `tstringlogger`-derived
-  shape above) — today's 4 logging seeds are all bare-name interpolations.
-- Bindings should include at least one non-string type (elapsed time as
-  float, status code as int, a boolean flag) — today's logging seeds are
-  all-string bindings.
-- Human review before merging into `authored.jsonl`, same as existing
-  authored seeds — no different bar for these.
+`logger.info(t"...")`. `NMRhub/tstring-logger` has no usage examples to
+mine. `pR0Ps/tstringlogger` has the richest logging-domain shapes found —
+e.g. `t"{hello} {w!r}: {pi=:.2f} {d['a']} {obj.b}"` — but is inadmissible:
+`pyproject.toml` declares `license = "LGPL-3.0-only"` explicitly and the
+repo has no `LICENSE` file either, the same license category as psycopg.
+Logging stays at its current 4 seeds until a follow-on task takes it on,
+most likely via hand-authoring under a rubric since mining doesn't reach it.
 
 ## What this does not do
 
 No pattern authoring, no `composition.toml`/`sampling.toml` changes, no
-`construct`/`compose_templates` population — all explicitly lower-priority
-per the brief and left for a follow-on task once these seeds land and are
-reviewed. No code changes to `sources.py`/`seeds.py`/`extract.py` are
-anticipated; `assert_source_pin` and the seed/occurrence dedup already
-generalize to non-CPython sources by design.
+`construct`/`compose_templates` population, no logging seeds — all
+explicitly lower-priority or out of scope per this decision, left for a
+follow-on task once these seeds land and are reviewed. No code changes to
+`sources.py`/`seeds.py`/`extract.py` are anticipated; `assert_source_pin`
+and the seed/occurrence dedup already generalize to non-CPython sources by
+design.
