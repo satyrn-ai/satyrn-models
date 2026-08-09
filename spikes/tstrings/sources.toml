@@ -39,11 +39,14 @@ url = "https://github.com/treyhunner/regex-template"
 sha = "f4ea6979113623760153eb6666a3aacdbe681fa3"
 license = "MIT"
 attribution = "Trey Hunner (github.com/treyhunner). regex-template, commit f4ea6979113."
+notice = """
+Copyright (c) 2025-present Trey Hunner. Licensed under the MIT License.
+"""
 source_class = "third-party"
 extraction_mode = "ast"
 
 [source.expected_contribution]
-literals = ">=0"
+literals = ">=8"
 
 [[source]]
 id = "t-sql-2026"
@@ -51,11 +54,14 @@ url = "https://github.com/nhumrich/t-sql"
 sha = "01275e310804ff4409aa206afd4b2ddae5082ecd"
 license = "MIT"
 attribution = "Nick Humrich (github.com/nhumrich). t-sql, commit 01275e31080."
+notice = """
+Copyright (c) 2025 Nick Humrich. Licensed under the MIT License.
+"""
 source_class = "third-party"
 extraction_mode = "ast"
 
 [source.expected_contribution]
-literals = ">=0"
+literals = ">=8"
 
 [[source]]
 id = "tdom-2026"
@@ -63,11 +69,14 @@ url = "https://github.com/ianjosephwilson/tdom"
 sha = "98264091b3154a36f4af2e205ac6c3b7c793fb20"
 license = "MIT"
 attribution = "Ian Wilson (github.com/ianjosephwilson). tdom, commit 982640913."
+notice = """
+Copyright (c) 2025-2026 Dave Peck, Ian Joseph Wilson, Andrea Giammarchi, and Paul Everitt. Licensed under the MIT License.
+"""
 source_class = "third-party"
 extraction_mode = "ast"
 
 [source.expected_contribution]
-literals = ">=0"
+literals = ">=5"
 
 [[source]]
 id = "storyville-2026"
@@ -75,11 +84,14 @@ url = "https://github.com/pauleveritt/storyville"
 sha = "5fe71ce49dcf15674dbda063135f8dd4a3a9c954"
 license = "MIT"
 attribution = "Paul Everitt (github.com/pauleveritt). storyville, commit 5fe71ce49dc."
+notice = """
+Copyright (c) 2021 Paul Everitt. Licensed under the MIT License.
+"""
 source_class = "third-party"
 extraction_mode = "ast"
 
 [source.expected_contribution]
-literals = ">=0"
+literals = ">=2"
 
 [[source]]
 id = "tdom-svcs-2026"
@@ -87,8 +99,11 @@ url = "https://github.com/pauleveritt/tdom-svcs"
 sha = "d2f6e3a1f7f0ff9295fe596ea29316e024c3befd"
 license = "MIT"
 attribution = "Paul Everitt (github.com/pauleveritt). tdom-svcs, commit d2f6e3a1f7f."
+notice = """
+Copyright (c) 2026 Paul Everitt. Licensed under the MIT License.
+"""
 source_class = "third-party"
 extraction_mode = "ast"
 
 [source.expected_contribution]
-literals = ">=0"
+literals = ">=1"
