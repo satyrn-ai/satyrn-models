@@ -1,0 +1,88 @@
+{
+  "manifest": {
+    "contract_version": "1",
+    "fingerprint": "dc95ac58858f81469501919e1184ad39ed22249b596d321748b2c2cb31eae620",
+    "task_count": 3
+  },
+  "tasks": [
+    {
+      "checks": [
+        {
+          "kind": "name_equals",
+          "name": "greet"
+        }
+      ],
+      "completion": {
+        "mode": "complete_program"
+      },
+      "id": "2246ee64b37788063ed39984a05f60c776ea56e48c0d3e9ddfac6138d459186d",
+      "policy": {
+        "config": {},
+        "id": "tstring",
+        "version": 1
+      },
+      "prompt": "return a template that greets a name",
+      "provenance": {
+        "interpreter_version": "3.14.5",
+        "kind": "harvested",
+        "source_file": "Lib/test/test_string/test_templatelib.py",
+        "upstream_ref": "v3.14.5"
+      },
+      "reference": "def greet(name):\n    return t\"Hello {name}\"\n"
+    },
+    {
+      "checks": [
+        {
+          "kind": "name_equals",
+          "name": "r"
+        }
+      ],
+      "completion": {
+        "mode": "complete_program"
+      },
+      "id": "a50bbd5c4a9b5df6231e224aac43f36d4080836fc4e2926480fb615bd981522c",
+      "policy": {
+        "config": {
+          "require_feature": false
+        },
+        "id": "tstring",
+        "version": 1
+      },
+      "prompt": "apply a conversion with convert()",
+      "provenance": {
+        "generator": "seed-pattern-cross-product",
+        "generator_version": "0.1.0",
+        "kind": "generated",
+        "seed_id": "seed-convert-basic"
+      },
+      "reference": "from string.templatelib import convert\ndef r(value):\n    return convert(value, \"r\")\n"
+    },
+    {
+      "checks": [
+        {
+          "exception": "KeyError",
+          "kind": "raises"
+        }
+      ],
+      "completion": {
+        "mode": "complete_program"
+      },
+      "id": "0a0b463f4bb355dfefd0abd93b33dea435b6e1828c2816de52f01fa2b5ba126f",
+      "policy": {
+        "config": {
+          "require_feature": false
+        },
+        "id": "tstring",
+        "version": 1
+      },
+      "prompt": "demonstrate that accessing a missing dict key raises KeyError",
+      "provenance": {
+        "generator": "seed-pattern-cross-product",
+        "generator_version": "0.1.0",
+        "kind": "generated",
+        "seed_id": "seed-raises-basic"
+      },
+      "reference": "d = {}\nx = d['missing']\n"
+    }
+  ]
+}

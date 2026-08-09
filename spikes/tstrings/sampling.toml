@@ -1,0 +1,13 @@
+# SP5 pilot selection plan.
+#
+# Profile v5's source, role, property, domain, and operation marginals are enforced by
+# the exact composition selector. This file owns the release size and the
+# final leaf preference only; duplicating marginal or pattern quotas here
+# previously allowed the sampler to disagree with composition.toml.
+
+[plan]
+target_rows = 500
+nested_order = ["seed"]
+
+# No per-seed quotas: the exact selector uses stable row ordering and prefers
+# distinct seeds/patterns where the required marginals permit it.

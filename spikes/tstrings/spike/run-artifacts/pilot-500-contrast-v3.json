@@ -1,0 +1,129 @@
+{
+  "aggregate": {
+    "docs_baseline_passed": 36,
+    "mean_passed": 28.333333333333332,
+    "run_level_95_percent_t_interval": [4.46, 52.2],
+    "sample_standard_deviation": 9.60902353693305,
+    "seed_scores": [37, 18, 30],
+    "verdict": "failed_gate_and_regressed_from_prompt_v2"
+  },
+  "benchmark": {
+    "author_tasks": 30,
+    "consumer_tasks": 70,
+    "fingerprint": "1ba96f45b18e03b328b53668d503ac0a754557bb3c21c180dfc7a652d6243d0c",
+    "total_tasks": 100
+  },
+  "cross_seed": {
+    "passed_by_no_seed": 63,
+    "passed_by_one_seed": 7,
+    "passed_by_two_seeds": 12,
+    "passed_by_three_seeds": 18,
+    "stable_author_static_parts": 8,
+    "stable_author_values": 10,
+    "stable_consumer_passes": 0
+  },
+  "data": {
+    "candidate_rows": 5035,
+    "dataset_fingerprint": "713010299ea7eabfb187231d496a41b55eb9730a498a14c123614c64c13892ed",
+    "operation_counts": {
+      "classify_parts": 40,
+      "compose": 25,
+      "construct": 5,
+      "convert_value": 40,
+      "format_value": 40,
+      "iterate_parts": 40,
+      "joined_static": 50,
+      "negative": 10,
+      "render_interpolation": 45,
+      "render_template": 60,
+      "strings": 60,
+      "template": 25,
+      "values": 60
+    },
+    "rendered_fingerprint": "a60a5cc4e774cd710af89bf87c94c2ed79493090105d9ce7a1da1de5690d8b5e",
+    "sp5_commit": "c4a3238",
+    "split_seed": 17,
+    "train_rows": 450,
+    "validation_rows": 50
+  },
+  "model": {
+    "id": "mlx-community/Qwen2.5-Coder-7B-Instruct-8bit",
+    "revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e",
+    "tokenizer_revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e"
+  },
+  "exploratory_system_alignment": {
+    "adapter_sha256": "4e2e01af7d0fe93771118572b719ce73b39c1e3b5943b87e3430d2eb3b7a17c6",
+    "baseline_seed": 42,
+    "gained_tasks": 13,
+    "gains_by_operation": {
+      "render_conversion_format": 1,
+      "render_dynamic_format_spec": 2,
+      "render_template": 10
+    },
+    "lost_tasks": 17,
+    "losses_by_operation": {
+      "compose_templates": 10,
+      "interpolation_fields": 5,
+      "join_static_parts": 2
+    },
+    "passed": 33,
+    "rendered_fingerprint": "a394c1a681a586dcefbc903e1083678f02c1e4a9920e9d4b6d5211b834baf6a8",
+    "result": "results/eval-exploratory-qwen-contrast-v3-system-seed42.json",
+    "verdict": "system_alignment_changes_learned_mode_but_does_not_clear_gate"
+  },
+  "exploratory_semantic_bridge": {
+    "adapter_sha256": "bedbbf38f25559f8099e64e3cf7fce78f7bd70b68d30aa79071ead367814e080",
+    "consumer_passed": 20,
+    "direct_strings_passed": 0,
+    "direct_values_passed": 10,
+    "passed": 40,
+    "rendered_fingerprint": "39bb5fdc7e3971765cacf8b38224d800ef3ce0b6c3923d500c37540354f52e05",
+    "replacement_count": 25,
+    "result": "results/eval-exploratory-qwen-semantic-system-seed42.json",
+    "verdict": "semantic_values_bridge_transfers_but_capability_mode_remains_unstable"
+  },
+  "runs": [
+    {
+      "adapter_sha256": "ee6c4428e5f45b4ba7090c0a656a80f4d15eefd9f198c499871e958af0c4db2d",
+      "failure_stages": {"candidate_execute": 28, "policy": 21, "semantic_check": 14},
+      "passed": 37,
+      "passed_by_role": {"author": 20, "consumer": 17},
+      "result": "results/eval-confirmatory-qwen-contrast-v3-seed42.json",
+      "seed": 42,
+      "train_loss_final": 0.018,
+      "validation_loss_final": 0.010
+    },
+    {
+      "adapter_sha256": "69ccfe33ecbe1c5f751fdcbd967a05f9f01bfc0b3b424f5c0a1b1a0364d018f2",
+      "failure_stages": {"candidate_execute": 39, "policy": 6, "semantic_check": 37},
+      "passed": 18,
+      "passed_by_role": {"author": 18, "consumer": 0},
+      "result": "results/eval-confirmatory-qwen-contrast-v3-seed43.json",
+      "seed": 43,
+      "train_loss_final": 0.024,
+      "validation_loss_final": 0.009
+    },
+    {
+      "adapter_sha256": "e74fa1319f6a310dcf36e5d322b90f240b59b7ddf7b84c7851fe5bc7f048f3ae",
+      "failure_stages": {"candidate_execute": 24, "policy": 39, "semantic_check": 7},
+      "passed": 30,
+      "passed_by_role": {"author": 20, "consumer": 10},
+      "result": "results/eval-confirmatory-qwen-contrast-v3-seed44.json",
+      "seed": 44,
+      "train_loss_final": 0.027,
+      "validation_loss_final": 0.013
+    }
+  ],
+  "run_kind": "three-seed contrastive operation and rendering-subskill pilot",
+  "training": {
+    "batch_size": 8,
+    "effective_rank": 8,
+    "effective_scale": 20.0,
+    "iterations": 57,
+    "learning_rate": 2e-05,
+    "mask_prompt": true,
+    "max_sequence_length": 1024,
+    "num_layers": 8,
+    "peak_memory_gb": 18.655
+  }
+}

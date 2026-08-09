@@ -1,0 +1,13 @@
+{
+  "category": "single-turn-coding",
+  "splits": {
+    "train": {
+      "fingerprint": "63d2ebacb87ea56499b35c6bcc9e64ad849cb98bb19294e0587a38ecf3c9afa8",
+      "rows": 443
+    },
+    "valid": {
+      "fingerprint": "5b431dc7eed3082305a45aa3a9814bbd47e4d3efe0cbcb02eaf9db8efa9e7229",
+      "rows": 49
+    }
+  }
+}

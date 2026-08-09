@@ -1,0 +1,52 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# SP5 generated artifacts
+reports/
+!reports/
+reports/*
+!reports/pilot-capacity.md
+!reports/pilot.jsonl
+!reports/threshold-derivation.json
+!reports/threshold-derivation.md
+!reports/collection-checkpoint.md
+!reports/build.md
+!reports/dropped.jsonl
+!reports/threshold-derivation.md
+!reports/threshold-derivation.json
+corpus/
+!corpus/tstrings.jsonl
+
+# Training artifacts
+qwen2.5-coder-pep750/
+adapters/
+unsloth_compiled_cache/
+
+# The runA adapters (adapters/) are gitignored too -- multi-GB safetensors
+# don't belong in git history -- but present on disk as the actual trained
+# proof behind README.md's established result, not just prose about it.
+
+results/
+!results/
+results/*
+!results/eval-v2-runA.json
+!results/eval-v2-runA-seed43.json
+!results/eval-v2-runA-seed44.json
+!results/eval-v2-runA-seed45.json
+!results/eval-v2-runA-seed46.json
+!results/eval-v2-runA-seed47.json
+!results/eval-v2-runA-docs.json
+!results/eval-v2-runA-seed43-docs.json
+!results/eval-v2-runA-seed44-docs.json
+!results/eval-m2i-ood-runA-repair-v2.json
+!results/eval-m2i-ood-runA-repair-v2-docs.json
+!results/eval-v2-base.json
+!results/eval-v2-base-docs.json

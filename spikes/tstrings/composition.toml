@@ -1,0 +1,63 @@
+# SP5 data-owner composition profile — committed before pattern authoring.
+#
+# Declares target proportions and mandatory strata for property, source-kind,
+# domain, and negative controls.  No implicit uniform default: every stratum
+# listed here must be represented.  Task 10 derives tolerance bands from the
+# 500-row pilot; this file records the profile version for that derivation.
+
+[profile]
+version = 5
+
+[targets.property]
+# The second pilot is intentionally remedial. Broad introspection/render labels
+# are replaced by contrasted outcomes and explicit rendering subskills.
+select_result = 0.43
+render_subskill = 0.45
+join_static_parts = 0.04
+compose_templates = 0.05
+construct = 0.01
+negative = 0.02
+
+[targets.operation]
+# Exact floors for every benchmark operation that failed across all v2 seeds.
+template = 0.05
+strings = 0.12
+values = 0.12
+joined_static = 0.10
+iterate_parts = 0.08
+classify_parts = 0.08
+convert_value = 0.08
+format_value = 0.08
+render_interpolation = 0.09
+render_template = 0.12
+compose = 0.05
+construct = 0.01
+negative = 0.02
+
+[targets.source_kind]
+# Exact CPython extraction is intentionally narrow and currently supplies only
+# text/data seeds. A 40% extracted target is jointly incompatible with the
+# domain profile, whose text+data allowance is 25%. Keep a material 20% real-
+# source anchor without relabelling generic CPython examples as other domains.
+extracted = 0.20
+authored = 0.80
+
+[targets.role]
+consumer = 0.70
+author = 0.30
+
+[targets.domain]
+sql = 0.20
+html = 0.20
+logging = 0.15
+regex = 0.10
+text = 0.20
+data = 0.15
+
+[mandatory_strata]
+# Every published snapshot MUST include at least one row of each.
+properties = ["select_result", "render_subskill", "join_static_parts", "compose_templates", "construct", "negative"]
+operations = ["template", "strings", "values", "joined_static", "iterate_parts", "classify_parts", "convert_value", "format_value", "render_interpolation", "render_template", "compose", "construct", "negative"]
+source_kinds = ["extracted", "authored"]
+roles = ["consumer", "author"]
+negative_controls = true

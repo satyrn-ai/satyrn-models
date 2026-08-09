@@ -1,0 +1,117 @@
+{
+  "aggregate": {
+    "docs_baseline_passed": 36,
+    "mean_passed": 34.0,
+    "run_level_95_percent_t_interval": [20.85, 47.15],
+    "sample_standard_deviation": 5.291502622129181,
+    "seed_scores": [30, 32, 40],
+    "verdict": "promising_single_seed_but_unstable_and_below_gate"
+  },
+  "benchmark": {
+    "author_tasks": 30,
+    "consumer_tasks": 70,
+    "fingerprint": "1ba96f45b18e03b328b53668d503ac0a754557bb3c21c180dfc7a652d6243d0c",
+    "total_tasks": 100
+  },
+  "cross_seed": {
+    "passed_by_no_seed": 58,
+    "passed_by_one_seed": 2,
+    "passed_by_two_seeds": 20,
+    "passed_by_three_seeds": 20,
+    "stable_author_passes": 10,
+    "stable_consumer_passes": 10
+  },
+  "data": {
+    "candidate_rows": 2950,
+    "dataset_fingerprint": "5f2553996eb29d9e1ede1fcaeb8eb08e2f99e21f1f272d78a9bdcd6dbda19443",
+    "distinct_prompts": 500,
+    "prompt_family_counts": {
+      "direct": 171,
+      "pep750-request": 166,
+      "python-program": 163
+    },
+    "rendered_fingerprint": "96570b67dc1bf8aead452fb7507126a9c7b976a5fe4298f4cb3a9978e05d1c3a",
+    "split_seed": 17,
+    "train_rows": 450,
+    "validation_rows": 50
+  },
+  "exploratory_hybrid": {
+    "adapter_seed": 44,
+    "docs_context": "spike/pep750-docs-context.md",
+    "passed": 40,
+    "passing_task_ids_changed_from_adapter_only": 0,
+    "result": "results/eval-exploratory-qwen-prompt-v2-seed44-docs.json",
+    "verdict": "no_capability_gain"
+  },
+  "model": {
+    "id": "mlx-community/Qwen2.5-Coder-7B-Instruct-8bit",
+    "revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e",
+    "tokenizer_revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e"
+  },
+  "run_kind": "three-seed prompt-diversity repair pilot",
+  "runs": [
+    {
+      "adapter_sha256": "ef1c49ea66e0e90f0ea0d50099726f461e05f545d0a578541c66bd28d2f17b07",
+      "failure_stages": {
+        "candidate_execute": 16,
+        "policy": 12,
+        "semantic_check": 42
+      },
+      "passed": 30,
+      "passed_by_role": {
+        "author": 20,
+        "consumer": 10
+      },
+      "result": "results/eval-confirmatory-qwen-prompt-v2-seed42.json",
+      "seed": 42,
+      "train_loss": [0.759, 0.115, 0.035, 0.029, 0.011, 0.008],
+      "validation_loss": [1.466, 0.031, 0.011, 0.002]
+    },
+    {
+      "adapter_sha256": "b936e8172eebbb12823834d504c320a4dfb8ecb4f139c3ea0f570d3d81c3091b",
+      "failure_stages": {
+        "candidate_execute": 38,
+        "policy": 14,
+        "semantic_check": 16
+      },
+      "passed": 32,
+      "passed_by_role": {
+        "author": 10,
+        "consumer": 22
+      },
+      "result": "results/eval-confirmatory-qwen-prompt-v2-seed43.json",
+      "seed": 43,
+      "train_loss": [0.734, 0.095, 0.038, 0.019, 0.009, 0.015],
+      "validation_loss": [1.466, 0.026, 0.01, 0.006]
+    },
+    {
+      "adapter_sha256": "78d6ee2d6003f69c417bb3cb942b52f0bb6b75b383eaf91c832a6fc3c3e08a8b",
+      "failure_stages": {
+        "candidate_execute": 21,
+        "policy": 6,
+        "semantic_check": 33
+      },
+      "passed": 40,
+      "passed_by_role": {
+        "author": 20,
+        "consumer": 20
+      },
+      "result": "results/eval-confirmatory-qwen-prompt-v2-seed44.json",
+      "seed": 44,
+      "train_loss": [0.712, 0.091, 0.04, 0.027, 0.016, 0.019],
+      "validation_loss": [1.466, 0.026, 0.021, 0.004]
+    }
+  ],
+  "training": {
+    "batch_size": 8,
+    "effective_rank": 8,
+    "effective_scale": 20.0,
+    "gradient_accumulation": 1,
+    "iterations": 57,
+    "learning_rate": 2e-05,
+    "mask_prompt": true,
+    "max_sequence_length": 1024,
+    "num_layers": 8,
+    "peak_memory_gb": 18.655
+  }
+}

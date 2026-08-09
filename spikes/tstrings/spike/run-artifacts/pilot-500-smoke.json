@@ -1,0 +1,47 @@
+{
+  "adapter": {
+    "effective_rank": 8,
+    "effective_scale": 20.0,
+    "local_path": "adapters/pilot-500-smoke/adapters.safetensors",
+    "sha256": "e1bef7d9e4a80b10f391eb90b43bc118c27c94756b74413ad456272db6ba9966"
+  },
+  "data": {
+    "dataset_fingerprint": "553db985ae12f6f74497b9d84e7cbbfbd362379f2943c4e6c5c521fe82bdab94",
+    "rendered_fingerprint": "f00148c8159b576d366ed3713944f8e04a80d8101c2bc008237db5505e7f5373",
+    "split_seed": 17,
+    "train_rows": 450,
+    "validation_rows": 50
+  },
+  "evaluation": {
+    "failure_stages": {
+      "policy": 1
+    },
+    "passed": 0,
+    "task_limit": 1,
+    "total": 1
+  },
+  "model": {
+    "id": "mlx-community/Qwen2.5-Coder-7B-Instruct-8bit",
+    "revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e",
+    "tokenizer_revision": "b292f3cb59a1dea859013fad96af2640ce15ba9e"
+  },
+  "run_kind": "two-update plumbing smoke; not experimental evidence",
+  "training": {
+    "batch_size": 2,
+    "gradient_accumulation": 1,
+    "iterations": 2,
+    "learning_rate": 2e-05,
+    "mask_prompt": true,
+    "max_sequence_length": 1024,
+    "peak_memory_gb": 9.391,
+    "seed": 42,
+    "train_loss": [
+      3.297,
+      3.057
+    ],
+    "validation_loss": [
+      2.305,
+      2.197
+    ]
+  }
+}
