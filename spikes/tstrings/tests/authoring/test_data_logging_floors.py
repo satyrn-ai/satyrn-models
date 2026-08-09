@@ -50,3 +50,33 @@ def test_data_seeds_are_present_and_source_resolved() -> None:
 def test_extracted_seed_count_grew_to_forty_three() -> None:
     seeds = read_seeds_jsonl(ROOT / "seeds/extracted.jsonl")
     assert len(seeds) == 43
+
+
+EXPECTED_LOGGING_LITERALS = {
+    't"[DEBUG] {msg}"',
+    't"[WARNING] slow query took {elapsed:.2f}s"',
+    't"[ERROR] request failed with status {status}"',
+    't"user={user} action={action} status={status}"',
+    't"retrying={retry}"',
+    't"{event!r}: id={record_id}"',
+    't"correlation_id={cid} duration_ms={dur}"',
+}
+
+
+def test_logging_seeds_are_present_and_authored() -> None:
+    seeds = read_seeds_jsonl(ROOT / "seeds/authored.jsonl")
+    literals = {seed.literal for seed in seeds}
+    missing = EXPECTED_LOGGING_LITERALS - literals
+    assert not missing, f"seeds/authored.jsonl is missing: {missing}"
+
+    for seed in seeds:
+        if seed.literal not in EXPECTED_LOGGING_LITERALS:
+            continue
+        assert seed.domain == "logging"
+        assert seed.kind == "authored"
+        assert seed.id == seed_id(seed.literal, seed.bindings)
+
+
+def test_authored_seed_count_grew_to_forty_one() -> None:
+    seeds = read_seeds_jsonl(ROOT / "seeds/authored.jsonl")
+    assert len(seeds) == 41
