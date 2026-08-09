@@ -107,3 +107,18 @@ extraction_mode = "ast"
 
 [source.expected_contribution]
 literals = ">=1"
+
+[[source]]
+id = "pep750-examples-2026"
+url = "https://github.com/t-strings/pep750-examples"
+sha = "2e644e624f7fafda964d70d2150af4029a8431e2"
+license = "MIT"
+attribution = "Dave Peck (github.com/davepeck, now published under github.com/t-strings). pep750-examples, commit 2e644e624f7."
+source_class = "third-party"
+extraction_mode = "ast"
+notice = """
+Copyright (c) 2024 Dave Peck. Licensed under the MIT License.
+"""
+
+[source.expected_contribution]
+literals = ">=2"

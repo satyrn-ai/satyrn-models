@@ -33,3 +33,18 @@ def test_cpython_source_is_unaffected() -> None:
     cpython = sources["cpython-v3.14.5"]
     assert cpython.source_class == "cpython"
     assert cpython.tag == "v3.14.5"
+
+
+def test_logging_source_is_registered_and_valid() -> None:
+    """The pep750-examples source for logging extraction is present and valid."""
+    policy = load_policy()
+    sources = {s.id: s for s in load_sources()}
+
+    assert "pep750-examples-2026" in sources
+    source = sources["pep750-examples-2026"]
+    source.validate(policy=policy)
+    assert source.source_class == "third-party"
+    assert source.extraction_mode == "ast"
+    assert source.license == "MIT"
+    assert source.url == "https://github.com/t-strings/pep750-examples"
+    assert source.sha == "2e644e624f7fafda964d70d2150af4029a8431e2"
