@@ -25,7 +25,7 @@ Read [SP5_SCALE_BRIEF.md](SP5_SCALE_BRIEF.md) next; it is the actionable part.
    loss bottoms around iteration 80 of ~170 and then drifts up while training
    loss reaches 0.000. Early stopping was never run.
 4. **The documentation comparator contains benchmark-convention coaching.**
-   `tools/pep750-docs-context-v3.md` says things like *"If a task asks only for
+   `spike/pep750-docs-context-v3.md` says things like *"If a task asks only for
    the static parts… do not render"*. Fair for internal comparison since every
    arm sees it; **not fair in any external claim without disclosure.**
 5. **Single quantization, single harness.** Everything is MLX 8-bit via
@@ -38,7 +38,7 @@ Read [SP5_SCALE_BRIEF.md](SP5_SCALE_BRIEF.md) next; it is the actionable part.
 ## What is established
 
 On Mellum2-12B-A2.5B-Instruct against `ood-v2`, exact match plus a mechanism
-check, scored by `tools/reverify.py`:
+check, scored by `spike/reverify.py`:
 
 | arm | score |
 | --- | --- |
@@ -63,7 +63,7 @@ three epochs with warmup and cosine decay beat one epoch at a constant rate,
 | `OOD_AUTHORING_SPEC.md` | The spec that produced them, including a self-check the author must pass. |
 | `SP5_SCALE_BRIEF.md` | Where the corpus needs to grow, with pool numbers. |
 | `PREREGISTRATION.md` | Decisions fixed before the analyses they govern. |
-| `tools/` | Scoring and benchmark-building. |
+| `spike/` | Scoring and benchmark-building. |
 
 ### About `ood-v2`
 
