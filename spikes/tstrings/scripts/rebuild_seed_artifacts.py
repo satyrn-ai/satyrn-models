@@ -41,6 +41,337 @@ CPYTHON_SEEDS = (
     ('t"No values"', (), 108, 108, "text"),
 )
 
+# Exact literals, hand-resolved bindings, and spans from the five sources
+# registered in Task 1. See docs/superpowers/specs/
+# 2026-08-09-sp5-seed-sourcing-design.md for how these were selected.
+# Each entry: (source_id, path, (literal, bindings), line_start, line_end, domain)
+THIRD_PARTY_SEEDS = (
+    # regex-template-2026, tests/test_regex_template.py
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        ('t"^{filename}$"', (("filename", "'report.txt'"),)),
+        87,
+        87,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        (
+            't"{regex_part:safe}_{literal_part}"',
+            (("regex_part", "'[0-9]+'"), ("literal_part", "'end'")),
+        ),
+        94,
+        94,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        ('t"value_{number:03d}"', (("number", "7"),)),
+        101,
+        101,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        ('t"{value:.1f}"', (("value", "3.14159"),)),
+        108,
+        108,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        ('t"{value!r}"', (("value", "'raw'"),)),
+        113,
+        113,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        (
+            't"{start:safe}{filename}{end:safe}"',
+            (("start", "'^'"), ("filename", "'log.txt'"), ("end", "'$'")),
+        ),
+        120,
+        120,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        (
+            't"{digit_pattern:safe}-{word_pattern:safe}"',
+            (("digit_pattern", "'[0-9]+'"), ("word_pattern", "'[a-z]+'")),
+        ),
+        151,
+        151,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        (
+            't"^{pattern_template:safe}{{{count}}}$"',
+            (("pattern_template", "'[a-z]'"), ("count", "3")),
+        ),
+        171,
+        171,
+        "regex",
+    ),
+    # t-sql-2026
+    (
+        "t-sql-2026",
+        "tests/test_query_builder.py",
+        (
+            "t'SELECT *, ({subquery}) as post_user FROM users'",
+            (("subquery", "'SELECT id FROM active_users'"),),
+        ),
+        1490,
+        1490,
+        "sql",
+    ),
+    (
+        "t-sql-2026",
+        "tests/test_query_builder.py",
+        (
+            "t'SELECT * FROM users WHERE id = {5} AND post_count > ({subquery})'",
+            (("subquery", "'SELECT id FROM active_users'"),),
+        ),
+        1507,
+        1507,
+        "sql",
+    ),
+    (
+        "t-sql-2026",
+        "tests/test_query_builder.py",
+        (
+            "t'SELECT id FROM tree UNION ALL SELECT id+1 FROM tree WHERE id < 10'",
+            (),
+        ),
+        1628,
+        1628,
+        "sql",
+    ),
+    (
+        "t-sql-2026",
+        "tests/test_like_patterns.py",
+        (
+            't"SELECT * FROM users WHERE name LIKE {search:%like%}"',
+            (("search", "'jsmith'"),),
+        ),
+        14,
+        14,
+        "sql",
+    ),
+    (
+        "t-sql-2026",
+        "tests/test_deep_nesting.py",
+        (
+            (
+                't"SELECT username, ({subquery}) as post_count '
+                'FROM users WHERE id = {user_id}"'
+            ),
+            (
+                ("subquery", "'SELECT id FROM active_users'"),
+                ("user_id", "7"),
+            ),
+        ),
+        46,
+        46,
+        "sql",
+    ),
+    (
+        "t-sql-2026",
+        "tests/test_deep_nesting.py",
+        (
+            (
+                't"{cte} SELECT u.username FROM users u '
+                'JOIN active_users au ON u.id = au.user_id"'
+            ),
+            (
+                (
+                    "cte",
+                    (
+                        "'WITH active_users AS (SELECT user_id, COUNT(*) "
+                        "FROM posts GROUP BY user_id HAVING COUNT(*) > 5)'"
+                    ),
+                ),
+            ),
+        ),
+        75,
+        75,
+        "sql",
+    ),
+    (
+        "t-sql-2026",
+        "tests/test_deep_nesting.py",
+        (
+            (
+                't"WITH {cte1}, {cte2} SELECT DISTINCT u.username FROM users u '
+                'JOIN active_posters ap ON u.id = ap.user_id '
+                'JOIN active_commenters ac ON u.id = ac.user_id"'
+            ),
+            (
+                (
+                    "cte1",
+                    (
+                        "'active_posters AS (SELECT user_id FROM posts "
+                        "GROUP BY user_id HAVING COUNT(*) > 10)'"
+                    ),
+                ),
+                (
+                    "cte2",
+                    (
+                        "'active_commenters AS (SELECT user_id FROM comments "
+                        "GROUP BY user_id HAVING COUNT(*) > 5)'"
+                    ),
+                ),
+            ),
+        ),
+        91,
+        91,
+        "sql",
+    ),
+    (
+        "t-sql-2026",
+        "tests/test_deep_nesting.py",
+        (
+            't"SELECT user_id FROM posts WHERE id IN ({innermost})"',
+            (("innermost", "'SELECT id FROM x'"),),
+        ),
+        61,
+        61,
+        "sql",
+    ),
+    # html: tdom-svcs-2026, storyville-2026, tdom-2026
+    (
+        "tdom-svcs-2026",
+        "tests/test_html_wrapper.py",
+        ('t"<p>Hello, {name}!</p>"', (("name", "'Ada'"),)),
+        35,
+        35,
+        "html",
+    ),
+    (
+        "storyville-2026",
+        "tests/story/test_story_views.py",
+        (
+            't"<div>{title}: {count}</div>"',
+            (("title", "'Dashboard'"), ("count", "12")),
+        ),
+        78,
+        78,
+        "html",
+    ),
+    (
+        "tdom-2026",
+        "tdom/parser_test.py",
+        (
+            't\'<div value1="{value1}" value2={value2} />\'',
+            (("value1", "'a'"), ("value2", "'b'")),
+        ),
+        301,
+        301,
+        "html",
+    ),
+    (
+        "tdom-2026",
+        "tdom/processor_test.py",
+        (
+            't"<p style={styles1} style={styles2}>Warning!</p>"',
+            (("styles1", "'color:red'"), ("styles2", "'font-weight:bold'")),
+        ),
+        1441,
+        1441,
+        "html",
+    ),
+    (
+        "tdom-2026",
+        "tdom/processor_test.py",
+        (
+            't"<style>div {{ background-color: red; }} {content}</style>"',
+            (("content", "'.text { color: blue; }'"),),
+        ),
+        633,
+        633,
+        "html",
+    ),
+    (
+        "storyville-2026",
+        "src/storyville/components/breadcrumbs/breadcrumbs.py",
+        (
+            't\'<a href="{section_url}">{section_name}</a>\'',
+            (("section_url", "'/docs'"), ("section_name", "'Docs'")),
+        ),
+        57,
+        57,
+        "html",
+    ),
+    (
+        "tdom-2026",
+        "tdom/processor_test.py",
+        (
+            't"<div data-range={start}-{end}></div>"',
+            (("start", "1"), ("end", "10")),
+        ),
+        1144,
+        1144,
+        "html",
+    ),
+    (
+        "tdom-2026",
+        "tdom/processor_test.py",
+        (
+            't"<title>A great story; {bool_value}</title>"',
+            (("bool_value", "True"),),
+        ),
+        719,
+        719,
+        "html",
+    ),
+)
+
+_THIRD_PARTY_LICENSES = {
+    "regex-template-2026": "MIT",
+    "t-sql-2026": "MIT",
+    "tdom-2026": "MIT",
+    "storyville-2026": "MIT",
+    "tdom-svcs-2026": "MIT",
+}
+
+
+def _third_party_occurrences() -> list[SeedOccurrence]:
+    records: list[SeedOccurrence] = []
+    for source_id, path, (literal, bindings), line_start, line_end, domain in (
+        THIRD_PARTY_SEEDS
+    ):
+        sid = seed_id(literal, bindings)
+        records.append(
+            SeedOccurrence(
+                id=occurrence_id(source_id, path, line_start, line_end),
+                seed_id=sid,
+                literal=literal,
+                free_names=tuple(name for name, _ in bindings),
+                bindings=bindings,
+                kind="extracted",
+                domain=domain,
+                origin=SourceOrigin(
+                    source_id=source_id,
+                    path=path,
+                    line_start=line_start,
+                    line_end=line_end,
+                    license=_THIRD_PARTY_LICENSES[source_id],
+                ),
+            )
+        )
+    return records
+
+
 AUTHORED_DOMAINS: dict[str, Domain] = {
     "bb69e18ccc1e75c778a00908fe3b8146275e56510a472339d70e5bd22601c66c": "html",
     "bc41b128e01164728fe54111eef0a6cc1a9fb5ed8f7a71b3be0ada86d7f94716": "html",
@@ -148,7 +479,7 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     _quarantine_unresolved_html(root)
     _annotate_authored_domains(root)
-    occurrences = _occurrences()
+    occurrences = _occurrences() + _third_party_occurrences()
     write_occurrences_jsonl(occurrences, root / "seeds/occurrences.jsonl")
     write_seeds_jsonl(normalize_seeds(occurrences), root / "seeds/extracted.jsonl")
     print(
