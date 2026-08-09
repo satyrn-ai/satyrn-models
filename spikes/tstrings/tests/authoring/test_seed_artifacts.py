@@ -1,5 +1,6 @@
 """Committed seed artifacts remain source-resolved and reproducible."""
 
+import collections
 import json
 from pathlib import Path
 
@@ -96,8 +97,6 @@ def test_regex_sql_html_reach_their_domain_floors() -> None:
     This plan brought regex from 3 to 11, sql from 7 to 15, html from 7 to
     15 -- the exact per-domain deltas the design doc's seed table lists.
     """
-    import collections
-
     records = [
         json.loads(line)
         for path in (ROOT / "seeds/authored.jsonl", ROOT / "seeds/extracted.jsonl")

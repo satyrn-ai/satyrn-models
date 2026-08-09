@@ -11,17 +11,25 @@ from satyrn_model.authoring.seeds import read_seeds_jsonl
 
 THIRD_PARTY_LITERALS = {
     't"^{filename}$"',
-    't"{regex_part:safe}_{literal_part}"',
+    't"{regex_chars}"',
     't"value_{number:03d}"',
     't"{value:.1f}"',
     't"{value!r}"',
-    't"{start:safe}{filename}{end:safe}"',
-    't"{digit_pattern:safe}-{word_pattern:safe}"',
-    't"^{pattern_template:safe}{{{count}}}$"',
+    't"{{{value}}}"',
+    't"{special_chars}"',
+    (
+        't"""\n'
+        "            ^                   # Start of string\n"
+        "            {username}          # Username (escaped)\n"
+        "            @                   # Literal @\n"
+        "            {domain}            # Domain (escaped)\n"
+        "            $                   # End of string\n"
+        '        """'
+    ),
     "t'SELECT *, ({subquery}) as post_user FROM users'",
     "t'SELECT * FROM users WHERE id = {5} AND post_count > ({subquery})'",
     "t'SELECT id FROM tree UNION ALL SELECT id+1 FROM tree WHERE id < 10'",
-    't"SELECT * FROM users WHERE name LIKE {search:%like%}"',
+    't"SELECT * FROM users WHERE name = {user_input}"',
     't"SELECT username, ({subquery}) as post_count FROM users WHERE id = {user_id}"',
     't"{cte} SELECT u.username FROM users u JOIN active_users au ON u.id = au.user_id"',
     (

@@ -58,12 +58,44 @@ THIRD_PARTY_SEEDS = (
     (
         "regex-template-2026",
         "tests/test_regex_template.py",
+        ('t"{regex_chars}"', (("regex_chars", "'[0-9]+'"),)),
+        163,
+        163,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        ('t"{{{value}}}"', (("value", "'3,5'"),)),
+        212,
+        212,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
+        ('t"{special_chars}"', (("special_chars", "'.*+?'"),)),
+        80,
+        80,
+        "regex",
+    ),
+    (
+        "regex-template-2026",
+        "tests/test_regex_template.py",
         (
-            't"{regex_part:safe}_{literal_part}"',
-            (("regex_part", "'[0-9]+'"), ("literal_part", "'end'")),
+            (
+                't"""\n'
+                "            ^                   # Start of string\n"
+                "            {username}          # Username (escaped)\n"
+                "            @                   # Literal @\n"
+                "            {domain}            # Domain (escaped)\n"
+                "            $                   # End of string\n"
+                '        """'
+            ),
+            (("username", "'john_doe'"), ("domain", "'example.com'")),
         ),
-        94,
-        94,
+        128,
+        134,
         "regex",
     ),
     (
@@ -88,39 +120,6 @@ THIRD_PARTY_SEEDS = (
         ('t"{value!r}"', (("value", "'raw'"),)),
         113,
         113,
-        "regex",
-    ),
-    (
-        "regex-template-2026",
-        "tests/test_regex_template.py",
-        (
-            't"{start:safe}{filename}{end:safe}"',
-            (("start", "'^'"), ("filename", "'log.txt'"), ("end", "'$'")),
-        ),
-        120,
-        120,
-        "regex",
-    ),
-    (
-        "regex-template-2026",
-        "tests/test_regex_template.py",
-        (
-            't"{digit_pattern:safe}-{word_pattern:safe}"',
-            (("digit_pattern", "'[0-9]+'"), ("word_pattern", "'[a-z]+'")),
-        ),
-        151,
-        151,
-        "regex",
-    ),
-    (
-        "regex-template-2026",
-        "tests/test_regex_template.py",
-        (
-            't"^{pattern_template:safe}{{{count}}}$"',
-            (("pattern_template", "'[a-z]'"), ("count", "3")),
-        ),
-        171,
-        171,
         "regex",
     ),
     # t-sql-2026
@@ -159,13 +158,13 @@ THIRD_PARTY_SEEDS = (
     ),
     (
         "t-sql-2026",
-        "tests/test_like_patterns.py",
+        "tests/test_parameter_names.py",
         (
-            't"SELECT * FROM users WHERE name LIKE {search:%like%}"',
-            (("search", "'jsmith'"),),
+            't"SELECT * FROM users WHERE name = {user_input}"',
+            (("user_input", "'jsmith'"),),
         ),
-        14,
-        14,
+        13,
+        13,
         "sql",
     ),
     (
