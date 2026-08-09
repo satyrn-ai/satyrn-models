@@ -1,7 +1,7 @@
 # SP5 select_result/render_subskill patterns: closing the author-role gap
 
 Addresses `SP5_SCALE_BRIEF.md` Priority 4 ("new patterns only after 1-3"),
-now that all six domain floors are met (98 seeds, 57 patterns). Scoped to
+now that all six domain floors are met (84 seeds, 57 patterns). Scoped to
 the two properties `composition.toml` actually weights most heavily.
 
 ## Why these two properties, checked against real generation output

@@ -11,6 +11,7 @@ cache self-invalidation, and audit persistence.
 from __future__ import annotations
 
 import dataclasses
+from pathlib import Path
 
 import pytest
 
@@ -280,6 +281,25 @@ def test_entire_catalog_validates() -> None:
             "pep750-request",
         }
         assert all(variant.include_seed_context for variant in pattern.prompt_variants)
+
+
+def test_every_catalog_pattern_has_a_fresh_approval() -> None:
+    """Regression guard: a pattern with no (or stale) approval makes
+    generate_all raise ApprovalError and blocks the entire corpus build.
+    Two independent reviews missed exactly this on 2026-08-09 because
+    nothing asserted it."""
+    approvals_path = Path(__file__).resolve().parents[2] / "patterns" / "approvals.jsonl"
+    approvals = {a.pattern_id: a for a in read_approvals(approvals_path)}
+
+    missing = [p.id for p in CATALOG if p.id not in approvals]
+    assert not missing, f"patterns with no approval at all: {missing}"
+
+    stale = [
+        p.id
+        for p in CATALOG
+        if approvals[p.id].pattern_input_fingerprint != pattern_input_fingerprint(p)
+    ]
+    assert not stale, f"patterns with a stale (fingerprint-mismatched) approval: {stale}"
 
 
 def test_generate_refuses_missing_approval() -> None:
