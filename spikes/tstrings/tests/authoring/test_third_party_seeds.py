@@ -81,4 +81,29 @@ def test_third_party_seeds_are_present_and_source_resolved() -> None:
 
 def test_extracted_seed_count_grew_to_thirty_four() -> None:
     seeds = read_seeds_jsonl(ROOT / "seeds/extracted.jsonl")
-    assert len(seeds) == 34
+    assert len(seeds) == 36
+
+
+def test_logging_extraction_seeds_are_present_and_source_resolved() -> None:
+    seeds = read_seeds_jsonl(ROOT / "seeds/extracted.jsonl")
+    occurrences = {
+        occ.id: occ for occ in read_occurrences_jsonl(ROOT / "seeds/occurrences.jsonl")
+    }
+
+    literals = {seed.literal for seed in seeds}
+    assert 't"Hello, {name}!"' in literals
+    assert 't"${amount:0.2f}"' in literals
+
+    for seed in seeds:
+        if seed.literal not in ('t"Hello, {name}!"', 't"${amount:0.2f}"'):
+            continue
+        assert seed.domain == "logging"
+        assert seed.id == seed_id(seed.literal, seed.bindings)
+        occ = occurrences[seed.occurrence_ids[0]]
+        assert occ.origin.source_id == "pep750-examples-2026"
+        assert occ.origin.license == "MIT"
+
+
+def test_extracted_seed_count_grew_to_thirty_six() -> None:
+    seeds = read_seeds_jsonl(ROOT / "seeds/extracted.jsonl")
+    assert len(seeds) == 36

@@ -46,6 +46,8 @@ THIRD_PARTY_LITERALS = {
     't\'<a href="{section_url}">{section_name}</a>\'',
     't"<div data-range={start}-{end}></div>"',
     't"<title>A great story; {bool_value}</title>"',
+    't"Hello, {name}!"',
+    't"${amount:0.2f}"',
 }
 
 REASON = (
@@ -72,7 +74,7 @@ def main() -> None:
         for seed in read_seeds_jsonl(path)
         if seed.literal in THIRD_PARTY_LITERALS
     ]
-    assert len(seeds) == 24, f"expected 24 third-party seeds, found {len(seeds)}"
+    assert len(seeds) == 26, f"expected 26 third-party seeds, found {len(seeds)}"
 
     new_decisions = [
         ReviewDecision(

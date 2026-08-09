@@ -333,6 +333,23 @@ THIRD_PARTY_SEEDS = (
         719,
         "html",
     ),
+    # pep750-examples-2026
+    (
+        "pep750-examples-2026",
+        "pep/test_logging.py",
+        ('t"Hello, {name}!"', (("name", "'Ada'"),)),
+        89,
+        89,
+        "logging",
+    ),
+    (
+        "pep750-examples-2026",
+        "pep/test_logging.py",
+        ('t"${amount:0.2f}"', (("amount", "42.5"),)),
+        61,
+        61,
+        "logging",
+    ),
 )
 
 _THIRD_PARTY_LICENSES = {
@@ -341,6 +358,7 @@ _THIRD_PARTY_LICENSES = {
     "tdom-2026": "MIT",
     "storyville-2026": "MIT",
     "tdom-svcs-2026": "MIT",
+    "pep750-examples-2026": "MIT",
 }
 
 
