@@ -36,9 +36,11 @@ instead of reusing this spike's eval.
 
 ## Stack
 
-- **Base model:** Qwen2.5-Coder-7B — chosen because it predates PEP 750's
-  acceptance, small enough to fine-tune locally, and fast/cheap to iterate on.
-  Not the intended long-term model, a proving ground.
+- **Base model:** `Qwen/Qwen2.5-Coder-7B` (hardcoded in `main.py`) — chosen
+  because it predates PEP 750's acceptance, small enough to fine-tune
+  locally, and fast/cheap to iterate on. A proving ground, not the intended
+  long-term model — `spikes/tstrings/` later targeted a different, unrelated
+  model (Mellum2-12B-A2.5B) with its own harness; nothing here carries over.
 - **Fine-tuning:** [Unsloth](https://github.com/unslothai/unsloth) +
   `unsloth_zoo.mlx.trainer` (`MLXTrainer`/`MLXTrainingConfig`) — LoRA on
   Apple's MLX backend, so training runs on-device rather than needing CUDA.
