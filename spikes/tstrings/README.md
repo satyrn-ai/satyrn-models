@@ -59,7 +59,7 @@ three epochs with warmup and cosine decay beat one epoch at a constant rate,
 | path | what it is |
 | --- | --- |
 | `corpus-sft/` | The corpus in the Mellum 2 report's SFT schema (§5.1.1): `messages`, optional `tools`, optional `reasoning`. 443 train / 49 valid. Belongs in their *single-turn coding* category. |
-| `ood-v2/` | 100 independently authored evaluation tasks, fingerprint `3a94d381b74c`. |
+| `benchmark/ood-v2/` | 100 independently authored evaluation tasks, fingerprint `3a94d381b74c`. |
 | `OOD_AUTHORING_SPEC.md` | The spec that produced them, including a self-check the author must pass. |
 | `SP5_SCALE_BRIEF.md` | Where the corpus needs to grow, with pool numbers. |
 | `PREREGISTRATION.md` | Decisions fixed before the analyses they govern. |
