@@ -556,4 +556,59 @@ CATALOG: tuple[Pattern, ...] = (
         requires=("string.templatelib",),
         witnesses=("render-subskill",),
     ),
+    _p(
+        id="render-subskill-author-iterate_parts",
+        description="define a typed template function returning the ordered parts",
+        property_specs=(
+            PropertySpec(kind="render_subskill", stage="iterate_parts"),
+        ),
+        labels=frozenset({"render_subskill"}),
+        role="author",
+        requires=("string.templatelib",),
+        witnesses=("render-subskill",),
+    ),
+    _p(
+        id="render-subskill-author-classify_parts",
+        description="define a typed template function classifying each part",
+        property_specs=(
+            PropertySpec(kind="render_subskill", stage="classify_parts"),
+        ),
+        labels=frozenset({"render_subskill"}),
+        role="author",
+        requires=("string.templatelib",),
+        witnesses=("render-subskill",),
+    ),
+    _p(
+        id="render-subskill-author-convert_value",
+        description="define a typed template function applying the first interpolation's conversion",
+        property_specs=(
+            PropertySpec(kind="render_subskill", stage="convert_value"),
+        ),
+        labels=frozenset({"render_subskill"}),
+        role="author",
+        requires=("string.templatelib",),
+        witnesses=("render-subskill",),
+    ),
+    _p(
+        id="render-subskill-author-format_value",
+        description="define a typed template function converting and formatting the first interpolation",
+        property_specs=(
+            PropertySpec(kind="render_subskill", stage="format_value"),
+        ),
+        labels=frozenset({"render_subskill"}),
+        role="author",
+        requires=("string.templatelib",),
+        witnesses=("render-subskill",),
+    ),
+    _p(
+        id="render-subskill-author-render_interpolation",
+        description="define a typed template function that renders one interpolation",
+        property_specs=(
+            PropertySpec(kind="render_subskill", stage="render_interpolation"),
+        ),
+        labels=frozenset({"render_subskill"}),
+        role="author",
+        requires=("string.templatelib",),
+        witnesses=("render-subskill",),
+    ),
 )

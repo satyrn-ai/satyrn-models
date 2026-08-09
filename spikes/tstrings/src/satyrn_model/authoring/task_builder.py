@@ -242,6 +242,51 @@ def _ref_author(prop, seeds: tuple[Seed, ...] | None) -> str:
         )
     if isinstance(prop, RenderSubskill) and prop.stage == "render_template":
         return _ref_render(RenderTemplate(), seeds)
+    if isinstance(prop, RenderSubskill) and prop.stage == "iterate_parts":
+        return (
+            "from string.templatelib import Interpolation, Template\n\n"
+            "def iterate_parts(\n"
+            "    template: Template,\n"
+            ") -> tuple[str | Interpolation, ...]:\n"
+            "    return tuple(template)\n\n"
+            f"{preamble}\nresult = iterate_parts(template)\n"
+        )
+    if isinstance(prop, RenderSubskill) and prop.stage == "classify_parts":
+        return (
+            "from string.templatelib import Template\n\n"
+            "def classify_parts(template: Template) -> tuple[str, ...]:\n"
+            "    return tuple(\n"
+            '        "static" if isinstance(part, str) else "interpolation"\n'
+            "        for part in template\n"
+            "    )\n\n"
+            f"{preamble}\nresult = classify_parts(template)\n"
+        )
+    if isinstance(prop, RenderSubskill) and prop.stage == "convert_value":
+        return (
+            "from string.templatelib import Template, convert\n\n"
+            "def convert_value(template: Template) -> object:\n"
+            "    interpolation = template.interpolations[0]\n"
+            "    return convert(interpolation.value, interpolation.conversion)\n\n"
+            f"{preamble}\nresult = convert_value(template)\n"
+        )
+    if isinstance(prop, RenderSubskill) and prop.stage == "format_value":
+        return (
+            "from string.templatelib import Template, convert\n\n"
+            "def format_value(template: Template) -> str:\n"
+            "    interpolation = template.interpolations[0]\n"
+            "    value = convert(interpolation.value, interpolation.conversion)\n"
+            "    return format(value, interpolation.format_spec)\n\n"
+            f"{preamble}\nresult = format_value(template)\n"
+        )
+    if isinstance(prop, RenderSubskill) and prop.stage == "render_interpolation":
+        return (
+            "from string.templatelib import Template, convert\n\n"
+            "def render_interpolation(template: Template) -> str:\n"
+            "    interpolation = template.interpolations[0]\n"
+            "    value = convert(interpolation.value, interpolation.conversion)\n"
+            "    return format(value, interpolation.format_spec)\n\n"
+            f"{preamble}\nresult = render_interpolation(template)\n"
+        )
     raise ValueError(f"unsupported authoring property {prop!r}")
 
 
