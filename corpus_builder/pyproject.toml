@@ -5,7 +5,8 @@ description = "Satyrn Dataset Builder"
 requires-python = ">=3.13"
 dependencies = [
     "click",
-    "sphinx>=8.2,<9"  # Keep in sync with `cpython/Doc/requirements.txt`
+    "sphinx>=8.2,<9",  # Keep in sync with `cpython/Doc/requirements.txt`
+    "sphinx-markdown-builder",
 ]
 
 [project.scripts]
