@@ -7,13 +7,15 @@ import click
 
 @click.command("rl")
 @click.option(
-    "-i", "--input-dir",
+    "-i",
+    "--input-dir",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     required=True,
     help="Directory of source material to draw from.",
 )
 @click.option(
-    "-o", "--output-dir",
+    "-o",
+    "--output-dir",
     type=click.Path(file_okay=False, path_type=Path),
     required=True,
     help="Directory to write the generated JSONL into.",

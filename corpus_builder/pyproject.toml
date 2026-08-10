@@ -2,13 +2,17 @@
 name = "satyrn-corpus-builder"
 version = "0.1.0"
 description = "Satyrn Dataset Builder"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "click",
+    "sphinx>=8.2,<9"  # Keep in sync with `cpython/Doc/requirements.txt`
 ]
 
 [project.scripts]
 satyrn-dataset = "satyrn.dataset.cli:cli"
+
+[tool.ruff]
+line-length = 120
 
 [build-system]
 requires = ["hatchling"]
