@@ -51,8 +51,8 @@ satyrn-dataset rl  --input-dir DIR --output-dir DIR   # Reinforcement Learning (
 
 ### Continued Pretraining datasets
 
-`satyrn-dataset cpt` converts every `.rst` file under `--input-dir` to Markdown and writes one row per file to 
-`cpt.jsonl` in `--output-dir`.
+`cpt` converts every `.rst` file under `input-dir` to Markdown and writes one row per file to
+a `cpt.jsonl` file in `output-dir`.
 
 Usage example:
 
