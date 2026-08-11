@@ -14,7 +14,7 @@ uv pip install -e ./corpus_builder
 
 Before generating a dataset, gather the source documents it draws from.
 
-### Python Enhancement Proposals
+### Gather Python Enhancement Proposals (PEPs)
 
 Download the PEPs for a Python version into `datasets/python3.15/input/docs/`
 
@@ -22,15 +22,17 @@ Download the PEPs for a Python version into `datasets/python3.15/input/docs/`
 satyrn-dataset download-inputs 3.15
 ```
 
-### Changes in CPython Docs
+### Gather recent changes in CPython Docs
 
-Clone CPython:
+To collect and download the documentation changes for CPython, perform the following steps.
+
+Clone CPython into any path on your system:
 
 ```sh
 git clone --depth 1 https://github.com/python/cpython.git /path/to/cpython
 ```
 
-Collect the documentation sections tied to changes in a Python version:
+Collect the documentation sections tied to changes in a Python version (note: make sure that you use `Doc` directory of the CPython repo as the input):
 
 ```sh
 satyrn-dataset collect-doc-changes 3.15 /path/to/cpython/Doc
