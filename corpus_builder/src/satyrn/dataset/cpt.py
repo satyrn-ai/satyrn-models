@@ -13,8 +13,9 @@ def render_markdown(input_dir: Path, output_dir: Path) -> None:
     doc_paths = sorted(input_dir.rglob("*.rst"))
     if not doc_paths:
         raise click.ClickException(f"No .rst files found under {input_dir}")
-    root_doc = doc_paths[0].relative_to(input_dir).with_suffix("").as_posix()
+    root_doc = doc_paths[0].relative_to(input_dir).with_suffix("").as_posix()  # set the root of the documentation tree
 
+    # Use sphinx markdown builder to convert docs from rST to md files and place in temporary directories
     with tempfile.TemporaryDirectory() as confdir, tempfile.TemporaryDirectory() as doctree_dir:
         conf_py = 'project = "satyrn-cpt"\nextensions = ["sphinx_markdown_builder"]\n'
         Path(confdir, "conf.py").write_text(conf_py)
@@ -51,6 +52,7 @@ def main(input_dir: Path, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as markdown_dir:
+        # Convert the input docs to markdown
         render_markdown(input_dir, Path(markdown_dir))
         rows = [
             {
