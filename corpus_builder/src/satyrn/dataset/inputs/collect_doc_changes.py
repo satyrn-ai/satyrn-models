@@ -98,6 +98,12 @@ def first_line(node: nodes.Node) -> int | None:
     )
 
 
+def is_synthetic_source(node: nodes.Node) -> bool:
+    """Return True if node came from a synthetic source like rst_epilog, not a document file."""
+    # docutils wraps synthetic sources in angle brackets, e.g. "<rst_epilog>"
+    return node.source is not None and node.source.startswith("<")
+
+
 def get_line_range(section: nodes.Element) -> tuple[int, int | None]:
     """Return the [start, end) line range covering section in its source file."""
     start = first_line(section)
@@ -106,6 +112,8 @@ def get_line_range(section: nodes.Element) -> tuple[int, int | None]:
 
     siblings = section.parent.children
     for sibling in siblings[siblings.index(section) + 1 :]:
+        if is_synthetic_source(sibling):
+            continue
         end = first_line(sibling)
         if end is None:
             continue  # e.g. an index node, which carries no source position
@@ -156,7 +164,10 @@ def main(target_version: str, doc_directory: Path) -> None:
                 end = len(lines)  # no next sibling: section runs to end of file
             if not is_entry and end - start > MAX_SECTION_LINES:
                 start, end = get_shrunk_line_range((start, end), first_line(node))
-            texts.append("\n".join(lines[start:end]))
+            text = "\n".join(lines[start:end])
+            if not text.strip():
+                logger.warning("Empty section for %s:%d", document_name, node.line)
+            texts.append(text)
 
         output_path = output_directory / f"{document_name}.rst"
         output_path.parent.mkdir(parents=True, exist_ok=True)
