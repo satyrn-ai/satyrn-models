@@ -39,7 +39,7 @@ def parse_docs(doc_directory: Path) -> Sphinx:
         app.builder.read()
 
         # Persist the environment so unchanged files are skipped on the next run.
-        with open(DOCTREE_CACHE_DIRECTORY / ENV_PICKLE_FILENAME, "wb") as f:
+        with (DOCTREE_CACHE_DIRECTORY / ENV_PICKLE_FILENAME).open("wb") as f:
             pickle.dump(app.env, f, pickle.HIGHEST_PROTOCOL)
     return app
 

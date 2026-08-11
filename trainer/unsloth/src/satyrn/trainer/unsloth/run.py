@@ -1,18 +1,14 @@
 """Entry point for the satyrn-unsloth trainer CLI."""
 
+from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path
 
-import unsloth  # noqa: F401 Required at top of file
-
 import hydra
 import mlflow
-import torch
-from datasets import Dataset
 from omegaconf import DictConfig
-from trl import SFTConfig, SFTTrainer
-from unsloth import FastLanguageModel
 
 from satyrn.trainer.unsloth.config import ExperimentConfig, validate_config
 from satyrn.trainer.unsloth.secrets import load_secrets
@@ -23,8 +19,19 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 
 
-def _load_dataset(path: str) -> Dataset:
-    with open(path) as fh:
+def unsloth_init() -> None:
+    """Initialize unsloth and patch the training libraries."""
+    global Dataset, FastLanguageModel, SFTConfig, SFTTrainer, torch
+
+    # Unsloth must be imported first to patch transformers, accelerate, etc.
+    from unsloth import FastLanguageModel  # noqa: I001
+    import torch
+    from datasets import Dataset
+    from trl import SFTConfig, SFTTrainer
+
+
+def _load_dataset(path: str | Path) -> Dataset:
+    with open(path) as fh:  # noqa: PTH123
         rows = [json.loads(line) for line in fh if line.strip()]
     return Dataset.from_list(rows)
 
@@ -64,6 +71,7 @@ def main(cfg: DictConfig) -> None:
         print("Usage: satyrn-unsloth --config-name experiment/<name>")
         return
 
+    unsloth_init()
     load_secrets()
     config = validate_config(cfg)
 
@@ -91,20 +99,26 @@ def main(cfg: DictConfig) -> None:
     with mlflow.start_run(run_name=config.run_name):
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
         total = sum(p.numel() for p in model.parameters())
-        mlflow.log_params({
-            "base_model": config.model.name,
-            "lora_rank": config.model.lora.rank,
-            "lora_alpha": config.model.lora.alpha,
-            "lora_dropout": config.model.lora.dropout,
-            "lora_targets": ",".join(config.model.lora.target_modules),
-            "params_train": trainable,
-            "params_total": total,
-            "params_train_pct": trainable / total * 100,
-        })
+        mlflow.log_params(
+            {
+                "base_model": config.model.name,
+                "lora_rank": config.model.lora.rank,
+                "lora_alpha": config.model.lora.alpha,
+                "lora_dropout": config.model.lora.dropout,
+                "lora_targets": ",".join(config.model.lora.target_modules),
+                "params_train": trainable,
+                "params_total": total,
+                "params_train_pct": trainable / total * 100,
+            }
+        )
 
         if config.datasets.cpt is not None:
             run_supervised_tuning(
-                "cpt", model, tokenizer, config.datasets.cpt, config,
+                "cpt",
+                model,
+                tokenizer,
+                config.datasets.cpt,
+                config,
                 num_train_epochs=config.cpt.num_train_epochs,
                 learning_rate=config.cpt.learning_rate,
                 packing=config.cpt.packing,
@@ -113,7 +127,11 @@ def main(cfg: DictConfig) -> None:
 
         if config.datasets.sft is not None:
             run_supervised_tuning(
-                "sft", model, tokenizer, config.datasets.sft, config,
+                "sft",
+                model,
+                tokenizer,
+                config.datasets.sft,
+                config,
                 num_train_epochs=config.sft.num_train_epochs,
                 learning_rate=config.sft.learning_rate,
             )

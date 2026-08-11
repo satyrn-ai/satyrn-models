@@ -63,7 +63,7 @@ def main(input_dir: Path, output_dir: Path) -> None:
         ]
 
     output_path = output_dir / "cpt.jsonl"
-    with open(output_path, "w") as fh:
+    with output_path.open("w") as fh:
         fh.writelines(json.dumps(row) + "\n" for row in rows)
 
     click.secho(f"Wrote {len(rows)} Continued Pretraining rows to ", nl=False, fg="green")

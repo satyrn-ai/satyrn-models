@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ruff
+        run: pipx install ruff==0.16.2
+
+      - name: Lint
+        run: ruff check trainer corpus_builder
+
+      - name: Check formatting
+        run: ruff format --check trainer corpus_builder
