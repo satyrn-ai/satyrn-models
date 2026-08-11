@@ -133,6 +133,11 @@ def main(target_version: str, doc_directory: Path) -> None:
     TARGET_VERSION is the Python version to collect changes for, e.g. "3.15".
     DOC_DIRECTORY is the path to a CPython's `cpython/Doc/` directory.
     """
+    if not (doc_directory / "conf.py").exists():
+        raise click.ClickException(
+            f"No conf.py in {doc_directory}; expected CPython's Doc/ directory (e.g. cpython/Doc)."
+        )
+
     app = parse_docs(doc_directory)
     logger.info("Read %d documents", len(app.env.all_docs))
 

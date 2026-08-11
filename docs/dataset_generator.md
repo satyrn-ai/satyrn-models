@@ -6,8 +6,12 @@ Use the `corpus_builder` package to generate fine-tuning datasets.
 
 Install the `satyrn-dataset` command into your environment from the `corpus_builder` package.
 
+Activate a Python virtual environment and install the package. Use an editable install (`-e`) 
+if you plan to change the `corpus_builder` code, so edits take effect without reinstalling:
+
 ```sh
-uv pip install -e ./corpus_builder
+$ source /path/to/venv/bin/activate
+(venv) $ pip install -e ./corpus_builder
 ```
 
 ## Collecting input material
