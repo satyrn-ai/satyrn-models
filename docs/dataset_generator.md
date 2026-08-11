@@ -32,7 +32,8 @@ Clone CPython into any path on your system:
 git clone --depth 1 https://github.com/python/cpython.git /path/to/cpython
 ```
 
-Collect the documentation sections tied to changes in a Python version (note: make sure that you use `Doc` directory of the CPython repo as the input):
+Collect the documentation sections tied to changes in a Python version. Make sure that you use `Doc` 
+directory of the CPython repo as the input:
 
 ```sh
 satyrn-dataset collect-doc-changes 3.15 /path/to/cpython/Doc
@@ -51,7 +52,7 @@ satyrn-dataset sft --input-dir DIR --output-dir DIR   # Supervised Fine-Tuning (
 satyrn-dataset rl  --input-dir DIR --output-dir DIR   # Reinforcement Learning (RL)
 ```
 
-### Continued Pretraining (CPT) datasets
+### Generate Continued Pretraining (CPT) datasets
 
 `cpt` converts every `.rst` file under `input-dir` to Markdown and writes one row per file to
 a `cpt.jsonl` file in `output-dir`.
