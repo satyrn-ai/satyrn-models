@@ -8,9 +8,11 @@ from pathlib import Path
 
 import hydra
 import mlflow
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
 from satyrn.trainer.unsloth.config import ExperimentConfig, log_config, validate_config
+from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
 
 logger = logging.getLogger(__name__)
@@ -30,7 +32,7 @@ def unsloth_init() -> None:
     from trl import SFTConfig, SFTTrainer
 
 
-def _load_dataset(path: str | Path) -> Dataset:
+def load_dataset(path: str | Path) -> Dataset:
     with open(path) as fh:  # noqa: PTH123
         rows = [json.loads(line) for line in fh if line.strip()]
     return Dataset.from_list(rows)
@@ -38,7 +40,7 @@ def _load_dataset(path: str | Path) -> Dataset:
 
 def run_supervised_tuning(name: str, model, tokenizer, dataset_path: str, cfg: ExperimentConfig, **sft_kwargs) -> None:
     logger.info("Starting %s stage", name)
-    dataset = _load_dataset(dataset_path)
+    dataset = load_dataset(dataset_path)
     split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
     train_dataset, eval_dataset = split["train"], split["test"]
 
@@ -77,75 +79,84 @@ def main(cfg: DictConfig) -> None:
         print("Usage: satyrn-unsloth --config-name experiment/<name>")
         return
 
-    unsloth_init()
-    load_secrets()
-    log_config(cfg)
-    config = validate_config(cfg)
+    log_path = Path(HydraConfig.get().runtime.output_dir, "run.log")
+    with tee_output(log_path) as log_file:
+        unsloth_init()
+        load_secrets()
+        log_config(cfg)
+        config = validate_config(cfg)
 
-    logger.info("Downloading model %s", config.model.name)
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=config.model.name,
-        max_seq_length=config.max_seq_length,
-        dtype=None,
-        load_in_4bit=config.load_in_4bit,
-    )
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=config.model.lora.rank,
-        target_modules=config.model.lora.target_modules,
-        lora_alpha=config.model.lora.alpha,
-        lora_dropout=config.model.lora.dropout,
-        bias="none",
-        use_gradient_checkpointing=True,
-    )
-    logger.info("PEFT model %s", model)
-
-    mlflow.enable_system_metrics_logging()
-    mlflow.set_tracking_uri(config.mlflow.tracking_uri)
-    mlflow.set_experiment(config.mlflow.experiment_name)
-
-    with mlflow.start_run(run_name=config.run_name):
-        trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        total = sum(p.numel() for p in model.parameters())
-        mlflow.log_params(
-            {
-                "base_model": config.model.name,
-                "lora_rank": config.model.lora.rank,
-                "lora_alpha": config.model.lora.alpha,
-                "lora_dropout": config.model.lora.dropout,
-                "lora_targets": ",".join(config.model.lora.target_modules),
-                "params_train": trainable,
-                "params_total": total,
-                "params_train_pct": trainable / total * 100,
-            }
+        logger.info("Downloading model %s", config.model.name)
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=config.model.name,
+            max_seq_length=config.max_seq_length,
+            dtype=None,
+            load_in_4bit=config.load_in_4bit,
         )
+        model = FastLanguageModel.get_peft_model(
+            model,
+            r=config.model.lora.rank,
+            target_modules=config.model.lora.target_modules,
+            lora_alpha=config.model.lora.alpha,
+            lora_dropout=config.model.lora.dropout,
+            bias="none",
+            use_gradient_checkpointing=True,
+        )
+        # logger.info("PEFT model %s", model)
+        trainable_params, all_params = model.get_nb_trainable_parameters()
+        trainable_percentage = 100 * trainable_params / all_params
+        logger.info("Trainable params: %s", f"{trainable_params:,}")
+        logger.info("All params: %s", f"{all_params:,}")
+        logger.info("Trainable: %.4f%%", trainable_percentage)
 
-        if config.datasets.cpt is not None:
-            run_supervised_tuning(
-                "cpt",
-                model,
-                tokenizer,
-                config.datasets.cpt,
-                config,
-                num_train_epochs=config.cpt.num_train_epochs,
-                learning_rate=config.cpt.learning_rate,
-                packing=config.cpt.packing,
-                dataset_text_field="text",
+        mlflow.enable_system_metrics_logging()
+        mlflow.set_tracking_uri(config.mlflow.tracking_uri)
+        mlflow.set_experiment(config.mlflow.experiment_name)
+
+        with mlflow.start_run(run_name=config.run_name):
+            mlflow.log_params(
+                {
+                    "base_model": config.model.name,
+                    "lora_rank": config.model.lora.rank,
+                    "lora_alpha": config.model.lora.alpha,
+                    "lora_dropout": config.model.lora.dropout,
+                    "lora_targets": ",".join(config.model.lora.target_modules),
+                    "params_train": trainable_params,
+                    "params_total": all_params,
+                    "params_train_pct": trainable_percentage,
+                }
             )
 
-        if config.datasets.sft is not None:
-            run_supervised_tuning(
-                "sft",
-                model,
-                tokenizer,
-                config.datasets.sft,
-                config,
-                num_train_epochs=config.sft.num_train_epochs,
-                learning_rate=config.sft.learning_rate,
-            )
+            if config.datasets.cpt is not None:
+                run_supervised_tuning(
+                    "cpt",
+                    model,
+                    tokenizer,
+                    config.datasets.cpt,
+                    config,
+                    num_train_epochs=config.cpt.num_train_epochs,
+                    learning_rate=config.cpt.learning_rate,
+                    packing=config.cpt.packing,
+                    dataset_text_field="text",
+                )
 
-        if config.datasets.rl is not None:
-            logger.error("Unimplemented: RL training")
+            if config.datasets.sft is not None:
+                run_supervised_tuning(
+                    "sft",
+                    model,
+                    tokenizer,
+                    config.datasets.sft,
+                    config,
+                    num_train_epochs=config.sft.num_train_epochs,
+                    learning_rate=config.sft.learning_rate,
+                )
+
+            if config.datasets.rl is not None:
+                logger.error("Unimplemented: RL training")
+
+            # Send the Hydra job log to the tracking server
+            log_file.flush()
+            mlflow.log_text(log_path.read_text(), "train.log")
 
     mlflow.end_run()
 
