@@ -10,7 +10,7 @@ import hydra
 import mlflow
 from omegaconf import DictConfig
 
-from satyrn.trainer.unsloth.config import ExperimentConfig, validate_config
+from satyrn.trainer.unsloth.config import ExperimentConfig, log_config, validate_config
 from satyrn.trainer.unsloth.secrets import load_secrets
 
 logger = logging.getLogger(__name__)
@@ -39,12 +39,17 @@ def _load_dataset(path: str | Path) -> Dataset:
 def run_supervised_tuning(name: str, model, tokenizer, dataset_path: str, cfg: ExperimentConfig, **sft_kwargs) -> None:
     logger.info("Starting %s stage", name)
     dataset = _load_dataset(dataset_path)
+    split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
+    train_dataset, eval_dataset = split["train"], split["test"]
 
     training_args = SFTConfig(
         output_dir=f"outputs/{name}",
         per_device_train_batch_size=cfg.batch_size,
+        per_device_eval_batch_size=cfg.batch_size,
         gradient_accumulation_steps=cfg.gradient_accumulation_steps,
         logging_steps=cfg.logging_steps,
+        eval_strategy="steps",
+        eval_steps=cfg.logging_steps,
         report_to="mlflow",
         max_seq_length=cfg.max_seq_length,
         bf16=torch.cuda.is_bf16_supported(),
@@ -56,12 +61,13 @@ def run_supervised_tuning(name: str, model, tokenizer, dataset_path: str, cfg: E
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
-        train_dataset=dataset,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         args=training_args,
     )
 
     with mlflow.start_run(run_name=name, nested=True):
-        mlflow.log_params({"dataset_path": dataset_path, "dataset_rows": len(dataset)})
+        mlflow.log_params({"dataset_path": dataset_path, "dataset_train_rows": len(train_dataset)})
         trainer.train()
 
 
@@ -73,6 +79,7 @@ def main(cfg: DictConfig) -> None:
 
     unsloth_init()
     load_secrets()
+    log_config(cfg)
     config = validate_config(cfg)
 
     logger.info("Downloading model %s", config.model.name)
@@ -91,6 +98,7 @@ def main(cfg: DictConfig) -> None:
         bias="none",
         use_gradient_checkpointing=True,
     )
+    logger.info("PEFT model %s", model)
 
     mlflow.enable_system_metrics_logging()
     mlflow.set_tracking_uri(config.mlflow.tracking_uri)

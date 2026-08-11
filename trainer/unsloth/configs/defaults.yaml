@@ -5,6 +5,7 @@ batch_size: 8
 gradient_accumulation_steps: 2
 optim: paged_adamw_8bit
 logging_steps: 10
+eval_ratio: 0.1
 
 mlflow:
   tracking_uri: https://mlflow.satyrn.ai
@@ -29,3 +30,7 @@ rl:
   max_completion_length: 1024
   learning_rate: 1e-6
   reward_funcs: ["interpreter_reward"]
+
+hydra:
+  run:
+    dir: results/${now:%Y%m%d-%H%M}-${run_name}

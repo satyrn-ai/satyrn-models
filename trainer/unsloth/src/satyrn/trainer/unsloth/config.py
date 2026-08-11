@@ -1,7 +1,11 @@
 """Pydantic schema for the composed Hydra experiment config."""
 
+import logging
+
 from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, ConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class LoraConfig(BaseModel):
@@ -70,6 +74,7 @@ class ExperimentConfig(BaseModel):
     gradient_accumulation_steps: int
     optim: str
     logging_steps: int
+    eval_ratio: float
     mlflow: MlflowConfig
     datasets: DatasetsConfig
     cpt: CptConfig
@@ -80,3 +85,7 @@ class ExperimentConfig(BaseModel):
 
 def validate_config(cfg: DictConfig) -> ExperimentConfig:
     return ExperimentConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
+
+
+def log_config(cfg: DictConfig) -> None:
+    logger.info("Config:\n%s", OmegaConf.to_yaml(cfg))

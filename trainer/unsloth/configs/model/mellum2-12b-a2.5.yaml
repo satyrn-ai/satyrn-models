@@ -2,6 +2,6 @@ name: JetBrains/Mellum2-12B-A2.5B-Instruct
 
 lora:
   rank: 16
-  alpha: 16
+  alpha: 32
   dropout: 0.0
   target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
