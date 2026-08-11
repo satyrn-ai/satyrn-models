@@ -49,7 +49,7 @@ satyrn-dataset sft --input-dir DIR --output-dir DIR   # Supervised Fine-Tuning (
 satyrn-dataset rl  --input-dir DIR --output-dir DIR   # Reinforcement Learning (RL)
 ```
 
-### Continued Pretraining datasets
+### Continued Pretraining (CPT) datasets
 
 `cpt` converts every `.rst` file under `input-dir` to Markdown and writes one row per file to
 a `cpt.jsonl` file in `output-dir`.
