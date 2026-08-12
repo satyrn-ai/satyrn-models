@@ -47,13 +47,13 @@ Writes to `datasets/python3.15/input/docs/changes/`.
 
 ## Generating datasets
 
-Each subcommand generates one dataset type, reading source material from `--input-dir` and writing JSONL to 
-`--output-dir`.
+Each subcommand generates one dataset type, writing JSONL to `--output-dir`. `cpt` reads source material
+from `--input-dir` (a directory); `sft` and `rl` read from `--input` (a directory or a single doc file).
 
 ```sh
 satyrn-dataset cpt --input-dir DIR --output-dir DIR   # Continued Pretraining (CPT)
-satyrn-dataset sft --input-dir DIR --output-dir DIR   # Supervised Fine-Tuning (SFT)
-satyrn-dataset rl  --input-dir DIR --output-dir DIR   # Reinforcement Learning (RL)
+satyrn-dataset sft --input PATH --output-dir DIR      # Supervised Fine-Tuning (SFT)
+satyrn-dataset rl  --input PATH --output-dir DIR      # Reinforcement Learning (RL)
 ```
 
 ### Generate Continued Pretraining (CPT) datasets
@@ -66,4 +66,38 @@ Usage example:
 ```sh
 satyrn-dataset cpt --input-dir datasets/python3.14/input/docs --output-dir datasets/python3.14/
 satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output-dir datasets/python3.15/
+```
+
+### Generate Supervised Fine-Tuning (SFT) datasets
+
+`sft` uses an LLM to generate prompt-response pairs demonstrating new Python features based on documentation.
+
+Each idea is verified by running in a sandboxed Docker container.
+
+Docker is _required_, gVisor (`runsc` runtime) is _recommended_ for sandbox safety. You can verify if both are set 
+up in your environment:
+
+```sh
+docker run --rm hello-world
+docker run --rm --runtime=runsc hello-world
+```
+
+Output is written one row per conversation to a `sft.jsonl` file in `output-dir`, appending as it goes so
+partial progress survives an interruption.
+
+A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file — see `.env.example`).
+
+Pass `--preview` to print each generated conversation to the terminal as it's saved, useful for
+sanity-checking output quality while a run is in progress.
+
+Usage example:
+
+```sh
+satyrn-dataset sft --input datasets/python3.15/input/docs --output-dir datasets/python3.15/ --python-version 3.15
+```
+
+Generating examples from a single source file with preview:
+
+```sh
+satyrn-dataset sft -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/ --python-version 3.14 --preview
 ```

@@ -5,8 +5,12 @@ description = "Satyrn Dataset Builder"
 requires-python = ">=3.13"
 dependencies = [
     "click",
+    "openai",
+    "python-dotenv",
+    "rich",
     "sphinx>=8.2,<9",  # Keep in sync with `cpython/Doc/requirements.txt`
     "sphinx-markdown-builder",
+    "tqdm",
 ]
 
 [project.scripts]
