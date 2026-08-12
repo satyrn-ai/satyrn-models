@@ -85,7 +85,7 @@ docker run --rm --runtime=runsc hello-world
 Output is written one row per conversation to a `sft.jsonl` file in `output-dir`, appending as it goes so
 partial progress survives an interruption.
 
-A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file — see `.env.example`).
+A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file - see `.env.example`).
 
 Pass `--preview` to print each generated conversation to the terminal as it's saved, useful for
 sanity-checking output quality while a run is in progress.

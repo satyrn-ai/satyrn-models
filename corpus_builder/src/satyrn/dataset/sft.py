@@ -164,7 +164,6 @@ def main(input_path: Path, output_dir: Path, python_version: str, preview: bool)
     input_docs = [input_path] if input_path.is_file() else sorted(input_path.rglob("*.rst"))
 
     with output_path.open("a") as fh:
-
         # Process each doc file
         progress_bar = tqdm(input_docs, desc="Doc files")
         for doc_path in progress_bar:
