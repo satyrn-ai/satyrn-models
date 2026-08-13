@@ -6,7 +6,6 @@ from pathlib import Path
 
 import click
 
-logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 SOURCES = {

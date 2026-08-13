@@ -13,7 +13,6 @@ from docutils import nodes
 from sphinx import addnodes
 from sphinx.application import ENV_PICKLE_FILENAME, Sphinx
 
-logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 DOCTREE_CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "satyrn-cpython-sphinx-cache"

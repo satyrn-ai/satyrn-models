@@ -1,7 +1,13 @@
+import logging
+
 import click
+from rich.logging import RichHandler
 
 from satyrn.dataset import cpt, rl, sft
 from satyrn.dataset.inputs import collect_doc_changes, download_inputs
+
+handler = RichHandler(show_time=False, show_path=False)
+logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[handler])
 
 
 @click.group("satyrn-dataset")
