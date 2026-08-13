@@ -5,6 +5,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 
+import jsonschema
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -52,13 +53,17 @@ class DeepSeekModel(Model):
             response = self.client.chat.completions.create(**create_kwargs)
             content = response.choices[0].message.content
             try:
-                return json.loads(content)
-            except json.JSONDecodeError as error:
-                logger.warning("DeepSeek response was not valid JSON: %s", error)
+                parsed = json.loads(content)
+                jsonschema.validate(parsed, context.json_schema)
+                return parsed
+            except (json.JSONDecodeError, jsonschema.ValidationError) as error:
+                logger.warning("DeepSeek response did not match the schema: %s", error)
                 messages.append({"role": "assistant", "content": content})
-                messages.append({"role": "user", "content": f"That was not valid JSON: {error}. Try again."})
+                messages.append(
+                    {"role": "user", "content": f"That did not match the required schema: {error}. Try again."}
+                )
 
-        raise ValueError(f"DeepSeek did not return valid JSON after {max_attempts} attempts")
+        raise ValueError(f"DeepSeek did not return a schema-conforming response after {max_attempts} attempts")
 
 
 def get_llm(provider: str, model_name: str, thinking: bool = False) -> Model:
