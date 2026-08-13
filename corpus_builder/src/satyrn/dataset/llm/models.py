@@ -27,24 +27,29 @@ class Model(ABC):
 class DeepSeekModel(Model):
     """A Model backed by DeepSeek's API."""
 
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, thinking: bool = False, reasoning_effort: str | None = None) -> None:
         self.model_name = model_name
+        self.extra_body = {"thinking": {"type": "enabled" if thinking else "disabled"}}
+        self.reasoning_effort = reasoning_effort
         self.client = OpenAI(api_key=os.environ["DEEPSEEK_API_KEY"], base_url="https://api.deepseek.com")
 
-    def generate(self, prompt: str, context: Context) -> str | dict:
+    def generate(self, prompt: str, context: Context) -> str | None:
         messages = [
             {"role": "system", "content": context.system_prompt},
             {"role": "user", "content": context.render(prompt)},
         ]
+        create_kwargs = {"model": self.model_name, "messages": messages, "extra_body": self.extra_body}
+        if self.reasoning_effort is not None:
+            create_kwargs["reasoning_effort"] = self.reasoning_effort
+
         if not context.expect_json:
-            response = self.client.chat.completions.create(model=self.model_name, messages=messages)
+            response = self.client.chat.completions.create(**create_kwargs)
             return response.choices[0].message.content
 
+        create_kwargs["response_format"] = {"type": "json_object"}
         max_attempts = 3
         for _ in range(max_attempts):
-            response = self.client.chat.completions.create(
-                model=self.model_name, messages=messages, response_format={"type": "json_object"}
-            )
+            response = self.client.chat.completions.create(**create_kwargs)
             content = response.choices[0].message.content
             try:
                 return json.loads(content)
@@ -56,8 +61,8 @@ class DeepSeekModel(Model):
         raise ValueError(f"DeepSeek did not return valid JSON after {max_attempts} attempts")
 
 
-def get_llm(provider: str, model_name: str) -> Model:
+def get_llm(provider: str, model_name: str, thinking: bool = False) -> Model:
     """Return a Model for provider backed by model_name."""
     if provider == "deepseek":
-        return DeepSeekModel(model_name)
+        return DeepSeekModel(model_name, thinking=thinking)
     raise ValueError(f"Unknown provider: {provider}")

@@ -182,7 +182,7 @@ def verify_code_block(code: str, expected_output: str, python_version: str) -> b
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
 def main(input_path: Path, output_dir: Path, python_version: str, preview: bool) -> None:
     """Generate an SFT dataset for every doc file under input_path."""
-    model = get_llm("deepseek", "deepseek-v4-flash")
+    model = get_llm("deepseek", "deepseek-v4-flash", thinking=False)
 
     # Prepare output file
     output_dir.mkdir(parents=True, exist_ok=True)
