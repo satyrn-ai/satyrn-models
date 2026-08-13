@@ -17,6 +17,12 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = "You are an expert Python instructor writing teaching material for the newest Python release."
 
+RULES = """
+- The code must be Python source, not a shell command or CLI invocation.
+- Use Python API calls (e.g. call a module's functions directly instead of `python -m module ...`).
+- The code must run non-interactively to completion without requiring a real terminal.
+"""
+
 
 @dataclass
 class Idea:
@@ -36,7 +42,8 @@ ideas for short, self-contained code blocks that would demonstrate the described
 - Each idea is a one-sentence description of what the code block would show.
 - Propose fewer ideas if the document only covers a small change.
 - Do not repeat the same idea.
-- The idea's code must run non-interactively to completion without requiring a real terminal.
+
+{RULES}
     """
     schema = {
         "type": "object",
@@ -64,14 +71,12 @@ block described by this idea:
 
 {idea.description}
 
-In `trace` write why why this will make a good training example followed by a step-by-step trace of
+In `trace` write why this will make a good training example followed by a step-by-step trace of
 what the code does when it runs.
 
 In `expected_output` state exactly what running the code outputs, whether to stdout or stderr.
 
-- The code must be Python source, not a shell command or CLI invocation.
-- Use Python API calls (e.g. call a module's functions directly instead of `python -m module ...`).
-- The code must run non-interactively to completion without requiring a real terminal.
+{RULES}
     """
     schema = {
         "type": "object",
@@ -232,6 +237,70 @@ alongside the code in its response. Do not repeat or alter the code itself.
     return {"prompt": result["prompt"], "response": response}
 
 
+def make_messages(conversation: dict) -> list[dict]:
+    """Return conversation's prompt and response as a user/assistant message list."""
+    return [
+        {"role": "user", "content": conversation["prompt"]},
+        {"role": "assistant", "content": conversation["response"]},
+    ]
+
+
+def judge_conversation(model: Model, idea: Idea, code_block: dict, conversation: dict) -> None:
+    """Raise ValueError if conversation is not a good SFT training example."""
+    messages = make_messages(conversation)
+    prompt = f"""
+The attached document describes a change in Python version {idea.python_version}. The following
+conversation was generated to teach this idea as a fine-tuning example.
+
+Idea:
+{idea.description}
+
+Code:
+{code_block["code"]}
+
+Actual output when the code runs:
+{code_block["expected_output"]}
+
+Conversation:
+{json.dumps(messages, indent=2)}
+
+Decide whether this conversation is a good training example for fine-tuning a model on Python
+{idea.python_version}, and set `passed` to true only if all of these hold:
+
+- The messages follow logically from each other: the assistant's response actually answers the
+  user's message.
+- The code is not contrived to work around sandbox limitations (e.g. avoiding real file I/O, network
+  access, or subprocesses only because a sandbox can't run them, rather than because the idea calls
+  for it).
+- The example teaches idea correctly and reads like something a real user would ask.
+
+Set `passed` to false if any of these is true:
+
+- The messages are malformed or don't logically match each other.
+- The code was clearly written to dodge sandbox limitations instead of naturally demonstrating the
+  idea.
+- The example does not actually teach idea.
+
+In `judgement`, explain your decision.
+    """
+    schema = {
+        "type": "object",
+        "properties": {
+            "passed": {"type": "boolean"},
+            "judgement": {"type": "string"},
+        },
+        "required": ["passed", "judgement"],
+    }
+    context = Context()
+    context.system_prompt = SYSTEM_PROMPT
+    context.add(idea.doc_path.name, idea.doc_path)
+    context.set_json_schema(schema)
+    judgement = model.generate(prompt, context)
+
+    if not judgement["passed"]:
+        raise ValueError(f"Judge rejected conversation: {judgement['judgement']}")
+
+
 @click.command("sft")
 @click.option(
     "-i",
@@ -276,15 +345,13 @@ def main(input_path: Path, output_dir: Path, python_version: str, preview: bool)
                 try:
                     code_block = generate_code_block(model, idea)
                     conversation = generate_conversation(model, idea, code_block)
+                    judge_conversation(model, idea, code_block, conversation)
                 except ValueError as error:
                     logger.warning("Skipping idea: %s", error)
                     continue
 
                 dataset_line = {
-                    "messages": [
-                        {"role": "user", "content": conversation["prompt"]},
-                        {"role": "assistant", "content": conversation["response"]},
-                    ],
+                    "messages": make_messages(conversation),
                     "filename": doc_path.name,
                     "python_version": python_version,
                     "idea": idea.description,
