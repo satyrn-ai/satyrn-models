@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, get_llm
-from satyrn.dataset.utils.preview import print_dataset_line
+from satyrn.dataset.utils.preview import print_dataset_line, print_ideas
 from satyrn.dataset.utils.sandbox import run_in_sandbox
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ def generate_ideas(model: Model, doc_path: Path, python_version: str) -> list[Id
 The attached document describes a change in Python version {python_version}. Describe between 0 and 50
 ideas for short, self-contained code blocks that would demonstrate the described features.
 
-- Each idea is a one-sentence description of what the code block would show.
+- Each idea is a short description of what the code block would show.
 - Propose fewer ideas if the document only covers a small change.
 - Do not repeat the same idea.
 
@@ -175,10 +175,10 @@ If `passed` is true, judgement should be brief information that the problem was 
     schema = {
         "type": "object",
         "properties": {
-            "passed": {"type": "boolean"},
             "judgement": {"type": "string"},
+            "passed": {"type": "boolean"},
         },
-        "required": ["passed", "judgement"],
+        "required": ["judgement", "passed"],
     }
     context = Context()
     context.system_prompt = SYSTEM_PROMPT
@@ -286,10 +286,10 @@ In `judgement`, explain your decision.
     schema = {
         "type": "object",
         "properties": {
-            "passed": {"type": "boolean"},
             "judgement": {"type": "string"},
+            "passed": {"type": "boolean"},
         },
-        "required": ["passed", "judgement"],
+        "required": ["judgement", "passed"],
     }
     context = Context()
     context.system_prompt = SYSTEM_PROMPT
@@ -339,6 +339,8 @@ def main(input_path: Path, output_dir: Path, python_version: str, preview: bool)
             progress_bar.set_postfix(file=doc_path.name)
 
             ideas = generate_ideas(model, doc_path, python_version)
+            if preview:
+                print_ideas(ideas)
 
             # Process each conversation idea for the current doc file
             for idea in tqdm(ideas, desc="File entries", leave=False):

@@ -15,6 +15,14 @@ def print_messages(messages: list[dict[str, str]]) -> None:
         console.print()
 
 
+def print_ideas(ideas: list) -> None:
+    """Print ideas as a markdown list."""
+    markdown = "\n".join(f"- {idea.description}" for idea in ideas)
+    console.rule("[bold blue]Ideas[/bold blue]")
+    console.print(Markdown(markdown))
+    console.print()
+
+
 def print_dataset_line(dataset_line: dict) -> None:
     """Print a dataset line with messages and metadata."""
     console.rule("[bold blue]Dataset Line[/bold blue]")
