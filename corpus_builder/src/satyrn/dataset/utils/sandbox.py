@@ -8,6 +8,15 @@ from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
+MAX_OUTPUT_CHARACTERS = 12000
+
+
+def truncate(text: str, limit: int = MAX_OUTPUT_CHARACTERS) -> str:
+    """Return text cut to limit characters, noting how many were cut."""
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}... [truncated, {len(text) - limit} more characters]"
+
 
 @lru_cache
 def docker_available() -> bool:
@@ -106,4 +115,4 @@ def run_in_sandbox(python_version: str, code: str) -> str:
     command += [get_python_docker_image(python_version), "python3", "-u", "-c", code]
 
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=10)
-    return result.stdout
+    return truncate(result.stdout)
