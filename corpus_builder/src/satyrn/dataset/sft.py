@@ -19,12 +19,15 @@ SYSTEM_PROMPT = "You are an expert Python instructor writing teaching material f
 
 def generate_ideas(model: Model, doc_path: Path, python_version: str) -> list[str]:
     """Return code-block ideas an LLM proposes for the features described in doc_path."""
-    prompt = (
-        f"The attached document describes a change in Python version {python_version}. Describe between 0 and 50 ideas "
-        "for short, self-contained code blocks that would demonstrate the described features. Propose fewer "
-        "ideas if the document only covers a small change; do not repeat the same idea. Each idea is a "
-        "one-sentence description of what the code block would show."
-    )
+    prompt = f"""
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for short, self-contained code blocks that would demonstrate the described features.
+
+- Each idea is a one-sentence description of what the code block would show.
+- Propose fewer ideas if the document only covers a small change.
+- Do not repeat the same idea.
+- The idea's code must run non-interactively to completion without requiring a real terminal.
+    """
     schema = {
         "type": "object",
         "properties": {
@@ -45,12 +48,21 @@ def generate_ideas(model: Model, doc_path: Path, python_version: str) -> list[st
 
 def generate_code_block(model: Model, doc_path: Path, idea: str, python_version: str) -> dict:
     """Return a verified code block, its reasoning trace, and expected output."""
-    prompt = (
-        f"The attached document describes a change in Python version {python_version}. Write the code block "
-        f"described by this idea:\n\n{idea}\n\n"
-        "Also write a reasoning trace explaining what the code does when it runs, and why it will make a good"
-        "training example. Then provide the exact output it produces (stdout, or the value of the final expression)."
-    )
+    prompt = f"""
+The attached document describes a change in Python version {python_version}. Write the `code` block
+described by this idea:
+
+{idea}
+
+In `trace` write why why this will make a good training example followed by a step-by-step trace of
+what the code does when it runs.
+
+In `expected_output` state exactly what running the code outputs, whether to stdout or stderr.
+
+- The code must be Python source, not a shell command or CLI invocation.
+- Use Python API calls (e.g. call a module's functions directly instead of `python -m module ...`).
+- The code must run non-interactively to completion without requiring a real terminal.
+        """
     schema = {
         "type": "object",
         "properties": {
@@ -75,11 +87,21 @@ def generate_code_block(model: Model, doc_path: Path, idea: str, python_version:
         # Allow the model to retry code/output generation
         # Intentionally leave actual_output out of the retry prompt, so model doesn't just copy it.
         prompt = (
-            f"{prompt}\n\nYour previous code:\n{result['code']}\n\n"
-            f"Reasoning trace:\n{result['trace']}\n\n"
-            f"Predicted output:\n{result['expected_output']}\n\n"
-            "That prediction did not match the code's actual output. Fix the code so it actually does what the "
-            "idea describes, and predict its real output again.\n\n"
+            prompt
+            + "\n\n"
+            + f"""
+Your previous code:
+{result["code"]}
+
+Reasoning trace:
+{result["trace"]}
+
+Predicted output:
+{result["expected_output"]}
+
+That prediction did not match the code's actual output. Fix the code so it actually does what the
+idea describes, and predict its real output again.
+"""
         )
         logger.warning(
             "Attempt %d/%d: code block did not verify. Prompting model to try again.", attempt + 1, max_attempts
@@ -92,13 +114,21 @@ def generate_code_block(model: Model, doc_path: Path, idea: str, python_version:
 
 def generate_conversation(model: Model, doc_path: Path, idea: str, code_block: dict, python_version: str) -> dict:
     """Return a user prompt and assistant response pair whose response includes code_block's verified code."""
-    prompt = (
-        f"The attached document describes a change in Python version {python_version}. A verified code block "
-        f"demonstrates this idea:\n\n{idea}\n\nCode:\n{code_block['code']}\n\n"
-        f"Reasoning trace:\n{code_block['trace']}\n\n"
-        "Write a natural user question that this code would answer, and an explanation an assistant would give "
-        "alongside the code in its response. Do not repeat or alter the code itself."
-    )
+    prompt = f"""
+The attached document describes a change in Python version {python_version}. A verified code block
+demonstrates this idea:
+
+{idea}
+
+Code:
+{code_block["code"]}
+
+Reasoning trace:
+{code_block["trace"]}
+
+Write a natural user question that this code would answer, and an explanation an assistant would give
+alongside the code in its response. Do not repeat or alter the code itself.
+"""
     schema = {
         "type": "object",
         "properties": {
@@ -173,8 +203,12 @@ def main(input_path: Path, output_dir: Path, python_version: str, preview: bool)
 
             # Process each conversation idea for the current doc file
             for idea in tqdm(ideas, desc="File entries", leave=False):
-                code_block = generate_code_block(model, doc_path, idea, python_version)
-                conversation = generate_conversation(model, doc_path, idea, code_block, python_version)
+                try:
+                    code_block = generate_code_block(model, doc_path, idea, python_version)
+                    conversation = generate_conversation(model, doc_path, idea, code_block, python_version)
+                except ValueError as error:
+                    logger.warning("Skipping idea: %s", error)
+                    continue
 
                 dataset_line = {
                     "messages": [
