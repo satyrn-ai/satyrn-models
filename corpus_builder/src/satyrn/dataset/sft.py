@@ -23,6 +23,8 @@ RULES = """
 - Use Python API calls (e.g. call a module's functions directly instead of `python -m module ...`).
 - The code must run non-interactively to completion without requiring a real terminal.
 - The code must terminate within a few seconds; no infinite loops or blocking waits.
+- Only write Python code. Skip anything that cannot be expressed as a Python code example, 
+  such as C API changes, shell commands and CLI invocations, build configuration, etc.
 """
 
 
@@ -44,6 +46,8 @@ ideas for short, self-contained code blocks that would demonstrate the described
 - Each idea is a short description of what the code block would show.
 - Propose fewer ideas if the document only covers a small change.
 - Do not repeat the same idea.
+- DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
+  C API changes, shell commands and CLI invocations, or build configuration.
 
 {RULES}
     """
