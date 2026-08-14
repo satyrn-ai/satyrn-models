@@ -2,7 +2,7 @@
 
 import json
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -371,8 +371,9 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
 
             # Process each conversation idea for the current doc file
             with ThreadPoolExecutor(max_workers=workers) as executor:
-                dataset_lines = executor.map(lambda idea: build_dataset_line(model, idea, sandbox), ideas)
-                for dataset_line in tqdm(dataset_lines, total=len(ideas), desc="File entries", leave=False):
+                futures = [executor.submit(build_dataset_line, model, idea, sandbox) for idea in ideas]
+                for future in tqdm(as_completed(futures), total=len(ideas), desc="File entries", leave=False):
+                    dataset_line = future.result()
                     if dataset_line is None:
                         continue
 
