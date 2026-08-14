@@ -88,17 +88,22 @@ survives an interruption.
 
 A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file - see `.env.example`).
 
+#### Usage
+
 Pass `--preview` to print each generated conversation to the terminal as it's saved, useful for
 sanity-checking output quality while a run is in progress.
-
-Usage example:
-
-```sh
-satyrn-dataset sft --input datasets/python3.15/input/docs --output datasets/python3.15/sft.jsonl --python-version 3.15
-```
 
 Generating examples from a single source file with preview:
 
 ```sh
 satyrn-dataset sft -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/sft.jsonl --python-version 3.14 --preview
+```
+
+Pass `--workers` to generate several conversations in parallel within each source file. Defaults to
+1; rows are written in the same order either way.
+
+Generating examples 24 at a time:
+
+```sh
+satyrn-dataset sft -i datasets/python3.15/input/docs -o datasets/python3.15/sft.jsonl --python-version 3.15 --workers 24
 ```

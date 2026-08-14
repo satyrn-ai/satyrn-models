@@ -9,6 +9,7 @@ from functools import lru_cache
 logger = logging.getLogger(__name__)
 
 MAX_OUTPUT_CHARACTERS = 12000
+TIMEOUT_SECONDS = 10
 
 
 def truncate(text: str, limit: int = MAX_OUTPUT_CHARACTERS) -> str:
@@ -108,5 +109,10 @@ class Sandbox:
             command.append("--runtime=runsc")
         command += [self.image, "python3", "-u", "-c", code]
 
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=10)
+        try:
+            result = subprocess.run(
+                command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=TIMEOUT_SECONDS
+            )
+        except subprocess.TimeoutExpired:
+            return f"[did not terminate within {TIMEOUT_SECONDS} seconds]"
         return truncate(result.stdout)

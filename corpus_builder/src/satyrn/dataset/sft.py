@@ -2,6 +2,7 @@
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +22,7 @@ RULES = """
 - The code must be Python source, not a shell command or CLI invocation.
 - Use Python API calls (e.g. call a module's functions directly instead of `python -m module ...`).
 - The code must run non-interactively to completion without requiring a real terminal.
+- The code must terminate within a few seconds; no infinite loops or blocking waits.
 """
 
 
@@ -149,6 +151,9 @@ Predicted output:
 
 Actual output:
 {actual_output}
+
+The code was required to follow these rules:
+{RULES}
 
 Decide whether the code still correctly demonstrates the idea, and set `passed` to true only if all
 of these hold:
@@ -339,7 +344,8 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox) -> dict | Non
 )
 @click.option("--python-version", required=True, help='Python version the dataset addresses, e.g. "3.15".')
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
-def main(input_path: Path, output_path: Path, python_version: str, preview: bool) -> None:
+@click.option("--workers", default=1, help="Number of lines to generate in parallel.")
+def main(input_path: Path, output_path: Path, python_version: str, preview: bool, workers: int) -> None:
     """Generate an SFT dataset for every doc file under input_path."""
     model = get_llm("deepseek", "deepseek-v4-pro")
     sandbox = Sandbox(python_version)
@@ -365,12 +371,13 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
                 print_ideas(ideas)
 
             # Process each conversation idea for the current doc file
-            for idea in tqdm(ideas, desc="File entries", leave=False):
-                dataset_line = build_dataset_line(model, idea, sandbox)
-                if dataset_line is None:
-                    continue
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                dataset_lines = executor.map(lambda idea: build_dataset_line(model, idea, sandbox), ideas)
+                for dataset_line in tqdm(dataset_lines, total=len(ideas), desc="File entries", leave=False):
+                    if dataset_line is None:
+                        continue
 
-                fh.write(json.dumps(dataset_line) + "\n")
-                fh.flush()
-                if preview:
-                    print_dataset_line(dataset_line)
+                    fh.write(json.dumps(dataset_line) + "\n")
+                    fh.flush()
+                    if preview:
+                        print_dataset_line(dataset_line)
