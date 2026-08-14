@@ -23,7 +23,7 @@ RULES = """
 - Use Python API calls (e.g. call a module's functions directly instead of `python -m module ...`).
 - The code must run non-interactively to completion without requiring a real terminal.
 - The code must terminate within a few seconds; no infinite loops or blocking waits.
-- Only write Python code. Skip anything that cannot be expressed as a Python code example, 
+- Only write Python code. Skip anything that cannot be expressed as a Python code example,
   such as C API changes, shell commands and CLI invocations, build configuration, etc.
 """
 
