@@ -59,7 +59,7 @@ ideas for short, self-contained code blocks that would demonstrate the described
     context.system_prompt = SYSTEM_PROMPT
     context.add(doc_path.name, doc_path)
     context.set_json_schema(schema)
-    response = model.generate(prompt, context)
+    response = model.generate(prompt, context, thinking=True)
     return [Idea(doc_path, description, python_version) for description in response["ideas"]]
 
 
@@ -94,7 +94,7 @@ In `expected_output` state exactly what running the code outputs, whether to std
 
     max_attempts = 3
     for attempt in range(max_attempts):
-        code_block = model.generate(prompt, context)
+        code_block = model.generate(prompt, context, thinking=True)
         verified, actual_output = verify_code_block(
             code_block["code"], code_block["expected_output"], idea.python_version
         )
@@ -295,10 +295,10 @@ In `judgement`, explain your decision.
     context.system_prompt = SYSTEM_PROMPT
     context.add(idea.doc_path.name, idea.doc_path)
     context.set_json_schema(schema)
-    judgement = model.generate(prompt, context)
+    response = model.generate(prompt, context)
 
-    if not judgement["passed"]:
-        raise ValueError(f"Judge rejected conversation: {judgement['judgement']}")
+    if not response["passed"]:
+        raise ValueError(f"Judge rejected conversation: {response['judgement']}")
 
 
 @click.command("sft")
@@ -322,7 +322,7 @@ In `judgement`, explain your decision.
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
 def main(input_path: Path, output_path: Path, python_version: str, preview: bool) -> None:
     """Generate an SFT dataset for every doc file under input_path."""
-    model = get_llm("deepseek", "deepseek-v4-pro", thinking=False)
+    model = get_llm("deepseek", "deepseek-v4-pro")
 
     # Prepare output file
     if output_path.suffix != ".jsonl":
