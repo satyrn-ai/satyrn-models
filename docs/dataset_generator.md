@@ -47,25 +47,26 @@ Writes to `datasets/python3.15/input/docs/changes/`.
 
 ## Generating datasets
 
-Each subcommand generates one dataset type, writing JSONL to `--output-dir`. `cpt` reads source material
-from `--input-dir` (a directory); `sft` and `rl` read from `--input` (a directory or a single doc file).
+Each subcommand generates one dataset type, writing JSONL to the `--output` file.
+`cpt` reads source material from `--input-dir` (a directory);
+`sft` and `rl` read from `--input` (a directory or a single doc file).
 
 ```sh
-satyrn-dataset cpt --input-dir DIR --output-dir DIR   # Continued Pretraining (CPT)
-satyrn-dataset sft --input PATH --output-dir DIR      # Supervised Fine-Tuning (SFT)
-satyrn-dataset rl  --input PATH --output-dir DIR      # Reinforcement Learning (RL)
+satyrn-dataset cpt --input-dir DIR --output FILE.jsonl   # Continued Pretraining (CPT)
+satyrn-dataset sft --input PATH --output FILE.jsonl      # Supervised Fine-Tuning (SFT)
+satyrn-dataset rl  --input PATH --output FILE.jsonl      # Reinforcement Learning (RL)
 ```
 
 ### Generate Continued Pretraining (CPT) datasets
 
 `cpt` converts every `.rst` file under `input-dir` to Markdown and writes one row per file to
-a `cpt.jsonl` file in `output-dir`.
+`--output`.
 
 Usage example:
 
 ```sh
-satyrn-dataset cpt --input-dir datasets/python3.14/input/docs --output-dir datasets/python3.14/
-satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output-dir datasets/python3.15/
+satyrn-dataset cpt --input-dir datasets/python3.14/input/docs --output datasets/python3.14/cpt.jsonl
+satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output datasets/python3.15/cpt.jsonl
 ```
 
 ### Generate Supervised Fine-Tuning (SFT) datasets
@@ -82,8 +83,8 @@ docker run --rm hello-world
 docker run --rm --runtime=runsc hello-world
 ```
 
-Output is written one row per conversation to a `sft.jsonl` file in `output-dir`, appending as it goes so
-partial progress survives an interruption.
+Output is written one row per conversation to `--output`, appending as it goes so partial progress
+survives an interruption.
 
 A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file - see `.env.example`).
 
@@ -93,11 +94,11 @@ sanity-checking output quality while a run is in progress.
 Usage example:
 
 ```sh
-satyrn-dataset sft --input datasets/python3.15/input/docs --output-dir datasets/python3.15/ --python-version 3.15
+satyrn-dataset sft --input datasets/python3.15/input/docs --output datasets/python3.15/sft.jsonl --python-version 3.15
 ```
 
 Generating examples from a single source file with preview:
 
 ```sh
-satyrn-dataset sft -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/ --python-version 3.14 --preview
+satyrn-dataset sft -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/sft.jsonl --python-version 3.14 --preview
 ```

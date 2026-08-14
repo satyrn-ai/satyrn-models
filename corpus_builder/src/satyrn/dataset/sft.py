@@ -312,20 +312,22 @@ In `judgement`, explain your decision.
 )
 @click.option(
     "-o",
-    "--output-dir",
-    type=click.Path(file_okay=False, path_type=Path),
+    "--output",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
     required=True,
-    help="Directory to write the generated JSONL into.",
+    help="JSONL file to write the generated dataset to.",
 )
 @click.option("--python-version", required=True, help='Python version the dataset addresses, e.g. "3.15".')
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
-def main(input_path: Path, output_dir: Path, python_version: str, preview: bool) -> None:
+def main(input_path: Path, output_path: Path, python_version: str, preview: bool) -> None:
     """Generate an SFT dataset for every doc file under input_path."""
-    model = get_llm("deepseek", "deepseek-v4-flash", thinking=False)
+    model = get_llm("deepseek", "deepseek-v4-pro", thinking=False)
 
     # Prepare output file
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "sft.jsonl"
+    if output_path.suffix != ".jsonl":
+        raise click.BadParameter("Output file must end with .jsonl")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     if output_path.exists() and click.confirm(f"{output_path} already exists. Clear it?"):
         output_path.unlink()
 

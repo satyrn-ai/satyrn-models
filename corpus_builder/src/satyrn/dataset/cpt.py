@@ -42,14 +42,17 @@ def render_markdown(input_dir: Path, output_dir: Path) -> None:
 )
 @click.option(
     "-o",
-    "--output-dir",
-    type=click.Path(file_okay=False, path_type=Path),
+    "--output",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
     required=True,
-    help="Directory to write the generated JSONL into.",
+    help="JSONL file to write the generated dataset to.",
 )
-def main(input_dir: Path, output_dir: Path) -> None:
+def main(input_dir: Path, output_path: Path) -> None:
     """Generate a Continued Pretraining (CPT) dataset."""
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if output_path.suffix != ".jsonl":
+        raise click.BadParameter("Output file must end with .jsonl")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as markdown_dir:
         # Convert the input docs to markdown
@@ -62,7 +65,6 @@ def main(input_dir: Path, output_dir: Path) -> None:
             for path in sorted(Path(markdown_dir).rglob("*.md"))
         ]
 
-    output_path = output_dir / "cpt.jsonl"
     with output_path.open("w") as fh:
         fh.writelines(json.dumps(row) + "\n" for row in rows)
 
