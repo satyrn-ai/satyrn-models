@@ -299,6 +299,27 @@ In `judgement`, explain your decision.
         raise ValueError(f"Judge rejected conversation: {response['judgement']}")
 
 
+def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox) -> dict | None:
+    """Return a verified dataset line for idea, or None if it was rejected."""
+    try:
+        code_block = generate_code_block(model, idea, sandbox)
+        conversation = generate_conversation(model, idea, code_block)
+        judge_conversation(model, idea, code_block, conversation)
+    except ValueError as error:
+        logger.warning("Skipping idea: %s", error)
+        return None
+
+    return {
+        "messages": make_messages(conversation),
+        "filename": idea.doc_path.name,
+        "python_version": idea.python_version,
+        "idea": idea.description,
+        "code": code_block["code"],
+        "trace": code_block["trace"],
+        "expected_output": code_block["expected_output"],
+    }
+
+
 @click.command("sft")
 @click.option(
     "-i",
@@ -345,23 +366,9 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
 
             # Process each conversation idea for the current doc file
             for idea in tqdm(ideas, desc="File entries", leave=False):
-                try:
-                    code_block = generate_code_block(model, idea, sandbox)
-                    conversation = generate_conversation(model, idea, code_block)
-                    judge_conversation(model, idea, code_block, conversation)
-                except ValueError as error:
-                    logger.warning("Skipping idea: %s", error)
+                dataset_line = build_dataset_line(model, idea, sandbox)
+                if dataset_line is None:
                     continue
-
-                dataset_line = {
-                    "messages": make_messages(conversation),
-                    "filename": doc_path.name,
-                    "python_version": python_version,
-                    "idea": idea.description,
-                    "code": code_block["code"],
-                    "trace": code_block["trace"],
-                    "expected_output": code_block["expected_output"],
-                }
 
                 fh.write(json.dumps(dataset_line) + "\n")
                 fh.flush()
