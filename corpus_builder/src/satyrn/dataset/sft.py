@@ -313,6 +313,9 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox) -> dict | Non
     except ValueError as error:
         logger.warning("Skipping idea: %s", error)
         return None
+    except Exception as error:
+        logger.error("Skipping idea: %s", error)
+        return None
 
     return {
         "messages": make_messages(conversation),
