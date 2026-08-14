@@ -11,7 +11,7 @@ from tqdm import tqdm
 from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, get_llm
 from satyrn.dataset.utils.preview import print_dataset_line, print_ideas
-from satyrn.dataset.utils.sandbox import run_in_sandbox
+from satyrn.dataset.utils.sandbox import Sandbox
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ ideas for short, self-contained code blocks that would demonstrate the described
     return [Idea(doc_path, description, python_version) for description in response["ideas"]]
 
 
-def generate_code_block(model: Model, idea: Idea) -> dict:
+def generate_code_block(model: Model, idea: Idea, sandbox: Sandbox) -> dict:
     """Return a verified code block, its reasoning trace, and expected output."""
     prompt = f"""
 The attached document describes a change in Python version {idea.python_version}. Write the `code`
@@ -95,9 +95,7 @@ In `expected_output` state exactly what running the code outputs, whether to std
     max_attempts = 3
     for attempt in range(max_attempts):
         code_block = model.generate(prompt, context, thinking=True)
-        verified, actual_output = verify_code_block(
-            code_block["code"], code_block["expected_output"], idea.python_version
-        )
+        verified, actual_output = verify_code_block(code_block["code"], code_block["expected_output"], sandbox)
         if verified:
             return code_block
 
@@ -187,14 +185,14 @@ If `passed` is true, judgement should be brief information that the problem was 
     return model.generate(prompt, context)
 
 
-def verify_code_block(code: str, expected_output: str, python_version: str) -> tuple[bool, str]:
-    """Run code under python_version. Return whether its output matches expected_output, and the actual output."""
-    actual_output = run_in_sandbox(python_version, code)
+def verify_code_block(code: str, expected_output: str, sandbox: Sandbox) -> tuple[bool, str]:
+    """Run code in sandbox. Return whether its output matches expected_output, and the actual output."""
+    actual_output = sandbox.run(code)
     if actual_output.strip() == expected_output.strip():
         return True, actual_output
     logger.warning(
         "Code block did not verify under Python %s.\nCode:\n%s\nExpected output:\n%s\nActual output:\n%s",
-        python_version,
+        sandbox.python_version,
         code,
         expected_output,
         actual_output,
@@ -323,6 +321,7 @@ In `judgement`, explain your decision.
 def main(input_path: Path, output_path: Path, python_version: str, preview: bool) -> None:
     """Generate an SFT dataset for every doc file under input_path."""
     model = get_llm("deepseek", "deepseek-v4-pro")
+    sandbox = Sandbox(python_version)
 
     # Prepare output file
     if output_path.suffix != ".jsonl":
@@ -347,7 +346,7 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
             # Process each conversation idea for the current doc file
             for idea in tqdm(ideas, desc="File entries", leave=False):
                 try:
-                    code_block = generate_code_block(model, idea)
+                    code_block = generate_code_block(model, idea, sandbox)
                     conversation = generate_conversation(model, idea, code_block)
                     judge_conversation(model, idea, code_block, conversation)
                 except ValueError as error:

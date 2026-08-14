@@ -61,58 +61,52 @@ def tag_exists_on_docker_hub(tag: str) -> bool:
         raise
 
 
-@lru_cache
-def sandbox_available(python_version: str) -> bool:
-    """Return True if Docker and gVisor are available and the Python image exists."""
-    if not docker_available():
-        logger.error("Docker is not available.")
-        return False
-    if not gvisor_available():
-        logger.warning("gVisor (runsc) is not registered with Docker; running without sandbox isolation.")
-    try:
-        image = get_python_docker_image(python_version)
-    except ValueError as error:
-        logger.error("%s", error)
-        return False
-    pull_image(image)
-    return True
-
-
 def pull_image(image: str) -> None:
     """Pull image if it isn't already local."""
     if subprocess.run(["docker", "image", "inspect", image], capture_output=True).returncode != 0:
         subprocess.run(["docker", "pull", image])
 
 
-def run_in_sandbox(python_version: str, code: str) -> str:
-    """Run code under python_version in a sandboxed container. Return its combined output."""
-    if not sandbox_available(python_version):
-        raise RuntimeError(f"Sandbox not available for Python {python_version}")
+class Sandbox:
+    """A Docker container that runs Python code under a fixed Python version."""
 
-    command = [
-        "docker",
-        "run",
-        "--rm",
-        "--network=none",
-        "--memory=512m",
-        "--cpus=0.75",
-        "--pids-limit=100",
-        "--security-opt=no-new-privileges",
-        "--cap-drop=ALL",
-        # set the user to nobody
-        "-u",
-        "65534:65534",
-        # lock the file system
-        "--read-only",
-        # give code a writable working dir in /tmp
-        "-w",
-        "/tmp",
-        "--tmpfs",
-        "/tmp:rw,noexec,nosuid,nodev",
-    ]
-    if gvisor_available():
-        command.append("--runtime=runsc")
-    command += [get_python_docker_image(python_version), "python3", "-u", "-c", code]
+    def __init__(self, python_version: str) -> None:
+        if not docker_available():
+            raise RuntimeError("Docker is not available.")
 
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=10)
-    return truncate(result.stdout)
+        self.python_version = python_version
+        self.image = get_python_docker_image(python_version)
+        self.use_gvisor = gvisor_available()
+        if not self.use_gvisor:
+            logger.warning("gVisor (runsc) is not registered with Docker; running without sandbox isolation.")
+        pull_image(self.image)
+
+    def run(self, code: str) -> str:
+        """Run code in the container. Return its combined output."""
+        command = [
+            "docker",
+            "run",
+            "--rm",
+            "--network=none",
+            "--memory=512m",
+            "--cpus=0.75",
+            "--pids-limit=100",
+            "--security-opt=no-new-privileges",
+            "--cap-drop=ALL",
+            # set the user to nobody
+            "-u",
+            "65534:65534",
+            # lock the file system
+            "--read-only",
+            # give code a writable working dir in /tmp
+            "-w",
+            "/tmp",
+            "--tmpfs",
+            "/tmp:rw,noexec,nosuid,nodev",
+        ]
+        if self.use_gvisor:
+            command.append("--runtime=runsc")
+        command += [self.image, "python3", "-u", "-c", code]
+
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=10)
+        return truncate(result.stdout)
