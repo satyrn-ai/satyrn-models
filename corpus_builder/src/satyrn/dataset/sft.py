@@ -240,17 +240,12 @@ alongside the code in its response. Do not repeat or alter the code itself.
     return {"prompt": result["prompt"], "response": response}
 
 
-def make_messages(conversation: dict) -> list[dict]:
-    """Return conversation's prompt and response as a user/assistant message list."""
-    return [
+def judge_conversation(model: Model, idea: Idea, code_block: dict, conversation: dict) -> None:
+    """Raise ValueError if conversation is not a good SFT training example."""
+    messages = [
         {"role": "user", "content": conversation["prompt"]},
         {"role": "assistant", "content": conversation["response"]},
     ]
-
-
-def judge_conversation(model: Model, idea: Idea, code_block: dict, conversation: dict) -> None:
-    """Raise ValueError if conversation is not a good SFT training example."""
-    messages = make_messages(conversation)
     prompt = f"""
 The attached document describes a change in Python version {idea.python_version}. The following
 conversation was generated to teach this idea as a fine-tuning example.
@@ -318,7 +313,8 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox) -> dict | Non
         return None
 
     return {
-        "messages": make_messages(conversation),
+        "prompt": [{"role": "user", "content": conversation["prompt"]}],
+        "completion": [{"role": "assistant", "content": conversation["response"]}],
         "filename": idea.doc_path.name,
         "python_version": idea.python_version,
         "idea": idea.description,

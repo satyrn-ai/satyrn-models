@@ -16,10 +16,10 @@ def print_messages(messages: list[dict[str, str]]) -> None:
 
 
 def print_ideas(ideas: list) -> None:
-    """Print ideas as a markdown list."""
-    markdown = "\n".join(f"- {idea.description}" for idea in ideas)
+    """Print ideas as a plain list."""
     console.rule("[bold blue]Ideas[/bold blue]")
-    console.print(Markdown(markdown))
+    for idea in ideas:
+        console.print(f"- {idea.description}", markup=False, highlight=False)
     console.print()
 
 
@@ -38,10 +38,10 @@ def print_dataset_line(dataset_line: dict) -> None:
             text = f"```python\n{dataset_line[key]}\n```" if key == "code" else dataset_line[key]
             console.print(Markdown(text))
 
-    known_keys = set(fields) | set(markdown_fields) | {"messages"}
+    known_keys = set(fields) | set(markdown_fields) | {"prompt", "completion"}
     for key, value in dataset_line.items():
         if key not in known_keys and value:
             console.print(f"[bold]{key}:[/bold] {value}")
 
     console.print()
-    print_messages(dataset_line.get("messages", []))
+    print_messages(dataset_line.get("prompt", []) + dataset_line.get("completion", []))
