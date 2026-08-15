@@ -34,7 +34,7 @@ jobs:
           cache-dependency-glob: "**/pyproject.toml"
 
       - name: Install both modules
-        run: uv pip install -e 'corpus_builder[dev]' -e 'trainer/unsloth[dev]'
+        run: uv pip install 'corpus_builder[dev]' 'trainer/unsloth[dev]'
 
       - name: Run tests
         run: pytest -v
