@@ -12,9 +12,10 @@ mlflow:
   experiment_name: ${basename:${model.name}}
 
 load_in_4bit: false
-max_seq_length: 8192
+max_seq_length: 4096
 batch_size: 8
 gradient_accumulation_steps: 2
+logging_steps: 1
 
 datasets:
   cpt: datasets/python3.15/cpt.jsonl
