@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, get_llm
+from satyrn.dataset.utils.concurrency import split_workers
 from satyrn.dataset.utils.preview import print_dataset_line, print_ideas
 from satyrn.dataset.utils.sandbox import Sandbox
 
@@ -356,11 +357,12 @@ def write_dataset_line(dataset_line: dict, output_path: Path) -> None:
 )
 @click.option("--python-version", required=True, help='Python version the dataset addresses, e.g. "3.15".')
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
-@click.option("--workers", default=1, help="Number of lines to generate in parallel.")
+@click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of lines to generate in parallel.")
 def main(input_path: Path, output_path: Path, python_version: str, preview: bool, workers: int) -> None:
     """Generate an SFT dataset for every doc file under input_path."""
     model = get_llm("deepseek", "deepseek-v4-pro")
     sandbox = Sandbox(python_version)
+    file_workers, idea_workers = split_workers(workers)
 
     # Prepare output file
     if output_path.suffix != ".jsonl":
@@ -372,23 +374,28 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
     # Collect input docs
     input_docs = [input_path] if input_path.is_file() else sorted(input_path.rglob("*.rst"))
 
-    # Process each doc file
-    progress_bar = tqdm(input_docs, desc="Doc files")
-    for doc_path in progress_bar:
-        progress_bar.set_postfix(file=doc_path.name)
-
+    def process_doc(doc_path: Path) -> None:
+        """Generate and write every dataset line for one doc file."""
         ideas = generate_ideas(model, doc_path, python_version)
+        logger.info("Generated %d ideas for %s", len(ideas), doc_path.name)
         if preview:
             print_ideas(ideas)
 
         # Process each conversation idea for the current doc file
-        with ThreadPoolExecutor(max_workers=workers) as executor:
+        with ThreadPoolExecutor(max_workers=idea_workers) as executor:
             futures = [executor.submit(build_dataset_line, model, idea, sandbox) for idea in ideas]
-            for future in tqdm(as_completed(futures), total=len(ideas), desc="File entries", leave=False):
+            for future in as_completed(futures):
                 dataset_line = future.result()
                 if dataset_line is None:
                     continue
 
                 write_dataset_line(dataset_line, output_path)
                 if preview:
-                    print_dataset_line(dataset_line)
+                    with output_file_lock:
+                        print_dataset_line(dataset_line)
+
+    # Process each doc file
+    with ThreadPoolExecutor(max_workers=file_workers) as executor:
+        futures = [executor.submit(process_doc, doc_path) for doc_path in input_docs]
+        for future in tqdm(as_completed(futures), total=len(input_docs), desc="Doc files"):
+            future.result()
