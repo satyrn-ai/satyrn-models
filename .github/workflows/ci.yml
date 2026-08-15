@@ -28,12 +28,13 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.13"
+          activate-environment: true
           enable-cache: true
           prune-cache: false
           cache-dependency-glob: "**/pyproject.toml"
 
       - name: Install both modules
-        run: uv pip install --system -e 'corpus_builder[dev]' -e 'trainer/unsloth[dev]'
+        run: uv pip install -e 'corpus_builder[dev]' -e 'trainer/unsloth[dev]'
 
-      - name: Run smoke tests
+      - name: Run tests
         run: pytest -v
