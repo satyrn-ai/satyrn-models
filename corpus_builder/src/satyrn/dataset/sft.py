@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,8 @@ from satyrn.dataset.utils.preview import print_dataset_line, print_ideas
 from satyrn.dataset.utils.sandbox import Sandbox
 
 logger = logging.getLogger(__name__)
+
+output_file_lock = threading.Lock()
 
 SYSTEM_PROMPT = "You are an expert Python instructor writing teaching material for the newest Python release."
 
@@ -328,6 +331,12 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox) -> dict | Non
     }
 
 
+def write_dataset_line(dataset_line: dict, output_path: Path) -> None:
+    """Append dataset_line to output_path as one JSON line."""
+    with output_file_lock, output_path.open("a") as fh:
+        fh.write(json.dumps(dataset_line) + "\n")
+
+
 @click.command("sft")
 @click.option(
     "-i",
@@ -363,25 +372,23 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
     # Collect input docs
     input_docs = [input_path] if input_path.is_file() else sorted(input_path.rglob("*.rst"))
 
-    with output_path.open("a") as fh:
-        # Process each doc file
-        progress_bar = tqdm(input_docs, desc="Doc files")
-        for doc_path in progress_bar:
-            progress_bar.set_postfix(file=doc_path.name)
+    # Process each doc file
+    progress_bar = tqdm(input_docs, desc="Doc files")
+    for doc_path in progress_bar:
+        progress_bar.set_postfix(file=doc_path.name)
 
-            ideas = generate_ideas(model, doc_path, python_version)
-            if preview:
-                print_ideas(ideas)
+        ideas = generate_ideas(model, doc_path, python_version)
+        if preview:
+            print_ideas(ideas)
 
-            # Process each conversation idea for the current doc file
-            with ThreadPoolExecutor(max_workers=workers) as executor:
-                futures = [executor.submit(build_dataset_line, model, idea, sandbox) for idea in ideas]
-                for future in tqdm(as_completed(futures), total=len(ideas), desc="File entries", leave=False):
-                    dataset_line = future.result()
-                    if dataset_line is None:
-                        continue
+        # Process each conversation idea for the current doc file
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(build_dataset_line, model, idea, sandbox) for idea in ideas]
+            for future in tqdm(as_completed(futures), total=len(ideas), desc="File entries", leave=False):
+                dataset_line = future.result()
+                if dataset_line is None:
+                    continue
 
-                    fh.write(json.dumps(dataset_line) + "\n")
-                    fh.flush()
-                    if preview:
-                        print_dataset_line(dataset_line)
+                write_dataset_line(dataset_line, output_path)
+                if preview:
+                    print_dataset_line(dataset_line)
