@@ -105,7 +105,7 @@ def main(cfg: DictConfig) -> None:
             finetune_vision_layers=config.model.peft.finetune_vision_layers,
             finetune_audio_layers=config.model.peft.finetune_audio_layers,
             bias="none",
-            use_gradient_checkpointing=True,
+            use_gradient_checkpointing="unsloth",
         )
         # logger.info("PEFT model %s", model)
         trainable_params, all_params = model.get_nb_trainable_parameters()

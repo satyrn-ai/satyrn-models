@@ -1,0 +1,29 @@
+# @package _global_
+# Swap the model on the command line:
+#   satyrn-unsloth --config-name experiment/py3.15 model=qwen3.6-27b
+defaults:
+  - /defaults
+  - /model: qwen2.5-0.5b
+  - _self_
+
+run_name: py3.15-${hydra:runtime.choices.model}
+
+mlflow:
+  experiment_name: ${hydra:runtime.choices.model}
+
+load_in_4bit: false
+max_seq_length: 8192
+batch_size: 8
+gradient_accumulation_steps: 2
+
+datasets:
+  cpt: datasets/python3.15/cpt.jsonl
+  sft: datasets/python3.15/sft-v1.jsonl
+
+cpt:
+  num_train_epochs: 3
+  learning_rate: 1e-4
+
+sft:
+  num_train_epochs: 2
+  learning_rate: 2e-4
