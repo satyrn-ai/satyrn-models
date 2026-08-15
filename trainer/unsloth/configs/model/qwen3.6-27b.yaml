@@ -1,0 +1,31 @@
+# Architecture: dense, 64 layers, 48 DeltaNet + 16 full attention
+# Thinking:     on by default
+# Multimodal:   text + vision
+# VRAM:         ~56GB for bf16 LoRA at 27B
+#
+# Unsloth discourages 4-bit QLoRA for this family: quantization artifacts.
+# Requires transformers 5.3.0, plus flash-linear-attention and causal_conv1d
+# Reasoning goes inline in the content as <think>{trace}</think>
+#
+# Reference Unsloth notebook (Qwen3.5-27B, same qwen3_5 architecture):
+# https://github.com/unslothai/notebooks/blob/main/nb/Qwen_3_5_27B_A100(80GB).ipynb
+#
+# model = FastLanguageModel.get_peft_model(
+#     model,
+#     r = 8, # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+#     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
+#                       "gate_proj", "up_proj", "down_proj",
+#                       "out_proj",],
+#     lora_alpha = 16,
+#     lora_dropout = 0, # Supports any, but = 0 is optimized
+#     bias = "none",    # Supports any, but = "none" is optimized
+#     use_gradient_checkpointing = "unsloth", # True or "unsloth" for very long context
+#     use_rslora = False,  # We support rank stabilized LoRA
+#     loftq_config = None, # And LoftQ
+# )
+name: unsloth/Qwen3.6-27B
+
+peft:
+  r: 8
+  lora_dropout: 0.0
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "out_proj"]

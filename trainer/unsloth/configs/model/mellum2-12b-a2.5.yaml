@@ -1,7 +1,27 @@
+# Architecture: MoE, 64 experts / 8 active, 28 layers, sliding + full attention (3:1)
+#
+# model_type is `mellum` is available in transformers>=5.10.1
+#
+# Reference Unsloth notebook (Qwen3-30B-A3B-Instruct-2507, nearest qwen3_moe architecture):
+# https://github.com/unslothai/notebooks/blob/main/nb/Qwen3_MoE.ipynb
+#
+# model = FastLanguageModel.get_peft_model(
+#     model,
+#     r = lora_rank,
+#     target_modules = [
+#         "q_proj", "k_proj", "v_proj", "o_proj",
+#         "gate_proj", "up_proj", "down_proj", "gate_up_proj",
+#     ],
+#     lora_alpha = lora_rank*2,
+#     use_gradient_checkpointing = True,
+#     bias = "none",
+# )
 name: JetBrains/Mellum2-12B-A2.5B-Instruct
 
-lora:
-  rank: 16
-  alpha: 32
-  dropout: 0.0
-  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+peft:
+  r: 8
+  lora_dropout: 0.0
+  # Targeting the 64 experts per layer trains ~217M params (at r=16)
+  # Consider attention only (~8M params) while the dataset is small:
+  # ["q_proj", "k_proj", "v_proj", "o_proj"]
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "gate_up_proj"]

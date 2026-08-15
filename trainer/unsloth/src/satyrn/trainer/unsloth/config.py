@@ -7,21 +7,30 @@ from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
 
+OmegaConf.register_resolver("mul", lambda a, b: a * b)
 
-class LoraConfig(BaseModel):
+
+class PeftConfig(BaseModel):
+    """Arguments passed to FastModel.get_peft_model."""
+
     model_config = ConfigDict(extra="forbid")
 
-    rank: int
-    alpha: int
-    dropout: float
-    target_modules: list[str]
+    r: int
+    lora_alpha: int
+    lora_dropout: float
+    target_modules: list[str] | None
+    finetune_attention_modules: bool
+    finetune_mlp_modules: bool
+    finetune_language_layers: bool
+    finetune_vision_layers: bool
+    finetune_audio_layers: bool
 
 
 class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    lora: LoraConfig
+    peft: PeftConfig
 
 
 class MlflowConfig(BaseModel):

@@ -23,10 +23,10 @@ CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 
 def unsloth_init() -> None:
     """Initialize unsloth and patch the training libraries."""
-    global Dataset, FastLanguageModel, SFTConfig, SFTTrainer, torch
+    global Dataset, FastModel, SFTConfig, SFTTrainer, torch
 
     # Unsloth must be imported first to patch transformers, accelerate, etc.
-    from unsloth import FastLanguageModel  # noqa: I001
+    from unsloth import FastModel  # noqa: I001
     import torch
     from datasets import Dataset
     from trl import SFTConfig, SFTTrainer
@@ -87,18 +87,23 @@ def main(cfg: DictConfig) -> None:
         config = validate_config(cfg)
 
         logger.info("Downloading model %s", config.model.name)
-        model, tokenizer = FastLanguageModel.from_pretrained(
+        model, tokenizer = FastModel.from_pretrained(
             model_name=config.model.name,
             max_seq_length=config.max_seq_length,
             dtype=None,
             load_in_4bit=config.load_in_4bit,
         )
-        model = FastLanguageModel.get_peft_model(
+        model = FastModel.get_peft_model(
             model,
-            r=config.model.lora.rank,
-            target_modules=config.model.lora.target_modules,
-            lora_alpha=config.model.lora.alpha,
-            lora_dropout=config.model.lora.dropout,
+            r=config.model.peft.r,
+            lora_alpha=config.model.peft.lora_alpha,
+            lora_dropout=config.model.peft.lora_dropout,
+            target_modules=config.model.peft.target_modules,
+            finetune_attention_modules=config.model.peft.finetune_attention_modules,
+            finetune_mlp_modules=config.model.peft.finetune_mlp_modules,
+            finetune_language_layers=config.model.peft.finetune_language_layers,
+            finetune_vision_layers=config.model.peft.finetune_vision_layers,
+            finetune_audio_layers=config.model.peft.finetune_audio_layers,
             bias="none",
             use_gradient_checkpointing=True,
         )
@@ -117,10 +122,15 @@ def main(cfg: DictConfig) -> None:
             mlflow.log_params(
                 {
                     "base_model": config.model.name,
-                    "lora_rank": config.model.lora.rank,
-                    "lora_alpha": config.model.lora.alpha,
-                    "lora_dropout": config.model.lora.dropout,
-                    "lora_targets": ",".join(config.model.lora.target_modules),
+                    "lora_rank": config.model.peft.r,
+                    "lora_alpha": config.model.peft.lora_alpha,
+                    "lora_dropout": config.model.peft.lora_dropout,
+                    "lora_targets": ",".join(config.model.peft.target_modules or []),
+                    "finetune_attention_modules": config.model.peft.finetune_attention_modules,
+                    "finetune_mlp_modules": config.model.peft.finetune_mlp_modules,
+                    "finetune_language_layers": config.model.peft.finetune_language_layers,
+                    "finetune_vision_layers": config.model.peft.finetune_vision_layers,
+                    "finetune_audio_layers": config.model.peft.finetune_audio_layers,
                     "params_train": trainable_params,
                     "params_total": all_params,
                     "params_train_pct": trainable_percentage,
