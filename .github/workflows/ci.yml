@@ -19,3 +19,22 @@ jobs:
 
       - name: Check formatting
         run: ruff format --check trainer corpus_builder
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          activate-environment: true
+          enable-cache: true
+          prune-cache: false
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Install both modules
+        run: uv pip install -e './corpus_builder[dev]' -e './trainer/unsloth[dev]'
+
+      - name: Run tests
+        run: pytest -v
