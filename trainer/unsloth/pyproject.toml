@@ -8,12 +8,15 @@ dependencies = [
     "unsloth-zoo==2026.8.5",
     "pydantic",
     "python-dotenv",
-    "hydra-core>=1.3.15",
+    "hydra-core>=1.4.0.dev8",
     "mlflow==3.15.1",
     "nvidia-ml-py>=13.610.43",
     "psutil>=7.2.2",
     "pyrsmi>=1.1.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=9,<10", "ruff==0.16.2"]
 
 [project.scripts]
 satyrn-unsloth = "satyrn.trainer.unsloth.run:main"

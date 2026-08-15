@@ -14,6 +14,9 @@ dependencies = [
     "tqdm",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=9,<10", "ruff==0.16.2"]
+
 [project.scripts]
 satyrn-dataset = "satyrn.dataset.cli:cli"
 
