@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 logger = logging.getLogger(__name__)
 
 OmegaConf.register_resolver("mul", lambda a, b: a * b)
+OmegaConf.register_resolver("basename", lambda model_id: model_id.rpartition("/")[-1])
 
 
 class PeftConfig(BaseModel):
@@ -97,4 +98,4 @@ def validate_config(cfg: DictConfig) -> ExperimentConfig:
 
 
 def log_config(cfg: DictConfig) -> None:
-    logger.info("Config:\n%s", OmegaConf.to_yaml(cfg))
+    logger.info("Config:\n%s", OmegaConf.to_yaml(cfg, resolve=True))

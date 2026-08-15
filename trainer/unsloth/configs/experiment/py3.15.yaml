@@ -6,10 +6,10 @@ defaults:
   - /model: qwen2.5-0.5b
   - _self_
 
-run_name: py3.15-${hydra:runtime.choices.model}
+run_name: py3.15-${basename:${model.name}}
 
 mlflow:
-  experiment_name: ${hydra:runtime.choices.model}
+  experiment_name: ${basename:${model.name}}
 
 load_in_4bit: false
 max_seq_length: 8192
@@ -18,7 +18,7 @@ gradient_accumulation_steps: 2
 
 datasets:
   cpt: datasets/python3.15/cpt.jsonl
-  sft: datasets/python3.15/sft-v1.jsonl
+  sft: datasets/python3.15/sft.jsonl
 
 cpt:
   num_train_epochs: 3
