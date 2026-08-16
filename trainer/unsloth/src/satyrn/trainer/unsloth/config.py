@@ -1,16 +1,42 @@
 """Pydantic schema for the composed Hydra experiment config."""
 
+from __future__ import annotations
+
 import logging
 import operator
+from typing import Literal
 
 from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
 
+StageName = Literal["cpt", "sft", "rl"]
+
 OmegaConf.register_resolver("mul", operator.mul)
 OmegaConf.register_resolver("max", lambda *values: max(values))
 OmegaConf.register_resolver("basename", lambda model_id: model_id.rpartition("/")[-1])
+
+
+class ExperimentConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    cpt: CptStageConfig
+    sft: SftStageConfig
+    rl: RlStageConfig
+    datasets: DatasetsConfig
+    model: ModelConfig
+    mlflow: MlflowConfig
+
+    eval_batch_size: int
+    eval_ratio: float
+    eval_steps: int
+    load_in_4bit: bool
+    logging_steps: int
+    max_seq_length: int
+    max_steps: int
+    optim: str
+    run_name: str
 
 
 class PeftConfig(BaseModel):
@@ -55,6 +81,9 @@ class CptStageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     packing: bool
+    seq_len: int
+    batch_size: int
+    gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
 
@@ -62,6 +91,9 @@ class CptStageConfig(BaseModel):
 class SftStageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    seq_len: int
+    batch_size: int
+    gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
 
@@ -69,30 +101,11 @@ class SftStageConfig(BaseModel):
 class RlStageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    num_generations: int
-    max_prompt_length: int
-    max_completion_length: int
-    learning_rate: float
-    reward_funcs: list[str]
-
-
-class ExperimentConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    run_name: str
-    load_in_4bit: bool
-    max_seq_length: int
     batch_size: int
     gradient_accumulation_steps: int
-    optim: str
-    logging_steps: int
-    eval_ratio: float
-    mlflow: MlflowConfig
-    datasets: DatasetsConfig
-    cpt: CptStageConfig
-    sft: SftStageConfig
-    rl: RlStageConfig
-    model: ModelConfig
+    num_generations: int
+    max_completion_length: int
+    learning_rate: float
 
 
 def validate_config(cfg: DictConfig) -> ExperimentConfig:

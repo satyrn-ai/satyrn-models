@@ -5,15 +5,20 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import hydra
 import mlflow
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
-from satyrn.trainer.unsloth.config import ExperimentConfig, log_config, validate_config
+from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
+
+if TYPE_CHECKING:
+    from torch.nn import Module
+    from transformers import PreTrainedTokenizerBase
 
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -38,22 +43,33 @@ def load_dataset(path: str | Path) -> Dataset:
     return Dataset.from_list(rows)
 
 
-def run_supervised_tuning(name: str, model, tokenizer, dataset_path: str, cfg: ExperimentConfig, **sft_kwargs) -> None:
+def run_supervised_tuning(
+    name: StageName,
+    model: Module,
+    tokenizer: PreTrainedTokenizerBase,
+    dataset_path: str,
+    cfg: ExperimentConfig,
+    **sft_kwargs,
+) -> None:
     logger.info("Starting %s stage", name)
+    stage = getattr(cfg, name)
     dataset = load_dataset(dataset_path)
     split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
     train_dataset, eval_dataset = split["train"], split["test"]
 
     training_args = SFTConfig(
         output_dir=f"outputs/{name}",
-        per_device_train_batch_size=cfg.batch_size,
-        per_device_eval_batch_size=1,
-        gradient_accumulation_steps=cfg.gradient_accumulation_steps,
+        per_device_train_batch_size=stage.batch_size,
+        per_device_eval_batch_size=cfg.eval_batch_size,
+        gradient_accumulation_steps=stage.gradient_accumulation_steps,
         logging_steps=cfg.logging_steps,
         eval_strategy="steps",
-        eval_steps=cfg.logging_steps,
+        eval_steps=cfg.eval_steps,
         report_to="mlflow",
-        max_length=cfg.max_seq_length,
+        max_length=stage.seq_len,
+        num_train_epochs=stage.num_train_epochs,
+        max_steps=cfg.max_steps,
+        learning_rate=stage.learning_rate,
         packing_strategy="bfd_split",
         bf16=torch.cuda.is_bf16_supported(),
         fp16=not torch.cuda.is_bf16_supported(),
@@ -146,8 +162,6 @@ def main(cfg: DictConfig) -> None:
                     tokenizer,
                     config.datasets.cpt,
                     config,
-                    num_train_epochs=config.cpt.num_train_epochs,
-                    learning_rate=config.cpt.learning_rate,
                     packing=config.cpt.packing,
                     dataset_text_field="text",
                 )
@@ -159,8 +173,6 @@ def main(cfg: DictConfig) -> None:
                     tokenizer,
                     config.datasets.sft,
                     config,
-                    num_train_epochs=config.sft.num_train_epochs,
-                    learning_rate=config.sft.learning_rate,
                 )
 
             if config.datasets.rl is not None:
