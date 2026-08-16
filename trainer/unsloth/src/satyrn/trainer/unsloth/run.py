@@ -15,6 +15,7 @@ from omegaconf import DictConfig
 
 from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
+from satyrn.trainer.unsloth.eval import log_answers
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
 
@@ -129,6 +130,9 @@ def main(cfg: DictConfig) -> None:
             load_in_4bit=config.load_in_4bit,
             text_only=True,
         )
+        # Multimodal models return a Processor; text-only training uses its tokenizer.
+        tokenizer = getattr(tokenizer, "tokenizer", tokenizer)
+
         model = FastModel.get_peft_model(
             model,
             r=config.model.peft.r,
@@ -157,6 +161,8 @@ def main(cfg: DictConfig) -> None:
         with mlflow.start_run(run_name=config.run_name):
             mlflow.log_params(
                 {
+                    "torch_version": torch.__version__,
+                    "cuda_version": torch.version.cuda,
                     "base_model": config.model.name,
                     "lora_rank": config.model.peft.r,
                     "lora_alpha": config.model.peft.lora_alpha,
@@ -172,6 +178,9 @@ def main(cfg: DictConfig) -> None:
                     "params_train_pct": trainable_percentage,
                 }
             )
+
+            logger.info("Model evaluation before training")
+            log_answers(model, tokenizer)
 
             if config.datasets.cpt is not None:
                 run_supervised_tuning(
@@ -196,6 +205,9 @@ def main(cfg: DictConfig) -> None:
 
             if config.datasets.rl is not None:
                 logger.error("Unimplemented: RL training")
+
+            logger.info("Model evaluation after training")
+            log_answers(model, tokenizer)
 
             # Send the Hydra job log to the tracking server
             log_file.flush()
