@@ -57,7 +57,8 @@ def pack_documents(
     bins: list[list[int]] = []
     for fragment in leftovers:
         for packed in bins:
-            if len(packed) + len(fragment) <= sequence_length:
+            if len(packed) + 1 + len(fragment) <= sequence_length:
+                packed.append(tokenizer.eos_token_id)
                 packed.extend(fragment)
                 break
         else:

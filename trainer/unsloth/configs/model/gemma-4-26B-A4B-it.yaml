@@ -2,6 +2,7 @@
 # Thinking:     opt-in, gemma-4-thinking template
 # Multimodal:   text + vision
 # VRAM:         ~49GB peak in 4-bit at max_seq_length 8192, on an A100-80GB
+# transformers: 5.5.0
 #
 # Reference Unsloth notebook:
 # https://github.com/unslothai/notebooks/blob/main/nb/Gemma4_(26B_A4B)-Text.ipynb

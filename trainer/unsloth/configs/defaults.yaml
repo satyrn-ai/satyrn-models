@@ -4,12 +4,12 @@ max_seq_length: ${max:${cpt.seq_len},${sft.seq_len}} # ceiling for the model loa
 optim: paged_adamw_8bit
 logging_steps: 2
 eval_steps: 3
-eval_batch_size: 1
+eval_batch_size: 4
 eval_ratio: 0.1
 max_steps: -1 # positive values cut a run short, overriding num_train_epochs
 
 model:
-  dataset_packing_required: false # true where unsloth refuses to pack in the trainer
+
   peft:
     # r - must be explicitly set by model or experiment config
     lora_alpha: ${mul:${.r},2} # r * 2 by default
@@ -20,6 +20,10 @@ model:
     finetune_language_layers: true
     finetune_vision_layers: false
     finetune_audio_layers: false
+  # Set to true for hybrid models, which interleave full attention with linear-attention
+  # Recurrent state and causal conv carry across sequence boundaries,
+  # so Unsloth blocks trainer packing and the data must be packed beforehand.
+  dataset_packing_required: false
 
 mlflow:
   tracking_uri: https://mlflow.satyrn.ai
