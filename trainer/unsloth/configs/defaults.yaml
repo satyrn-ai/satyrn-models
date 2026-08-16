@@ -9,6 +9,7 @@ eval_ratio: 0.1
 max_steps: -1 # positive values cut a run short, overriding num_train_epochs
 
 model:
+  dataset_packing_required: false # true where unsloth refuses to pack in the trainer
   peft:
     # r - must be explicitly set by model or experiment config
     lora_alpha: ${mul:${.r},2} # r * 2 by default

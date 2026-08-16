@@ -59,6 +59,7 @@ class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
+    dataset_packing_required: bool
     peft: PeftConfig
 
 

@@ -14,6 +14,7 @@ from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
 from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
+from satyrn.trainer.unsloth.dataset_packing import pack_documents
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
 
@@ -62,6 +63,13 @@ def run_supervised_tuning(
     logger.info("Starting %s stage", name)
     stage = getattr(cfg, name)
     dataset = load_dataset(dataset_path)
+
+    if packing and cfg.model.dataset_packing_required:
+        packed = pack_documents(dataset, tokenizer, stage.seq_len)
+        logger.info("Packed %s: %d documents into %d sequences", name, len(dataset), len(packed))
+        dataset = packed
+        packing = False
+
     split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
     train_dataset, eval_dataset = split["train"], split["test"]
 

@@ -24,6 +24,7 @@
 #     loftq_config = None, # And LoftQ
 # )
 name: unsloth/Qwen3.6-27B
+dataset_packing_required: true # unsloth blocks packing for hybrid linear-attention models
 
 peft:
   r: 8
