@@ -51,7 +51,7 @@ class DatasetsConfig(BaseModel):
     rl: str | None
 
 
-class CptConfig(BaseModel):
+class CptStageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     packing: bool
@@ -59,14 +59,14 @@ class CptConfig(BaseModel):
     learning_rate: float
 
 
-class SftConfig(BaseModel):
+class SftStageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     num_train_epochs: int
     learning_rate: float
 
 
-class RlConfig(BaseModel):
+class RlStageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     num_generations: int
@@ -89,9 +89,9 @@ class ExperimentConfig(BaseModel):
     eval_ratio: float
     mlflow: MlflowConfig
     datasets: DatasetsConfig
-    cpt: CptConfig
-    sft: SftConfig
-    rl: RlConfig
+    cpt: CptStageConfig
+    sft: SftStageConfig
+    rl: RlStageConfig
     model: ModelConfig
 
 
