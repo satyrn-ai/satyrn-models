@@ -1,4 +1,4 @@
-# Architecture: dense, 64 layers, 48 DeltaNet + 16 full attention
+# Architecture: hybrid linear-attention, 64 layers, 48 DeltaNet + 16 full attention
 # Thinking:     on by default
 # Multimodal:   text + vision
 # VRAM:         ~56GB for bf16 LoRA at 27B

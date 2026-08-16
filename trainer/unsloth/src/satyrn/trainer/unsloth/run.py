@@ -47,7 +47,7 @@ def run_supervised_tuning(name: str, model, tokenizer, dataset_path: str, cfg: E
     training_args = SFTConfig(
         output_dir=f"outputs/{name}",
         per_device_train_batch_size=cfg.batch_size,
-        per_device_eval_batch_size=cfg.batch_size,
+        per_device_eval_batch_size=1,
         gradient_accumulation_steps=cfg.gradient_accumulation_steps,
         logging_steps=cfg.logging_steps,
         eval_strategy="steps",
@@ -93,6 +93,7 @@ def main(cfg: DictConfig) -> None:
             max_seq_length=config.max_seq_length,
             dtype=None,
             load_in_4bit=config.load_in_4bit,
+            text_only=True,
         )
         model = FastModel.get_peft_model(
             model,
