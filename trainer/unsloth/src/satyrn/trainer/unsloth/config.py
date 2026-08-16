@@ -1,13 +1,15 @@
 """Pydantic schema for the composed Hydra experiment config."""
 
 import logging
+import operator
 
 from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
 
-OmegaConf.register_resolver("mul", lambda a, b: a * b)
+OmegaConf.register_resolver("mul", operator.mul)
+OmegaConf.register_resolver("max", lambda *values: max(values))
 OmegaConf.register_resolver("basename", lambda model_id: model_id.rpartition("/")[-1])
 
 
