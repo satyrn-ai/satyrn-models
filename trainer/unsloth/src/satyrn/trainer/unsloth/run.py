@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 import hydra
 import mlflow
+from datasets import Dataset
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
@@ -28,18 +29,23 @@ CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 
 def unsloth_init() -> None:
     """Initialize unsloth and patch the training libraries."""
-    global Dataset, FastModel, SFTConfig, SFTTrainer, torch
+    global FastModel, SFTConfig, SFTTrainer, torch
 
     # Unsloth must be imported first to patch transformers, accelerate, etc.
     from unsloth import FastModel  # noqa: I001
     import torch
-    from datasets import Dataset
     from trl import SFTConfig, SFTTrainer
 
 
-def load_dataset(path: str | Path) -> Dataset:
-    with open(path) as fh:  # noqa: PTH123
-        rows = [json.loads(line) for line in fh if line.strip()]
+def load_dataset(paths: str | list[str]) -> Dataset:
+    """Read one or more JSONL files into a single dataset."""
+    if isinstance(paths, str):
+        paths = [paths]
+
+    rows = []
+    for path in paths:
+        with Path(path).open() as fh:
+            rows += [json.loads(line) for line in fh if line.strip()]
     return Dataset.from_list(rows)
 
 
@@ -47,7 +53,7 @@ def run_supervised_tuning(
     name: StageName,
     model: Module,
     tokenizer: PreTrainedTokenizerBase,
-    dataset_path: str,
+    dataset_path: str | list[str],
     cfg: ExperimentConfig,
     packing: bool = False,
     packing_strategy: str = "bfd",  # best-fit, decreasing document size order; truncates over max_length

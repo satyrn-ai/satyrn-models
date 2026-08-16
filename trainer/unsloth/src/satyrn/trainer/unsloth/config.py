@@ -72,9 +72,9 @@ class MlflowConfig(BaseModel):
 class DatasetsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    cpt: str | None
-    sft: str | None
-    rl: str | None
+    cpt: str | list[str] | None
+    sft: str | list[str] | None
+    rl: str | list[str] | None
 
 
 class CptStageConfig(BaseModel):
