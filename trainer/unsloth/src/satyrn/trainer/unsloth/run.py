@@ -159,59 +159,63 @@ def main(cfg: DictConfig) -> None:
         mlflow.set_experiment(config.mlflow.experiment_name)
 
         with mlflow.start_run(run_name=config.run_name):
-            mlflow.log_params(
-                {
-                    "torch_version": torch.__version__,
-                    "cuda_version": torch.version.cuda,
-                    "base_model": config.model.name,
-                    "lora_rank": config.model.peft.r,
-                    "lora_alpha": config.model.peft.lora_alpha,
-                    "lora_dropout": config.model.peft.lora_dropout,
-                    "lora_targets": ",".join(config.model.peft.target_modules or []),
-                    "finetune_attention_modules": config.model.peft.finetune_attention_modules,
-                    "finetune_mlp_modules": config.model.peft.finetune_mlp_modules,
-                    "finetune_language_layers": config.model.peft.finetune_language_layers,
-                    "finetune_vision_layers": config.model.peft.finetune_vision_layers,
-                    "finetune_audio_layers": config.model.peft.finetune_audio_layers,
-                    "params_train": trainable_params,
-                    "params_total": all_params,
-                    "params_train_pct": trainable_percentage,
-                }
-            )
-
-            logger.info("Model evaluation before training")
-            log_answers(model, tokenizer)
-
-            if config.datasets.cpt is not None:
-                run_supervised_tuning(
-                    "cpt",
-                    model,
-                    tokenizer,
-                    config.datasets.cpt,
-                    config,
-                    packing=config.cpt.packing,
-                    packing_strategy="bfd_split",  # best-fit, decreasing document size order; splits over max_length
-                    dataset_text_field="text",
+            try:
+                mlflow.log_params(
+                    {
+                        "torch_version": torch.__version__,
+                        "cuda_version": torch.version.cuda,
+                        "base_model": config.model.name,
+                        "lora_rank": config.model.peft.r,
+                        "lora_alpha": config.model.peft.lora_alpha,
+                        "lora_dropout": config.model.peft.lora_dropout,
+                        "lora_targets": ",".join(config.model.peft.target_modules or []),
+                        "finetune_attention_modules": config.model.peft.finetune_attention_modules,
+                        "finetune_mlp_modules": config.model.peft.finetune_mlp_modules,
+                        "finetune_language_layers": config.model.peft.finetune_language_layers,
+                        "finetune_vision_layers": config.model.peft.finetune_vision_layers,
+                        "finetune_audio_layers": config.model.peft.finetune_audio_layers,
+                        "params_train": trainable_params,
+                        "params_total": all_params,
+                        "params_train_pct": trainable_percentage,
+                    }
                 )
 
-            if config.datasets.sft is not None:
-                run_supervised_tuning(
-                    "sft",
-                    model,
-                    tokenizer,
-                    config.datasets.sft,
-                    config,
-                )
+                logger.info("Model evaluation before training")
+                log_answers(model, tokenizer)
 
-            if config.datasets.rl is not None:
-                logger.error("Unimplemented: RL training")
+                if config.datasets.cpt is not None:
+                    run_supervised_tuning(
+                        "cpt",
+                        model,
+                        tokenizer,
+                        config.datasets.cpt,
+                        config,
+                        packing=config.cpt.packing,
+                        packing_strategy="bfd_split",  # best-fit, decreasing doc size order; splits over max_length
+                        dataset_text_field="text",
+                    )
 
-            logger.info("Model evaluation after training")
-            log_answers(model, tokenizer)
+                if config.datasets.sft is not None:
+                    run_supervised_tuning(
+                        "sft",
+                        model,
+                        tokenizer,
+                        config.datasets.sft,
+                        config,
+                    )
 
-            # Send the Hydra job log to the tracking server
-            log_file.flush()
-            mlflow.log_text(log_path.read_text(), "train.log")
+                if config.datasets.rl is not None:
+                    logger.error("Unimplemented: RL training")
+
+                logger.info("Model evaluation after training")
+                log_answers(model, tokenizer)
+            except Exception:
+                logger.exception("Run failed")
+                raise
+            finally:
+                # Send the Hydra job log to the tracking server
+                log_file.flush()
+                mlflow.log_text(log_path.read_text(), "train.log")
 
     mlflow.end_run()
 

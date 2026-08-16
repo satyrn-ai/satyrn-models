@@ -40,5 +40,11 @@ def answer_question(
 
 def log_answers(model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Ask every question in QUESTIONS and log the answers."""
+    # For MoE models, output_router_logits carries the router's load-balancing loss during
+    # training. Generation collects no router logits, so it must be off here.
+    config = model.config.get_text_config()
+    if getattr(config, "output_router_logits", None) is not None:
+        config.output_router_logits = False
+
     for question in QUESTIONS:
         logger.info("%s\n%s\n\n", question, answer_question(model, tokenizer, question))
