@@ -183,6 +183,7 @@ def main(cfg: DictConfig) -> None:
                 logger.info("Model evaluation before training")
                 log_answers(model, tokenizer)
 
+                logger.info("Starting Continuous Pre-Training (CPT) stage")
                 if config.datasets.cpt is not None:
                     run_supervised_tuning(
                         "cpt",
@@ -195,6 +196,10 @@ def main(cfg: DictConfig) -> None:
                         dataset_text_field="text",
                     )
 
+                logger.info("Model evaluation after Continuous Pre-Training (CPT)")
+                log_answers(model, tokenizer)
+
+                logger.info("Starting Supervised Fine-Tuning (SFT) stage")
                 if config.datasets.sft is not None:
                     run_supervised_tuning(
                         "sft",
@@ -205,7 +210,7 @@ def main(cfg: DictConfig) -> None:
                     )
 
                 if config.datasets.rl is not None:
-                    logger.error("Unimplemented: RL training")
+                    logger.error("Unimplemented: Reinforcement Learning (RL) training")
 
                 logger.info("Model evaluation after training")
                 log_answers(model, tokenizer)
