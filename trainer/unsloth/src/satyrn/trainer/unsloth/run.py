@@ -49,7 +49,9 @@ def run_supervised_tuning(
     tokenizer: PreTrainedTokenizerBase,
     dataset_path: str,
     cfg: ExperimentConfig,
-    **sft_kwargs,
+    packing: bool = False,
+    packing_strategy: str = "bfd",  # best-fit, decreasing document size order; truncates over max_length
+    dataset_text_field: str | None = None,
 ) -> None:
     logger.info("Starting %s stage", name)
     stage = getattr(cfg, name)
@@ -70,11 +72,13 @@ def run_supervised_tuning(
         num_train_epochs=stage.num_train_epochs,
         max_steps=cfg.max_steps,
         learning_rate=stage.learning_rate,
-        packing_strategy="bfd_split",
+        shuffle_dataset=True,
         bf16=torch.cuda.is_bf16_supported(),
         fp16=not torch.cuda.is_bf16_supported(),
         optim=cfg.optim,
-        **sft_kwargs,
+        packing=packing,
+        packing_strategy=packing_strategy,
+        dataset_text_field=dataset_text_field,
     )
 
     trainer = SFTTrainer(
@@ -163,6 +167,7 @@ def main(cfg: DictConfig) -> None:
                     config.datasets.cpt,
                     config,
                     packing=config.cpt.packing,
+                    packing_strategy="bfd_split",  # best-fit, decreasing document size order; splits over max_length
                     dataset_text_field="text",
                 )
 
