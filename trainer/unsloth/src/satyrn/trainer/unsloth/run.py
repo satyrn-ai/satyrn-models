@@ -15,7 +15,7 @@ from omegaconf import DictConfig
 
 from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
-from satyrn.trainer.unsloth.eval import log_answers
+from satyrn.trainer.unsloth.eval import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
 
@@ -181,7 +181,7 @@ def main(cfg: DictConfig) -> None:
                 )
 
                 logger.info("Model evaluation before training")
-                log_answers(model, tokenizer)
+                run_eval_qa(model, tokenizer, "pre")
 
                 logger.info("Starting Continuous Pre-Training (CPT) stage")
                 if config.datasets.cpt is not None:
@@ -196,8 +196,8 @@ def main(cfg: DictConfig) -> None:
                         dataset_text_field="text",
                     )
 
-                logger.info("Model evaluation after Continuous Pre-Training (CPT)")
-                log_answers(model, tokenizer)
+                    logger.info("Model evaluation after Continuous Pre-Training (CPT)")
+                    run_eval_qa(model, tokenizer, "cpt")
 
                 logger.info("Starting Supervised Fine-Tuning (SFT) stage")
                 if config.datasets.sft is not None:
@@ -209,11 +209,12 @@ def main(cfg: DictConfig) -> None:
                         config,
                     )
 
+                    logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
+                    run_eval_qa(model, tokenizer, "sft")
+
                 if config.datasets.rl is not None:
                     logger.error("Unimplemented: Reinforcement Learning (RL) training")
 
-                logger.info("Model evaluation after training")
-                log_answers(model, tokenizer)
             except Exception:
                 logger.exception("Run failed")
                 raise
