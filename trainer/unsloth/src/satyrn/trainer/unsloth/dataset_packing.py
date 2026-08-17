@@ -28,6 +28,8 @@ def pack_documents(
     Returns:
         A Dataset with a "text" column, one row per packed sequence.
     """
+    # Leave room for the EOS token the trainer appends to every sequence
+    sequence_length -= 1
     max_repeated = int(max_overlap * sequence_length)
     sequences: list[list[int]] = []
     leftovers: list[list[int]] = []
