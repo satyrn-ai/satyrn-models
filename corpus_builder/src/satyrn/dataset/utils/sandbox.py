@@ -5,11 +5,14 @@ import shutil
 import subprocess
 import urllib.request
 from functools import lru_cache
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
 MAX_OUTPUT_CHARACTERS = 12000
-TIMEOUT_SECONDS = 10
+TIMEOUT_SECONDS = 20
+SANDBOX_LABEL_NAME = "satyrn-sandbox"
+SANDBOX_RUN_IDENTIFIER = uuid4().hex
 
 
 def truncate(text: str, limit: int = MAX_OUTPUT_CHARACTERS) -> str:
@@ -68,6 +71,19 @@ def pull_image(image: str) -> None:
         subprocess.run(["docker", "pull", image])
 
 
+def remove_leftover_containers() -> int:
+    """Remove containers this process left running. Return how many were removed."""
+    listing = subprocess.run(
+        ["docker", "ps", "-aq", "--filter", f"label={SANDBOX_LABEL_NAME}={SANDBOX_RUN_IDENTIFIER}"],
+        capture_output=True,
+        text=True,
+    )
+    container_ids = listing.stdout.split()
+    if container_ids:
+        subprocess.run(["docker", "rm", "--force", *container_ids], capture_output=True)
+    return len(container_ids)
+
+
 class Sandbox:
     """A Docker container that runs Python code under a fixed Python version."""
 
@@ -94,6 +110,10 @@ class Sandbox:
             "--pids-limit=100",
             "--security-opt=no-new-privileges",
             "--cap-drop=ALL",
+            "--name",
+            f"{SANDBOX_LABEL_NAME}-{uuid4().hex}",
+            "--label",
+            f"{SANDBOX_LABEL_NAME}={SANDBOX_RUN_IDENTIFIER}",
             # set the user to nobody
             "-u",
             "65534:65534",
