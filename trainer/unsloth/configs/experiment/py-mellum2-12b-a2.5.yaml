@@ -21,6 +21,7 @@ datasets:
 
 cpt:
   num_train_epochs: 3
+  prepack_dataset: true
 
 sft:
   num_train_epochs: 3
