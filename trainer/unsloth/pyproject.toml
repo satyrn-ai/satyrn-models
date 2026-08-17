@@ -2,7 +2,7 @@
 name = "satyrn-unsloth"
 version = "0.1.0"
 description = "Satyrn Unsloth Trainer"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.13.9,<3.14"
 dependencies = [
     "unsloth==2026.8.18",
     "unsloth-zoo==2026.8.12",
