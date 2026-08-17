@@ -35,7 +35,7 @@ cpt:
   # Prepackage documents into seq_len chunks, to avoid truncation of longer document in the trainer
   # Set to true for hybrid models, which interleave full attention with linear-attention
   # Recurrent state and causal conv carry across sequence boundaries, so Unsloth blocks trainer packing
-  : false
+  prepack_dataset: false
   seq_len: 4096
   batch_size: 8
   gradient_accumulation_steps: 1
