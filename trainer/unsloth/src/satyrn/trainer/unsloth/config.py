@@ -59,7 +59,6 @@ class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    dataset_packing_required: bool
     peft: PeftConfig
 
 
@@ -82,6 +81,7 @@ class CptStageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     packing: bool
+    prepack_dataset: bool
     seq_len: int
     batch_size: int
     gradient_accumulation_steps: int

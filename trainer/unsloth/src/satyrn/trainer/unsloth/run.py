@@ -65,10 +65,11 @@ def run_supervised_tuning(
     stage = getattr(cfg, name)
     dataset = load_dataset(dataset_path)
 
-    if packing and cfg.model.dataset_packing_required:
+    if packing and cfg.cpt.prepack_dataset:
         packed = pack_documents(dataset, tokenizer, stage.seq_len)
         logger.info("Packed %s: %d documents into %d sequences", name, len(dataset), len(packed))
         dataset = packed
+        logger.warning("Prepacking done, setting packing=false to avoid double packing")
         packing = False
 
     split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
