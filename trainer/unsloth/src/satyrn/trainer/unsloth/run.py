@@ -184,8 +184,8 @@ def main(cfg: DictConfig) -> None:
                 logger.info("Model evaluation before training")
                 run_eval_qa(model, tokenizer, "pre")
 
-                logger.info("Starting Continuous Pre-Training (CPT) stage")
                 if config.datasets.cpt is not None:
+                    logger.info("Starting Continuous Pre-Training (CPT) stage")
                     run_supervised_tuning(
                         "cpt",
                         model,
@@ -200,8 +200,8 @@ def main(cfg: DictConfig) -> None:
                     logger.info("Model evaluation after Continuous Pre-Training (CPT)")
                     run_eval_qa(model, tokenizer, "cpt")
 
-                logger.info("Starting Supervised Fine-Tuning (SFT) stage")
                 if config.datasets.sft is not None:
+                    logger.info("Starting Supervised Fine-Tuning (SFT) stage")
                     run_supervised_tuning(
                         "sft",
                         model,

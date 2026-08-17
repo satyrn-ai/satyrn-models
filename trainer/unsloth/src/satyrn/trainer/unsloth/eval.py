@@ -27,8 +27,8 @@ def run_eval_qa(model: Module, tokenizer: PreTrainedTokenizerBase, stage: str) -
     def answer_question(prompt: str) -> str:
         """Return the model's answer to one question."""
         mlflow.update_current_trace(session_id=stage)
-        span = mlflow.get_current_active_span()
-        span.set_inputs(prompt)
+        if span := mlflow.get_current_active_span():
+            span.set_inputs(prompt)
 
         inputs = tokenizer.apply_chat_template(
             [{"role": "user", "content": prompt}],
@@ -48,6 +48,9 @@ def run_eval_qa(model: Module, tokenizer: PreTrainedTokenizerBase, stage: str) -
     config = model.config.get_text_config()
     if getattr(config, "output_router_logits", None) is not None:
         config.output_router_logits = False
+
+    # Training mode keeps dropout on and, under gradient checkpointing, disables the KV cache
+    model.eval()
 
     for question in QUESTIONS:
         logger.info("%s\n%s\n\n", question, answer_question(question))
