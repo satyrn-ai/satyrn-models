@@ -72,7 +72,7 @@ def pull_image(image: str) -> None:
 
 
 def remove_leftover_containers() -> int:
-    """Remove containers this process left running. Return how many were removed."""
+    """Remove containers this sandbox process left running. Return how many were removed."""
     listing = subprocess.run(
         ["docker", "ps", "-aq", "--filter", f"label={SANDBOX_LABEL_NAME}={SANDBOX_RUN_IDENTIFIER}"],
         capture_output=True,
