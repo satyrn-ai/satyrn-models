@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: qwen3.6-27b
+  - _self_

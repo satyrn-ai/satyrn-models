@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: gemma-4-26b-a4b-it
+  - _self_

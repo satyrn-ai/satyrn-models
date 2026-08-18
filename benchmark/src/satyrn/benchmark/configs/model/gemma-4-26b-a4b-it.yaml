@@ -1,0 +1,4 @@
+hf_ref: hf.co/google/gemma-4-26B-A4B-it
+
+# null matches the checkpoint's own native precision, so nothing is quantized.
+gguf_outtype: null

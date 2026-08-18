@@ -1,0 +1,4 @@
+hf_ref: hf.co/Qwen/Qwen3.6-27B
+
+# null matches the checkpoint's own native precision, so nothing is quantized.
+gguf_outtype: null
