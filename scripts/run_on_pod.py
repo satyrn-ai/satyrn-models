@@ -153,7 +153,7 @@ def setup_pod(pod_id: str, branch: str, transformers: str) -> None:
         set -euo pipefail
 
         apt-get update
-        apt-get install -y git-lfs tmux screen python3.13
+        apt-get install -y git-lfs tmux python3.13
         git lfs install
         mkdir -p /root/.runpod
 
@@ -168,8 +168,8 @@ def setup_pod(pod_id: str, branch: str, transformers: str) -> None:
         uv venv
         source .venv/bin/activate
 
-        uv pip install --prerelease=allow -e trainer/unsloth/
-        uv pip install "trl==1.7.0" "transformers=={transformers}" "torch==2.11.0" "torchvision==0.26.0"
+        uv pip install --prerelease=allow --torch-backend=auto -e trainer/unsloth/
+        uv pip install --torch-backend=auto "trl==1.7.0" "transformers=={transformers}" "torch==2.11.0" "torchvision==0.26.0"
     """,
     )
 
@@ -191,15 +191,8 @@ def echo_run_log(pod_id: str) -> None:
     )
 
 
-@click.command(context_settings={"ignore_unknown_options": True, "allow_interspersed_args": False})
-@click.option("--gpu", "gpu_name", help="Part of the GPU name, e.g. 'RTX PRO 6000'.")
-@click.option("--vram", "minimum_vram_gb", type=int, help="Cheapest GPU with at least this many GB.")
-@click.option("--branch", default="main", show_default=True, help="`satyrn-models` branch to clone.")
-@click.option("--transformers", default="5.5.0", show_default=True, help="`transformers` version to install.")
-@click.option("--keep", is_flag=True, default=False, show_default=True, help="Leave the pod running when finished.")
-@click.argument("command", nargs=-1, type=click.UNPROCESSED, required=True)
-def run_on_pod(gpu_name, minimum_vram_gb, branch, transformers, keep, command):
-    """Run COMMAND on a RunPod GPU pod."""
+def select_gpu(gpu_name: str | None, minimum_vram_gb: int | None) -> GpuPod:
+    """Return the cheapest available GPU matching the request."""
     if bool(gpu_name) == bool(minimum_vram_gb):
         raise click.UsageError("Pass exactly one of --gpu or --vram.")
 
@@ -221,10 +214,25 @@ def run_on_pod(gpu_name, minimum_vram_gb, branch, transformers, keep, command):
 
     selected = min(offered, key=lambda gpu: gpu.price_per_hour)
     click.echo(f"GPU:     {selected.name} ({selected.vram_gb} GB, ${selected.price_per_hour:.3f}/hr)")
-    click.echo(f"Command: {shlex.join(command)}")
+    return selected
 
-    click.echo("Creating pod...")
-    pod_id = create_pod(selected.gpu_id)
+
+@click.command(context_settings={"ignore_unknown_options": True, "allow_interspersed_args": False})
+@click.option("--gpu", "gpu_name", help="Part of the GPU name, e.g. 'RTX PRO 6000'.")
+@click.option("--vram", "minimum_vram_gb", type=int, help="Cheapest GPU with at least this many GB.")
+@click.option("--branch", default="main", show_default=True, help="`satyrn-models` branch to clone.")
+@click.option("--transformers", default="5.5.0", show_default=True, help="`transformers` version to install.")
+@click.option("--keep", is_flag=True, default=False, show_default=True, help="Leave the pod running when finished.")
+@click.option("--pod-id", help="Use this existing pod instead of creating one.")
+@click.argument("command", nargs=-1, type=click.UNPROCESSED, required=True)
+def run_on_pod(gpu_name, minimum_vram_gb, branch, transformers, keep, pod_id, command):
+    """Run COMMAND on a RunPod GPU pod."""
+    click.echo(f"Command: {shlex.join(command)}")
+    if not pod_id:
+        gpu = select_gpu(gpu_name, minimum_vram_gb)
+        click.echo("Creating pod...")
+        pod_id = create_pod(gpu.gpu_id)
+
     try:
         click.echo(get_pod_ssh_info(pod_id)["ssh_command"])
         ssh_into_pod(pod_id, "nvidia-smi")
