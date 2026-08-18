@@ -325,7 +325,10 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox) -> dict | Non
         return None
 
     return {
-        "prompt": [{"role": "user", "content": conversation["prompt"]}],
+        "prompt": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": conversation["prompt"]},
+        ],
         "completion": [{"role": "assistant", "content": conversation["response"]}],
         "filename": idea.doc_path.name,
         "python_version": idea.python_version,
