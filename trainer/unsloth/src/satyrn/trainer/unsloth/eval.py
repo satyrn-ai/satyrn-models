@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING
 
 import mlflow
@@ -12,6 +13,11 @@ if TYPE_CHECKING:
     from transformers import PreTrainedTokenizerBase
 
 logger = logging.getLogger(__name__)
+
+# transformers.set_seed() (called by SFTTrainer for training reproducibility) reseeds the same
+# global random module OpenTelemetry's default IdGenerator draws trace/span IDs from, causing
+# eval traces from different stages to collide. Isolate trace-ID generation from that seed.
+os.environ.setdefault("MLFLOW_TRACE_USE_ISOLATED_RANDOM_ID_GENERATOR", "true")
 
 QUESTIONS = [
     "What is the latest Python version?",
@@ -41,7 +47,7 @@ def run_eval_qa(model: Module, tokenizer: PreTrainedTokenizerBase, stage: str) -
         max_new_tokens = 256
         output = model.generate(**inputs, max_new_tokens=max_new_tokens)
         generated = output[0][inputs["input_ids"].shape[-1] :]
-        return tokenizer.decode(generated, skip_special_tokens=False)
+        return tokenizer.decode(generated, skip_special_tokens=True)
 
     # For MoE models, output_router_logits carries the router's load-balancing loss during
     # training. Generation collects no router logits, so it must be off here.
