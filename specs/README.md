@@ -31,6 +31,7 @@ link to this map or directly to the one canonical owner they need instead of
 enumerating sibling knowledge files.
 
 READMEs may contain tested setup and command examples, but they link to
-contracts for complete semantics. Historical artifacts remain snapshots:
-current specs may cite them as evidence but never delegate current behavior to
-them.
+contracts for complete semantics. The root README states the project identity
+in one sentence so a reader can orient before navigating. Historical artifacts remain
+snapshots: current specs may cite them as evidence but never delegate current
+behavior to them.
