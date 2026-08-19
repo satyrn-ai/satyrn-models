@@ -14,7 +14,7 @@ from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, get_llm
 from satyrn.dataset.utils.concurrency import split_workers
 from satyrn.dataset.utils.preview import print_dataset_line, print_ideas
-from satyrn.dataset.utils.sandbox import Sandbox
+from satyrn.dataset.utils.sandbox import Sandbox, remove_leftover_containers
 
 logger = logging.getLogger(__name__)
 
@@ -398,8 +398,13 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
                     with output_file_lock:
                         print_dataset_line(dataset_line)
 
-    # Process each doc file
-    with ThreadPoolExecutor(max_workers=file_workers) as executor:
-        futures = [executor.submit(process_doc, doc_path) for doc_path in input_docs]
-        for future in tqdm(as_completed(futures), total=len(input_docs), desc="Doc files"):
-            future.result()
+    try:
+        # Process each doc file
+        with ThreadPoolExecutor(max_workers=file_workers) as executor:
+            futures = [executor.submit(process_doc, doc_path) for doc_path in input_docs]
+            for future in tqdm(as_completed(futures), total=len(input_docs), desc="Doc files"):
+                future.result()
+    finally:
+        logger.info("Cleaning up sandbox containers...")
+        removed_count = remove_leftover_containers()
+        logger.info("Removed %d leftover sandbox containers", removed_count)
