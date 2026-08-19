@@ -23,7 +23,8 @@ hidden execution backends.
   extracts CPython documentation changes, renders CPT JSONL, and generates
   execution-checked SFT JSONL.
 - The Unsloth trainer runs configured CPT and SFT stages, evaluates a fixed
-  train/test split during those stages, and records training results in MLflow.
+  train/test split during those stages, answers a fixed question set before and
+  after each stage, and records training results and answer traces in MLflow.
 - The repository includes historical PEP 750 experiments as evidence, not as
   current pipeline contracts.
 

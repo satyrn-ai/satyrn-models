@@ -2,9 +2,7 @@
 
 ## Package and entry point
 
-The `satyrn-corpus-builder` distribution requires Python 3.13 or newer and
-provides the `satyrn-dataset` CLI. Exact dependencies and command registration
-are owned by `corpus_builder/pyproject.toml` and the CLI source.
+The `satyrn-corpus-builder` distribution provides the `satyrn-dataset` CLI.
 
 Invoking `sft` or `rl` through the command group adds a Python logging handler
 at `results/YYYYMMDD-HHMM-corpus-builder-{command}/run.log`. It does not capture
