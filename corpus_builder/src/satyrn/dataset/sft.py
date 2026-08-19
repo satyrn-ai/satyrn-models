@@ -233,6 +233,9 @@ Reasoning trace:
 
 Write a natural user question that this code would answer, and an explanation an assistant would give
 alongside the code in its response. Do not repeat or alter the code itself.
+
+If this feature replaces or is commonly confused with an older idiom or workaround, name that older
+approach in the explanation and state briefly why it no longer applies or is not the right choice here.
     """
     schema = {
         "type": "object",
