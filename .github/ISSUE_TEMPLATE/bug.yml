@@ -1,0 +1,69 @@
+name: Bug report
+description: Report reproducible behavior that violates a current contract.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the observable behavior here. Repository specs own lasting product and runtime knowledge; the issue owns this bug's remediation scope and acceptance criteria.
+
+  - type: textarea
+    id: observed_behavior
+    attributes:
+      label: Observed behavior
+      description: What happened? Include exact errors or outputs when useful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest reliable sequence that demonstrates the problem.
+      placeholder: |
+        1. Configure …
+        2. Run …
+        3. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: Link the current contract when one exists, or state the expected observable result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who or what is affected, and how severely?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that demonstrate the bug is resolved.
+      placeholder: |
+        - [ ] The failing case now behaves as contracted
+        - [ ] Regression coverage protects the behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link blocking or related issues, or write "None."
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Relevant operating system, Python version, hardware, or dependency versions.
