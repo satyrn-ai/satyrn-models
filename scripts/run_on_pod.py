@@ -163,6 +163,9 @@ def setup_pod(pod_id: str, branch: str, transformers: str) -> None:
         export PIP_CACHE_DIR=/root/.cache/pip
         export VIRTUALENV_OVERRIDE_APP_DATA=/root/.cache/virtualenv
 
+        if [ -d satyrn-models ]; then
+            mv satyrn-models "satyrn-models-$(cat /proc/sys/kernel/random/uuid)"
+        fi
         git clone --branch {shlex.quote(branch)} https://github.com/satyrn-ai/satyrn-models.git
         cd satyrn-models
         uv venv
@@ -179,8 +182,8 @@ def run_in_tmux(pod_id: str, command: tuple[str, ...], remove_pod: bool) -> None
     # Reaper command will destroy the pod after 2 minutes if connection is lost
     reaper = f"; tmux new-session -d -s reaper 'sleep 120; runpodctl remove pod {pod_id}'"
     session = f"cd /root/satyrn-models && . .venv/bin/activate && {shlex.join(command)}{reaper if remove_pod else ''}"
-    ssh_into_pod(pod_id, f"tmux new-session -d -s satyrn {shlex.quote(session)}")
-    attach_to_pod(pod_id, "tmux attach -t satyrn -r")
+    ssh_into_pod(pod_id, f"tmux set-option -g history-limit 10000; tmux new-session -d -s satyrn {shlex.quote(session)}")
+    attach_to_pod(pod_id, "tmux attach -t satyrn")
 
 
 def echo_run_log(pod_id: str) -> None:
