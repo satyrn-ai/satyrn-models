@@ -64,15 +64,22 @@ def detect_outtype(repo: str) -> str:
     return outtype
 
 
-def get_isolated_conversion_python(work_dir: Path, llama_cpp_dir: Path) -> Path:
+def get_isolated_conversion_python(work_dir: Path, llama_cpp_dir: Path, install_deps: bool = True) -> Path:
     """Build an isolated virtualenv holding llama.cpp's conversion toolchain.
 
     llama.cpp's converter pins transformers/numpy/torch versions that collide
     with the ones evalplus needs, so the two must not share an environment.
+    With `install_deps` off, an existing virtualenv is reused as-is.
     """
     venv_dir = work_dir / "llamacpp_venv"
     python = venv_dir / "bin" / "python"
     uv = shutil.which("uv")
+
+    if not install_deps:
+        if not python.is_file():
+            raise RuntimeError(f"No conversion virtualenv at {venv_dir}. Re-run without --no-install-deps to build it.")
+        logger.info("Reusing the conversion virtualenv at %s", venv_dir)
+        return python
 
     if not venv_dir.is_dir():
         logger.info("Creating an isolated virtualenv for the conversion toolchain at %s", venv_dir)
@@ -90,10 +97,12 @@ def get_isolated_conversion_python(work_dir: Path, llama_cpp_dir: Path) -> Path:
     return python
 
 
-def build_gguf(repo: str, outtype: str, work_dir: Path) -> Path:
+def build_gguf(repo: str, outtype: str, work_dir: Path, install_deps: bool = True) -> Path:
     """Download `repo` from Hugging Face and convert it to a single GGUF file.
 
-    Needs roughly 2-3x the model's size in free disk space.
+    Needs roughly 2-3x the model's size in free disk space. With `install_deps`
+    off, the llama.cpp checkout and its virtualenv have to be in `work_dir`
+    already; the checkpoint itself is still downloaded.
     """
     slug = extract_model_name(repo)
     gguf_path = work_dir / "gguf_models" / f"{slug}-{outtype}.gguf"
@@ -103,8 +112,12 @@ def build_gguf(repo: str, outtype: str, work_dir: Path) -> Path:
 
     llama_cpp_dir = work_dir / "llama.cpp"
     if not llama_cpp_dir.is_dir():
+        if not install_deps:
+            raise RuntimeError(
+                f"No llama.cpp checkout at {llama_cpp_dir}. Re-run without --no-install-deps to clone it."
+            )
         subprocess.run(["git", "clone", "--depth", "1", LLAMA_CPP_URL, str(llama_cpp_dir)], check=True)
-    python = get_isolated_conversion_python(work_dir, llama_cpp_dir)
+    python = get_isolated_conversion_python(work_dir, llama_cpp_dir, install_deps)
 
     # Gated repos need HF_TOKEN exported.
     checkpoint_dir = work_dir / "hf_models" / slug

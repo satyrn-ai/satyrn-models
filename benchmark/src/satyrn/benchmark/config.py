@@ -31,4 +31,5 @@ class BenchmarkConfig:
     model: ModelConfig
     results_dir: str = "results/evalplus"
     work_dir: str = ".benchmark_work"
+    install_deps: bool = True
     evalplus: EvalplusConfig = field(default_factory=EvalplusConfig)

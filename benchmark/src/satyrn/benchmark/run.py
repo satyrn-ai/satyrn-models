@@ -30,12 +30,12 @@ def run_benchmark(cfg: BenchmarkConfig) -> Path:
     # Ollama ignores the key, but evalplus's OpenAI client demands a non-empty one.
     os.environ.setdefault("OPENAI_API_KEY", "ollama")
 
-    ollama.ensure_server()
+    ollama.ensure_server(cfg.install_deps)
 
     repo = model.format_repo_id(cfg.model.hf_ref)
     outtype = cfg.model.gguf_outtype or model.detect_outtype(repo)
     model_name = f"local/{model.extract_model_name(repo)}:{outtype}"
-    gguf_path = model.build_gguf(repo, outtype, Path(cfg.work_dir))
+    gguf_path = model.build_gguf(repo, outtype, Path(cfg.work_dir), cfg.install_deps)
     ollama.create_model(model_name, gguf_path)
 
     results = {dataset: evaluate.run_dataset(model_name, dataset, cfg) for dataset in cfg.evalplus.datasets}
@@ -88,6 +88,12 @@ def run_benchmark(cfg: BenchmarkConfig) -> Path:
     show_default=True,
     help="Sample greedily, which is what pass@1 expects.",
 )
+@click.option(
+    "--install-deps/--no-install-deps",
+    default=BenchmarkConfig.install_deps,
+    show_default=True,
+    help="Install Ollama and the llama.cpp toolchain if missing. Turn off for back-to-back runs.",
+)
 def main(
     model_name: str,
     gguf_outtype: str | None,
@@ -95,6 +101,7 @@ def main(
     results_dir: str,
     work_dir: str,
     greedy: bool,
+    install_deps: bool,
 ) -> None:
     """Benchmark a Hugging Face model with evalplus, served by Ollama on the same machine."""
     model_config = MODELS[model_name]
@@ -104,6 +111,7 @@ def main(
         model=model_config,
         results_dir=results_dir,
         work_dir=work_dir,
+        install_deps=install_deps,
         evalplus=EvalplusConfig(datasets=datasets, greedy=greedy),
     )
     run_benchmark(cfg)

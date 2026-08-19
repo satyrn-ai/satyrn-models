@@ -57,14 +57,17 @@ def is_server_up() -> bool:
     return True
 
 
-def ensure_server() -> None:
+def ensure_server(install_deps: bool = True) -> None:
     """Make a local Ollama server available, installing and starting it if needed.
 
     This is self-contained so it works on a bare cloud sandbox (e.g. a molab
     notebook) that has no Ollama install and no systemd to run it as a service.
     On a machine where Ollama is already installed and running, it's a no-op.
+    With `install_deps` off, a missing Ollama is an error rather than an install.
     """
     if shutil.which("ollama") is None:
+        if not install_deps:
+            raise RuntimeError("Ollama is not installed. Re-run without --no-install-deps to install it.")
         install_ollama()
 
     if is_server_up():

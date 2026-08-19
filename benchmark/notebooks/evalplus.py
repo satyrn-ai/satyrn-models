@@ -60,6 +60,8 @@ def _(installed):
     from satyrn.benchmark.run import run_benchmark
 
     run_benchmark(BenchmarkConfig(model=MODELS["mellum2-12b-a2.5"]))
+    run_benchmark(BenchmarkConfig(model=MODELS["gemma-4-26b-a4b-it"], install_deps=False))
+    run_benchmark(BenchmarkConfig(model=MODELS["qwen3.6-27b"], install_deps=False))
     return
 
 
