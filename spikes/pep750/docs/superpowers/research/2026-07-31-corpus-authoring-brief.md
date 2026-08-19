@@ -1,5 +1,9 @@
 # Brief: seed-and-pattern corpus authoring
 
+> **Historical and non-normative.** This dated brief does not define current
+> behavior. See the [spike index](../../../README.md) and current
+> [product design](../../../../../specs/design.md).
+
 **Date:** 2026-07-31
 **Status:** brainstormed with the project owner, not yet specced. This is the
 input to SP5's own brainstorm → spec → plan cycle, which happens in its own

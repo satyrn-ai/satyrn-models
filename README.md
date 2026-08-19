@@ -1,23 +1,18 @@
-# satyrn-models
+# Satyrn Models
 
-Fine-tuning pipeline for SatyrnAI models.
+Start with the [product design](specs/design.md) for the repository's purpose
+and the distinction between current and planned capabilities.
 
-## Training plan
+## Packages
 
-Models go through three training stages, building on one another:
+- [Corpus builder](corpus_builder/README.md)
+- [Unsloth trainer](trainer/unsloth/README.md)
 
-1. **CPT** (Continued Pretraining) - train on raw text.
-2. **SFT** (Supervised Fine-Tuning) - train on prompt/response pairs.
-3. **RL** (Reinforcement Learning) - train on a reward signal.
+## Repository knowledge
 
-## Repository layout
+The [knowledge ownership map](specs/README.md) is the single index for current
+specifications, contracts, engineering guidance, brand guidance, and historical
+evidence.
 
-- `corpus_builder/` - dataset generation (`satyrn-dataset` CLI)
-- `trainer/unsloth/` - model fine-tuning (`satyrn-unsloth` CLI)
-- `spikes/` - experiments which are not part of the main pipeline
-- `datasets/`, `results/` - generated artifacts
-
-## Quickstart
-
-1. Generating datasets - see [docs/dataset_generator.md](docs/dataset_generator.md).
-2. Fine-tuning models - see [docs/trainer_unsloth.md](docs/trainer_unsloth.md).
+Contributors and coding agents should read [AGENTS.md](AGENTS.md) before making
+non-trivial changes.

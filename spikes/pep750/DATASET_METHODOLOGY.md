@@ -1,11 +1,14 @@
 # Dataset methodology: teaching a ~9B model Python 3.14/3.15 syntax
 
-Working document. Combines a literature review with a critical review pass, plus
-two defects verified directly against this repo.
+> **Historical and non-normative.** This analysis describes the PEP 750 spike,
+> not the current Satyrn Models pipeline. See the
+> [spike index](README.md) and current [product design](../../specs/design.md).
 
-Status: **the repo has two blocking defects that make current results
-uninterpretable.** Fix those before generating any more data or running any more
-training.
+This dated working document combines a literature review with a critical review
+pass, plus two defects verified against the spike.
+
+Status at the time of writing: **the spike had two blocking defects that made
+its results uninterpretable.**
 
 ---
 

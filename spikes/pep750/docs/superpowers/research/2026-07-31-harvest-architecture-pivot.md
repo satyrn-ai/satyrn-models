@@ -1,5 +1,9 @@
 # Harvest architecture pivot: harvest call sites, not callees
 
+> **Historical and non-normative.** This dated decision record does not define
+> current behavior. See the [spike index](../../../README.md) and current
+> [product design](../../../../../specs/design.md).
+
 **Date:** 2026-07-31
 **Trigger:** deep architectural review (Fable), requested after two fix rounds
 on `tdom_harvest.py` failed to converge.
