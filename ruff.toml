@@ -17,3 +17,4 @@ select = [
 
 [lint.isort]
 known-first-party = ["satyrn"]
+known-third-party = ["datasets"]

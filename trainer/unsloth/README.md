@@ -6,22 +6,39 @@ Complete behavior and failure semantics are in the
 
 ## Install
 
-Use Python 3.13 and install from the repository root:
+Use a Python version matching `requires-python` in
+[`pyproject.toml`](pyproject.toml) and install from the repository root:
 
 ```sh
 uv pip install -e ./trainer/unsloth
 ```
 
+Adjust the transitive `trl`, `transformers`, and `torch` versions after
+installing; [`DEV_NOTES.md`](DEV_NOTES.md) owns those caveats and the CUDA
+build selection.
+
 Set the Hugging Face and MLflow variables listed in
 [`.env.example`](../../.env.example). The runtime requires the hardware and
 drivers supported by the pinned Unsloth distribution.
 
-## Run the shipped experiment
+## Run an experiment
+
+Pass the name of a config from [`configs/experiment`](configs/experiment):
 
 ```sh
 satyrn-unsloth --config-name experiment/pep750-qwen2.5-0.5b
 ```
 
-Hydra overrides may be appended to that command. The
-`configs/model/mellum2-12b-a2.5.yaml` file is a selectable model group, not a
-complete experiment.
+An experiment that declares a `/model` defaults group takes a model swap on
+the command line, naming any config in [`configs/model`](configs/model). Those
+files are selectable model groups, not complete experiments:
+
+```sh
+satyrn-unsloth --config-name experiment/py3.15 model=qwen3.6-27b
+```
+
+Append Hydra overrides for anything the experiment config sets:
+
+```sh
+satyrn-unsloth --config-name experiment/py3.15 model=qwen3-coder-30b-a3b load_in_4bit=true cpt.batch_size=2
+```

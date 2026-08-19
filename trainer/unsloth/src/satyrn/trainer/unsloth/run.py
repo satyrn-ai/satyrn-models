@@ -5,15 +5,23 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import hydra
 import mlflow
+from datasets import Dataset
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
-from satyrn.trainer.unsloth.config import ExperimentConfig, log_config, validate_config
+from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
+from satyrn.trainer.unsloth.dataset_packing import pack_documents
+from satyrn.trainer.unsloth.eval import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
+
+if TYPE_CHECKING:
+    from torch.nn import Module
+    from transformers import PreTrainedTokenizerBase
 
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -23,41 +31,70 @@ CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 
 def unsloth_init() -> None:
     """Initialize unsloth and patch the training libraries."""
-    global Dataset, FastLanguageModel, SFTConfig, SFTTrainer, torch
+    global FastModel, SFTConfig, SFTTrainer, torch
 
     # Unsloth must be imported first to patch transformers, accelerate, etc.
-    from unsloth import FastLanguageModel  # noqa: I001
+    from unsloth import FastModel  # noqa: I001
     import torch
-    from datasets import Dataset
     from trl import SFTConfig, SFTTrainer
 
 
-def load_dataset(path: str | Path) -> Dataset:
-    with open(path) as fh:  # noqa: PTH123
-        rows = [json.loads(line) for line in fh if line.strip()]
+def load_dataset(paths: str | list[str]) -> Dataset:
+    """Read one or more JSONL files into a single dataset."""
+    if isinstance(paths, str):
+        paths = [paths]
+
+    rows = []
+    for path in paths:
+        with Path(path).open() as fh:
+            rows += [json.loads(line) for line in fh if line.strip()]
     return Dataset.from_list(rows)
 
 
-def run_supervised_tuning(name: str, model, tokenizer, dataset_path: str, cfg: ExperimentConfig, **sft_kwargs) -> None:
+def run_supervised_tuning(
+    name: StageName,
+    model: Module,
+    tokenizer: PreTrainedTokenizerBase,
+    dataset_path: str | list[str],
+    cfg: ExperimentConfig,
+    packing: bool = False,
+    packing_strategy: str = "bfd",  # best-fit, decreasing document size order; truncates over max_length
+    dataset_text_field: str | None = None,
+) -> None:
     logger.info("Starting %s stage", name)
+    stage = getattr(cfg, name)
     dataset = load_dataset(dataset_path)
+
+    if packing and cfg.cpt.prepack_dataset:
+        packed = pack_documents(dataset, tokenizer, stage.seq_len)
+        logger.info("Packed %s: %d documents into %d sequences", name, len(dataset), len(packed))
+        dataset = packed
+        logger.warning("Prepacking done, setting packing=false to avoid double packing")
+        packing = False
+
     split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
     train_dataset, eval_dataset = split["train"], split["test"]
 
     training_args = SFTConfig(
         output_dir=f"outputs/{name}",
-        per_device_train_batch_size=cfg.batch_size,
-        per_device_eval_batch_size=cfg.batch_size,
-        gradient_accumulation_steps=cfg.gradient_accumulation_steps,
+        per_device_train_batch_size=stage.batch_size,
+        per_device_eval_batch_size=cfg.eval_batch_size,
+        gradient_accumulation_steps=stage.gradient_accumulation_steps,
         logging_steps=cfg.logging_steps,
         eval_strategy="steps",
-        eval_steps=cfg.logging_steps,
+        eval_steps=cfg.eval_steps,
         report_to="mlflow",
-        max_seq_length=cfg.max_seq_length,
+        max_length=stage.seq_len,
+        num_train_epochs=stage.num_train_epochs,
+        max_steps=cfg.max_steps,
+        learning_rate=stage.learning_rate,
+        shuffle_dataset=True,
         bf16=torch.cuda.is_bf16_supported(),
         fp16=not torch.cuda.is_bf16_supported(),
         optim=cfg.optim,
-        **sft_kwargs,
+        packing=packing,
+        packing_strategy=packing_strategy,
+        dataset_text_field=dataset_text_field,
     )
 
     trainer = SFTTrainer(
@@ -87,20 +124,29 @@ def main(cfg: DictConfig) -> None:
         config = validate_config(cfg)
 
         logger.info("Downloading model %s", config.model.name)
-        model, tokenizer = FastLanguageModel.from_pretrained(
+        model, tokenizer = FastModel.from_pretrained(
             model_name=config.model.name,
             max_seq_length=config.max_seq_length,
             dtype=None,
             load_in_4bit=config.load_in_4bit,
+            text_only=True,
         )
-        model = FastLanguageModel.get_peft_model(
+        # Multimodal models return a Processor; text-only training uses its tokenizer.
+        tokenizer = getattr(tokenizer, "tokenizer", tokenizer)
+
+        model = FastModel.get_peft_model(
             model,
-            r=config.model.lora.rank,
-            target_modules=config.model.lora.target_modules,
-            lora_alpha=config.model.lora.alpha,
-            lora_dropout=config.model.lora.dropout,
+            r=config.model.peft.r,
+            lora_alpha=config.model.peft.lora_alpha,
+            lora_dropout=config.model.peft.lora_dropout,
+            target_modules=config.model.peft.target_modules,
+            finetune_attention_modules=config.model.peft.finetune_attention_modules,
+            finetune_mlp_modules=config.model.peft.finetune_mlp_modules,
+            finetune_language_layers=config.model.peft.finetune_language_layers,
+            finetune_vision_layers=config.model.peft.finetune_vision_layers,
+            finetune_audio_layers=config.model.peft.finetune_audio_layers,
             bias="none",
-            use_gradient_checkpointing=True,
+            use_gradient_checkpointing="unsloth",
         )
         # logger.info("PEFT model %s", model)
         trainable_params, all_params = model.get_nb_trainable_parameters()
@@ -114,49 +160,69 @@ def main(cfg: DictConfig) -> None:
         mlflow.set_experiment(config.mlflow.experiment_name)
 
         with mlflow.start_run(run_name=config.run_name):
-            mlflow.log_params(
-                {
-                    "base_model": config.model.name,
-                    "lora_rank": config.model.lora.rank,
-                    "lora_alpha": config.model.lora.alpha,
-                    "lora_dropout": config.model.lora.dropout,
-                    "lora_targets": ",".join(config.model.lora.target_modules),
-                    "params_train": trainable_params,
-                    "params_total": all_params,
-                    "params_train_pct": trainable_percentage,
-                }
-            )
-
-            if config.datasets.cpt is not None:
-                run_supervised_tuning(
-                    "cpt",
-                    model,
-                    tokenizer,
-                    config.datasets.cpt,
-                    config,
-                    num_train_epochs=config.cpt.num_train_epochs,
-                    learning_rate=config.cpt.learning_rate,
-                    packing=config.cpt.packing,
-                    dataset_text_field="text",
+            try:
+                mlflow.log_params(
+                    {
+                        "torch_version": torch.__version__,
+                        "cuda_version": torch.version.cuda,
+                        "base_model": config.model.name,
+                        "lora_rank": config.model.peft.r,
+                        "lora_alpha": config.model.peft.lora_alpha,
+                        "lora_dropout": config.model.peft.lora_dropout,
+                        "lora_targets": ",".join(config.model.peft.target_modules or []),
+                        "finetune_attention_modules": config.model.peft.finetune_attention_modules,
+                        "finetune_mlp_modules": config.model.peft.finetune_mlp_modules,
+                        "finetune_language_layers": config.model.peft.finetune_language_layers,
+                        "finetune_vision_layers": config.model.peft.finetune_vision_layers,
+                        "finetune_audio_layers": config.model.peft.finetune_audio_layers,
+                        "params_train": trainable_params,
+                        "params_total": all_params,
+                        "params_train_pct": trainable_percentage,
+                    }
                 )
 
-            if config.datasets.sft is not None:
-                run_supervised_tuning(
-                    "sft",
-                    model,
-                    tokenizer,
-                    config.datasets.sft,
-                    config,
-                    num_train_epochs=config.sft.num_train_epochs,
-                    learning_rate=config.sft.learning_rate,
-                )
+                logger.info("Model evaluation before training")
+                run_eval_qa(model, tokenizer, "pre")
 
-            if config.datasets.rl is not None:
-                logger.error("Unimplemented: RL training")
+                if config.datasets.cpt is not None:
+                    logger.info("Starting Continuous Pre-Training (CPT) stage")
+                    run_supervised_tuning(
+                        "cpt",
+                        model,
+                        tokenizer,
+                        config.datasets.cpt,
+                        config,
+                        packing=config.cpt.packing,
+                        packing_strategy="bfd_split",  # best-fit, decreasing doc size order; splits over max_length
+                        dataset_text_field="text",
+                    )
 
-            # Send the Hydra job log to the tracking server
-            log_file.flush()
-            mlflow.log_text(log_path.read_text(), "train.log")
+                    logger.info("Model evaluation after Continuous Pre-Training (CPT)")
+                    run_eval_qa(model, tokenizer, "cpt")
+
+                if config.datasets.sft is not None:
+                    logger.info("Starting Supervised Fine-Tuning (SFT) stage")
+                    run_supervised_tuning(
+                        "sft",
+                        model,
+                        tokenizer,
+                        config.datasets.sft,
+                        config,
+                    )
+
+                    logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
+                    run_eval_qa(model, tokenizer, "sft")
+
+                if config.datasets.rl is not None:
+                    logger.error("Unimplemented: Reinforcement Learning (RL) training")
+
+            except Exception:
+                logger.exception("Run failed")
+                raise
+            finally:
+                # Send the Hydra job log to the tracking server
+                log_file.flush()
+                mlflow.log_text(log_path.read_text(), "train.log")
 
     mlflow.end_run()
 

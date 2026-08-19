@@ -1,0 +1,27 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: mellum2-12b-a2.5
+  - _self_
+
+run_name: py-mellum2-12b-a2.5
+
+eval_batch_size: 8
+
+mlflow:
+  experiment_name: Mellum2-12B-A2.5B-Instruct
+
+datasets:
+  cpt:
+    - datasets/python3.14/cpt.jsonl
+    - datasets/python3.15/cpt.jsonl
+  sft:
+    - datasets/python3.14/sft.jsonl
+    - datasets/python3.15/sft.jsonl
+
+cpt:
+  num_train_epochs: 3
+  prepack_dataset: true
+
+sft:
+  num_train_epochs: 3

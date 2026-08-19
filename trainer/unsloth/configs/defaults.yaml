@@ -1,11 +1,26 @@
 load_in_4bit: false
-max_seq_length: 8192
+max_seq_length: ${max:${cpt.seq_len},${sft.seq_len}} # ceiling for the model loader
 
-batch_size: 8
-gradient_accumulation_steps: 2
 optim: paged_adamw_8bit
-logging_steps: 10
+logging_steps: 2
+eval_steps: 3
+eval_batch_size: 4
 eval_ratio: 0.1
+max_steps: -1 # positive values cut a run short, overriding num_train_epochs
+
+model:
+
+  peft:
+    # r - must be explicitly set by model or experiment config
+    lora_alpha: ${mul:${.r},2} # r * 2 by default
+    lora_dropout: 0.0
+    target_modules: null
+    finetune_attention_modules: true
+    finetune_mlp_modules: true
+    finetune_language_layers: true
+    finetune_vision_layers: false
+    finetune_audio_layers: false
+
 
 mlflow:
   tracking_uri: https://mlflow.satyrn.ai
@@ -17,19 +32,29 @@ datasets:
 
 cpt:
   packing: true
+  # Prepackage documents into seq_len chunks, to avoid truncation of longer document in the trainer
+  # Set to true for hybrid models, which interleave full attention with linear-attention
+  # Recurrent state and causal conv carry across sequence boundaries, so Unsloth blocks trainer packing
+  prepack_dataset: false
+  seq_len: 4096
+  batch_size: 8
+  gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 1e-4
 
 sft:
+  seq_len: 1280
+  batch_size: 8
+  gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 2e-4
 
 rl:
-  num_generations: 8
-  max_prompt_length: 1024
+  batch_size: 8
+  gradient_accumulation_steps: 1
+  num_generations: ${rl.batch_size} # a prompt's group fills one batch
   max_completion_length: 1024
   learning_rate: 1e-6
-  reward_funcs: ["interpreter_reward"]
 
 hydra:
   run:
