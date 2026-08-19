@@ -1,5 +1,0 @@
-# @package _global_
-defaults:
-  - /defaults
-  - /model: mellum2-12b-a2.5
-  - _self_

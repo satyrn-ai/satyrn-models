@@ -24,14 +24,14 @@ Given a Hugging Face repo of raw safetensors weights, the pipeline:
 
 ## Change what gets benchmarked
 
-Configs are composed by Hydra and live inside the package, at
-`benchmark/src/satyrn/benchmark/configs/`:
+The configuration lives in `benchmark/src/satyrn/benchmark/config.py`, inside the package
+because molab installs it straight from git. `MODELS` holds the models you can pick:
 
-| Experiment | Model |
+| `--model` | Hugging Face ref |
 | --- | --- |
-| `experiment/mellum2-humaneval-mbpp` | `hf.co/JetBrains/Mellum2-12B-A2.5B-Instruct` |
-| `experiment/qwen3.6-humaneval-mbpp` | `hf.co/Qwen/Qwen3.6-27B` |
-| `experiment/gemma-4-humaneval-mbpp` | `hf.co/google/gemma-4-26B-A4B-it` |
+| `mellum2-12b-a2.5` | `hf.co/JetBrains/Mellum2-12B-A2.5B-Instruct` |
+| `qwen3.6-27b` | `hf.co/Qwen/Qwen3.6-27B` |
+| `gemma-4-26b-a4b-it` | `hf.co/google/gemma-4-26B-A4B-it` |
 
 ## Output
 

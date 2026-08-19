@@ -1,8 +1,0 @@
-results_dir: results/evalplus
-work_dir: .benchmark_work
-
-evalplus:
-  datasets: ["humaneval", "mbpp"]
-  greedy: true
-  backend: openai
-  base_url: http://localhost:11434/v1

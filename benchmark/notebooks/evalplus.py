@@ -56,9 +56,10 @@ def _():
 
 @app.cell
 def _(installed):
+    from satyrn.benchmark.config import MODELS, BenchmarkConfig
     from satyrn.benchmark.run import run_benchmark
 
-    run_benchmark("experiment/mellum2-humaneval-mbpp")
+    run_benchmark(BenchmarkConfig(model=MODELS["mellum2-12b-a2.5"]))
     return
 
 

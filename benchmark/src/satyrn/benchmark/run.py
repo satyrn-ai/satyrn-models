@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import os
 import sys
@@ -6,14 +7,12 @@ from pathlib import Path
 import click
 
 from satyrn.benchmark import evaluate, model, ollama
-from satyrn.benchmark.config import load_config
+from satyrn.benchmark.config import DATASETS, MODELS, BenchmarkConfig, EvalplusConfig
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_NAME = "experiment/mellum2-humaneval-mbpp"
 
-
-def run_benchmark(config_name: str = DEFAULT_CONFIG_NAME, overrides: list[str] | None = None) -> Path:
+def run_benchmark(cfg: BenchmarkConfig) -> Path:
     """Benchmark the configured model with evalplus and return the summary path.
 
     Converts the Hugging Face checkpoint to GGUF, registers it with a local
@@ -26,7 +25,7 @@ def run_benchmark(config_name: str = DEFAULT_CONFIG_NAME, overrides: list[str] |
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         stream=sys.stdout,
     )
-    cfg = load_config(config_name, overrides)
+    logger.info("Config: %s", cfg)
 
     # Ollama ignores the key, but evalplus's OpenAI client demands a non-empty one.
     os.environ.setdefault("OPENAI_API_KEY", "ollama")
@@ -52,15 +51,59 @@ def run_benchmark(config_name: str = DEFAULT_CONFIG_NAME, overrides: list[str] |
 
 @click.command("satyrn-benchmark")
 @click.option(
-    "--config-name",
-    default=DEFAULT_CONFIG_NAME,
-    show_default=True,
-    help="Config to compose from the packaged configs.",
+    "--model",
+    "model_name",
+    type=click.Choice(sorted(MODELS)),
+    required=True,
+    help="Which of the packaged models to benchmark.",
 )
-@click.argument("overrides", nargs=-1)
-def main(config_name: str, overrides: tuple[str, ...]) -> None:
-    """Benchmark a Hugging Face model with evalplus, served by Ollama on the same machine.
-
-    OVERRIDES are Hydra overrides, e.g. "evalplus.datasets=[humaneval]" "model.gguf_outtype=q8_0".
-    """
-    run_benchmark(config_name, list(overrides))
+@click.option(
+    "--gguf-outtype",
+    help="GGUF precision: f32 | f16 | bf16 | q8_0 | tq1_0 | tq2_0. Defaults to the checkpoint's own.",
+)
+@click.option(
+    "--dataset",
+    "datasets",
+    type=click.Choice(DATASETS),
+    multiple=True,
+    default=EvalplusConfig.datasets,
+    show_default=True,
+    help="evalplus dataset to run. Repeat to run several.",
+)
+@click.option(
+    "--results-dir",
+    default=BenchmarkConfig.results_dir,
+    show_default=True,
+    help="Where logs, samples, scores and the summary are written.",
+)
+@click.option(
+    "--work-dir",
+    default=BenchmarkConfig.work_dir,
+    show_default=True,
+    help="Scratch directory for the downloaded checkpoint and the GGUF conversion.",
+)
+@click.option(
+    "--greedy/--no-greedy",
+    default=EvalplusConfig.greedy,
+    show_default=True,
+    help="Sample greedily, which is what pass@1 expects.",
+)
+def main(
+    model_name: str,
+    gguf_outtype: str | None,
+    datasets: tuple[str, ...],
+    results_dir: str,
+    work_dir: str,
+    greedy: bool,
+) -> None:
+    """Benchmark a Hugging Face model with evalplus, served by Ollama on the same machine."""
+    model_config = MODELS[model_name]
+    if gguf_outtype:
+        model_config = dataclasses.replace(model_config, gguf_outtype=gguf_outtype)
+    cfg = BenchmarkConfig(
+        model=model_config,
+        results_dir=results_dir,
+        work_dir=work_dir,
+        evalplus=EvalplusConfig(datasets=datasets, greedy=greedy),
+    )
+    run_benchmark(cfg)
