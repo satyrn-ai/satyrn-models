@@ -33,9 +33,9 @@ def run_benchmark(config_name: str = DEFAULT_CONFIG_NAME, overrides: list[str] |
 
     ollama.ensure_server()
 
-    repo = model.repo_id(cfg.model.hf_ref)
+    repo = model.format_repo_id(cfg.model.hf_ref)
     outtype = cfg.model.gguf_outtype or model.detect_outtype(repo)
-    model_name = f"local/{model.model_slug(repo)}:{outtype}"
+    model_name = f"local/{model.extract_model_name(repo)}:{outtype}"
     gguf_path = model.build_gguf(repo, outtype, Path(cfg.work_dir))
     ollama.create_model(model_name, gguf_path)
 

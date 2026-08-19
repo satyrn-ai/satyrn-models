@@ -49,7 +49,7 @@ def install_ollama() -> None:
         )
 
 
-def server_is_up() -> bool:
+def is_server_up() -> bool:
     try:
         urllib.request.urlopen(TAGS_URL, timeout=2)
     except OSError:
@@ -67,14 +67,14 @@ def ensure_server() -> None:
     if shutil.which("ollama") is None:
         install_ollama()
 
-    if server_is_up():
+    if is_server_up():
         logger.info("Ollama server is already up")
         return
 
     logger.info("Starting `ollama serve` in the background")
     subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(STARTUP_TIMEOUT_SECONDS):
-        if server_is_up():
+        if is_server_up():
             logger.info("Ollama server is up")
             return
         time.sleep(1)

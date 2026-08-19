@@ -13,12 +13,12 @@ SAFETENSORS_DTYPE_TO_OUTTYPE = {"F64": "f32", "F32": "f32", "F16": "f16", "BF16"
 FALLBACK_OUTTYPE = "f16"
 
 
-def repo_id(hf_ref: str) -> str:
+def format_repo_id(hf_ref: str) -> str:
     """Strip the `hf.co/` or URL prefix off a Hugging Face model reference."""
     return hf_ref.removeprefix("hf.co/").removeprefix("https://huggingface.co/").strip("/")
 
 
-def model_slug(repo: str) -> str:
+def extract_model_name(repo: str) -> str:
     """A filename- and tag-safe name for a Hugging Face repo."""
     return repo.split("/")[-1].lower().replace(".", "-").replace("_", "-")
 
@@ -64,7 +64,7 @@ def detect_outtype(repo: str) -> str:
     return outtype
 
 
-def conversion_python(work_dir: Path, llama_cpp_dir: Path) -> Path:
+def get_isolated_conversion_python(work_dir: Path, llama_cpp_dir: Path) -> Path:
     """Build an isolated virtualenv holding llama.cpp's conversion toolchain.
 
     llama.cpp's converter pins transformers/numpy/torch versions that collide
@@ -95,7 +95,7 @@ def build_gguf(repo: str, outtype: str, work_dir: Path) -> Path:
 
     Needs roughly 2-3x the model's size in free disk space.
     """
-    slug = model_slug(repo)
+    slug = extract_model_name(repo)
     gguf_path = work_dir / "gguf_models" / f"{slug}-{outtype}.gguf"
     if gguf_path.is_file():
         logger.info("Reusing the GGUF file already at %s", gguf_path)
@@ -104,7 +104,7 @@ def build_gguf(repo: str, outtype: str, work_dir: Path) -> Path:
     llama_cpp_dir = work_dir / "llama.cpp"
     if not llama_cpp_dir.is_dir():
         subprocess.run(["git", "clone", "--depth", "1", LLAMA_CPP_URL, str(llama_cpp_dir)], check=True)
-    python = conversion_python(work_dir, llama_cpp_dir)
+    python = get_isolated_conversion_python(work_dir, llama_cpp_dir)
 
     # Gated repos need HF_TOKEN exported.
     checkpoint_dir = work_dir / "hf_models" / slug
