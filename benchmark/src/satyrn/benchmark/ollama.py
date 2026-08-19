@@ -23,12 +23,11 @@ ZSTD_INSTALLERS = {
 
 def install_zstd() -> None:
     logger.info("zstd not found -- installing it (required by the Ollama installer)")
-    sudo = ["sudo"] if shutil.which("sudo") else []
     for manager, commands in ZSTD_INSTALLERS.items():
         if shutil.which(manager) is None:
             continue
         for command in commands:
-            subprocess.run([*sudo, *command], check=False)
+            subprocess.run(command, check=False)
         if shutil.which("zstd"):
             return
     raise RuntimeError(
