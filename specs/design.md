@@ -54,5 +54,3 @@ implements these capabilities.
 - Historical spike plans do not define current product behavior.
 - MLflow is the model registry and training-results tracker; it does not define
   product acceptance.
-- The [brand book](../BRAND_BOOK.html) applies to this repository. Adoption by
-  other Satyrn projects requires their maintainers' approval.

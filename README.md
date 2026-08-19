@@ -16,8 +16,7 @@ boundaries.
 ## Repository knowledge
 
 The [knowledge ownership map](specs/README.md) is the single index for current
-specifications, contracts, engineering guidance, brand guidance, and historical
-evidence.
+specifications, contracts, engineering guidance, and historical evidence.
 
 Contributors and coding agents should read [AGENTS.md](AGENTS.md) before making
 non-trivial changes.

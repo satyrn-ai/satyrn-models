@@ -12,7 +12,6 @@ links without restating the same knowledge.
 | Package boundaries, data flow, runtime topology, and architectural decisions | [`architecture/project_structure.md`](architecture/project_structure.md) |
 | Current shortcomings and their observable impact | [`known_limitations.md`](known_limitations.md) |
 | Engineering, configuration, failure, testing, build, and documentation principles | [`DEV_PHILOSOPHY.md`](../DEV_PHILOSOPHY.md) |
-| Brand identity, voice, visual tokens, UI components, interaction patterns, and accessibility | [`BRAND_BOOK.html`](../BRAND_BOOK.html) |
 | Exact package metadata, entry-point declarations, dependency versions, and configuration values | Nearest `pyproject.toml`, source file, or configuration file |
 | Non-obvious implementation rationale and operational pitfalls | Nearest `DEV_NOTES.md`, when one exists |
 | Setup, usage, commands, and navigation | Nearest `README.md` |

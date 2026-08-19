@@ -18,7 +18,6 @@ Before non-trivial work, read [`DEV_PHILOSOPHY.md`](DEV_PHILOSOPHY.md),
   tests, prompts, specs, DEV_NOTES, and READMEs.
 - Keep agent-private storage limited to pointers into canonical repository
   knowledge.
-- Every user-facing UI follows [`BRAND_BOOK.html`](BRAND_BOOK.html).
 
 ## Additional rules
 
