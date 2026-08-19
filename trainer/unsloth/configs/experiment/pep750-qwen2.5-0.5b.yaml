@@ -10,7 +10,8 @@ mlflow:
   experiment_name: Qwen2.5-0.5B-Instruct
 
 datasets:
-  cpt: spikes/pep750/data/pep750.jsonl
+  cpt:
+    - spikes/pep750/data/pep750.jsonl
 
 cpt:
   num_train_epochs: 30

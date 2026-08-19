@@ -1,0 +1,28 @@
+# Architecture: MoE, 128 experts / 8 active, 48 layers all sparse, full attention
+# VRAM:         ~64GB for bf16 LoRA; the model alone is 60GB in 16bit
+#
+# Unsloth enables LoRA on the expert layers and leaves the router (mlp.gate) untrained.
+# The checkpoint stores separate expert gate_proj/up_proj; gate_up_proj covers
+# Unsloth's fused load path.
+#
+# Reference Unsloth notebook (Qwen3-30B-A3B-Instruct-2507, same qwen3_moe architecture):
+# https://github.com/unslothai/notebooks/blob/main/nb/Qwen3_MoE.ipynb
+#
+# model = FastLanguageModel.get_peft_model(
+#     model,
+#     r = lora_rank,
+#     target_modules = [
+#         "q_proj", "k_proj", "v_proj", "o_proj",
+#         "gate_proj", "up_proj", "down_proj", "gate_up_proj",
+#     ],
+#     lora_alpha = lora_rank*2,
+#     use_gradient_checkpointing = True,
+#     bias = "none",
+# )
+name: unsloth/Qwen3-Coder-30B-A3B-Instruct
+
+peft:
+  r: 8
+  lora_dropout: 0.0
+  # Consider tuning attention only while the dataset is small: ["q_proj", "k_proj", "v_proj", "o_proj"]
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "gate_up_proj"]

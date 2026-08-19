@@ -1,0 +1,26 @@
+# Architecture: MoE, 128 experts / 8 active, 30 layers, sliding + full attention (5:1)
+# Thinking:     opt-in, gemma-4-thinking template
+# Multimodal:   text + vision
+# VRAM:         ~49GB peak in 4-bit at max_seq_length 8192, on an A100-80GB
+# transformers: 5.5.0
+#
+# Reference Unsloth notebook:
+# https://github.com/unslothai/notebooks/blob/main/nb/Gemma4_(26B_A4B)-Text.ipynb
+#
+# model = FastModel.get_peft_model(
+#     model,
+#     finetune_vision_layers     = False,
+#     finetune_language_layers   = True,
+#     finetune_attention_modules = True,
+#     finetune_mlp_modules       = True,
+#     r = 8,           # Larger = higher accuracy, but might overfit
+#     lora_alpha = 8,  # Recommended alpha == r at least
+#     lora_dropout = 0,
+#     bias = "none",
+# )
+name: unsloth/gemma-4-26B-A4B-it
+
+peft:
+  r: 8
+  lora_alpha: 8
+  lora_dropout: 0.0

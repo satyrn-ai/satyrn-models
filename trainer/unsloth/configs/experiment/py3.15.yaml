@@ -1,0 +1,31 @@
+# @package _global_
+# Swap the model on the command line:
+#   satyrn-unsloth --config-name experiment/py3.15 model=qwen3.6-27b
+defaults:
+  - /defaults
+  - /model: qwen2.5-0.5b
+  - _self_
+
+run_name: py3.15-${basename:${model.name}}
+
+mlflow:
+  experiment_name: ${basename:${model.name}}
+
+load_in_4bit: false
+logging_steps: 1
+
+datasets:
+  cpt: datasets/python3.15/cpt.jsonl
+  sft: datasets/python3.15/sft.jsonl
+
+cpt:
+  seq_len: 4096
+  batch_size: 8
+  num_train_epochs: 3
+  learning_rate: 1e-4
+
+sft:
+  seq_len: 1280
+  batch_size: 8
+  num_train_epochs: 2
+  learning_rate: 2e-4

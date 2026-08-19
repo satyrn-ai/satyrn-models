@@ -81,8 +81,12 @@ block described by this idea:
 
 {idea.description}
 
-In `trace` write why this will make a good training example followed by a step-by-step trace of
-what the code does when it runs.
+In `trace` write the reasoning that leads to this code, in first person and present tense, as you
+would think it through before writing it: what the task requires, which Python
+{idea.python_version} feature applies and how it behaves, how the code uses it, and step by step
+what each statement prints as it runs. Write as though you thought of the task yourself: do not
+mention the attached document, the idea, training, datasets, or examples, and do not address the
+reader.
 
 In `expected_output` state exactly what running the code outputs, whether to stdout or stderr.
 
@@ -360,7 +364,7 @@ def write_dataset_line(dataset_line: dict, output_path: Path) -> None:
 @click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of lines to generate in parallel.")
 def main(input_path: Path, output_path: Path, python_version: str, preview: bool, workers: int) -> None:
     """Generate an SFT dataset for every doc file under input_path."""
-    model = get_llm("deepseek", "deepseek-v4-pro")
+    model = get_llm("deepseek", "deepseek-v4-flash")
     sandbox = Sandbox(python_version)
     file_workers, idea_workers = split_workers(workers)
 
