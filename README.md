@@ -14,6 +14,7 @@ Models go through three training stages, building on one another:
 
 - `corpus_builder/` - dataset generation (`satyrn-dataset` CLI)
 - `trainer/unsloth/` - model fine-tuning (`satyrn-unsloth` CLI)
+- `benchmark/` - model benchmarking with evalplus (`satyrn-benchmark` CLI, marimo notebook)
 - `spikes/` - experiments which are not part of the main pipeline
 - `datasets/`, `results/` - generated artifacts
 
@@ -21,3 +22,4 @@ Models go through three training stages, building on one another:
 
 1. Generating datasets - see [docs/dataset_generator.md](docs/dataset_generator.md).
 2. Fine-tuning models - see [docs/trainer_unsloth.md](docs/trainer_unsloth.md).
+3. Benchmarking models - see [docs/benchmark_evalplus.md](docs/benchmark_evalplus.md).
