@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from huggingface_hub import get_safetensors_metadata
+from huggingface_hub import get_safetensors_metadata, snapshot_download
 
 logger = logging.getLogger(__name__)
 
@@ -88,12 +88,11 @@ def get_isolated_conversion_python(work_dir: Path, llama_cpp_dir: Path, install_
         else:
             subprocess.run([sys.executable, "-m", "venv", str(venv_dir)], check=True)
 
-    requirements = llama_cpp_dir / "requirements" / "requirements-convert_hf_to_gguf.txt"
     if uv:
         install = [uv, "pip", "install", "--python", str(python), "--quiet"]
     else:
         install = [str(python), "-m", "pip", "install", "--quiet"]
-    subprocess.run([*install, "-r", str(requirements), "huggingface_hub"], check=True)
+    subprocess.run([*install, "-e", str(llama_cpp_dir)], check=True)
     return python
 
 
@@ -122,11 +121,7 @@ def build_gguf(repo: str, outtype: str, work_dir: Path, install_deps: bool = Tru
     # Gated repos need HF_TOKEN exported.
     checkpoint_dir = work_dir / "hf_models" / slug
     logger.info("Downloading %s to %s", repo, checkpoint_dir)
-    download = (
-        "from huggingface_hub import snapshot_download; "
-        f"snapshot_download(repo_id={repo!r}, local_dir={str(checkpoint_dir)!r})"
-    )
-    subprocess.run([str(python), "-c", download], check=True)
+    snapshot_download(repo_id=repo, local_dir=str(checkpoint_dir))
 
     logger.info("Converting %s to %s (--outtype %s)", repo, gguf_path, outtype)
     gguf_path.parent.mkdir(parents=True, exist_ok=True)
