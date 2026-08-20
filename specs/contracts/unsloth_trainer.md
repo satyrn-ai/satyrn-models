@@ -38,7 +38,7 @@ A missing value raises `AssertionError`.
 ## Model and stage execution
 
 Unsloth initializes before downstream training libraries. One base
-model/tokenizer pair loads with the global maximum sequence length, and one
+model/tokenizer pair loads, and one
 PEFT/LoRA model is created. Enabled stages then run in order against that same
 model: CPT, SFT, and finally the RL branch.
 
