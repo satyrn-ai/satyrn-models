@@ -23,7 +23,7 @@ validated, but numeric ranges are not. The configuration groups cover:
 
 The exact schema and values are owned by `config.py` and the YAML configuration
 files, specifically [defaults.yaml](../../trainer/unsloth/configs/defaults.yaml). The default Hydra run directory is
-`results/${now:%Y%m%d-%H%M}-${run_name}`.
+`results/${current_datetime}-${run_name}`.
 
 After Unsloth initializes, `.env` is loaded and these variables are asserted
 non-empty:
