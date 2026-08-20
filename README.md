@@ -14,10 +14,13 @@ The [knowledge ownership map](specs/README.md) is the single index for current
 specifications, contracts, engineering guidance, and historical evidence.
 
 Read the [product design](specs/design.md) for intended outcomes, the
-distinction between current and planned capabilities, and deliberate
-boundaries.
+distinction between current and planned capabilities, and boundaries.
 
-## Packages
+## Repository layout
 
-- [Corpus builder](corpus_builder/README.md)
-- [Unsloth trainer](trainer/unsloth/README.md)
+- [`corpus_builder/`](corpus_builder/README.md) — dataset-builder application.
+- [`trainer/unsloth/`](trainer/unsloth/README.md) — model-trainer application.
+- [`datasets/`](datasets/README.md) — source inputs and training datasets.
+- [`results/`](results/) — run logs and evidence.
+- [`specs/`](specs/README.md) — current design, architecture, and contracts.
+- [`spikes/`](spikes/) — dated, non-normative experiments.
