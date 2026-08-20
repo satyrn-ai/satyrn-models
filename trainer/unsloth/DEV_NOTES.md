@@ -1,4 +1,4 @@
-# Unsloth Trainer Dev Notes
+# Developer Notes for Unsloth Trainer
 
 Operational pitfalls when preparing an environment for `satyrn-unsloth`.
 Declared dependencies are owned by [`pyproject.toml`](pyproject.toml),
