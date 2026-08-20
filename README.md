@@ -1,8 +1,12 @@
 # Satyrn Models
 
-An open-source, community-owned, local-first pipeline for producing datasets
-and for training and evaluating models on Python features introduced after a
-base model's knowledge cutoff.
+This repo's primary purpose is to serve as a pipeline for fine-tuning models for Satyrn AI. The repo provides:
+
+- tools for producing datasets used for fine-tuning
+- workflows for training and evaluating models
+
+This repo will capture knowledge about the Python language and standard library
+that were introduced after a base model's knowledge cutoff date.
 
 Read the [product design](specs/design.md) for intended outcomes, the
 distinction between current and planned capabilities, and deliberate
