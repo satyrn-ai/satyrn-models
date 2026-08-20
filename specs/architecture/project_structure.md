@@ -23,8 +23,6 @@ call remote source and model services and executes generated Python in Docker.
 Its public boundary is the `satyrn-dataset` CLI and the JSONL formats described
 by the [corpus-builder contract](../contracts/corpus_builder.md).
 
-The corpus builder does not train or register models.
-
 ## Trainer boundary
 
 `trainer/unsloth` owns Hydra experiment composition, configuration validation,
