@@ -52,8 +52,7 @@ order — fully into memory; blank lines are ignored and rows are not
 schema-validated before dataset construction. Each implemented stage uses
 `train_test_split(test_size=eval_ratio, seed=42)` and configures:
 
-- the stage's per-device train batch size and the shared per-device
-  evaluation batch size;
+- the stage's train batch size and the shared evaluation batch size;
 - configured gradient accumulation, optimizer, logging, and evaluation
   interval;
 - MLflow reporting;
