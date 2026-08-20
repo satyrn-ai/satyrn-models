@@ -61,7 +61,7 @@ satyrn-dataset sft --input PATH --output FILE.jsonl \
   a single file is accepted regardless of suffix.
 - `VERSION` is required but is not limited to the versions supported by
   `download-inputs`.
-- `N` is an integer of at least 1 and defaults to 1.
+- `N` is an integer of at least 1 and defaults to 1. Recommended value for a generating the entire Python-version dataset it 500.
 - The provider and model are fixed in source. `DEEPSEEK_API_KEY` is read from
   the environment or `.env`.
 - The output must end in `.jsonl`. If it exists, the command asks whether to
