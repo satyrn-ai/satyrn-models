@@ -1,0 +1,11 @@
+{
+  "train_count": 277,
+  "valid_count": 312,
+  "fingerprints": {
+    "dataset": "757c258a67f4a917d13cd05f72df5e805a566c177e691fa75ec381aaf7fc076c",
+    "rendered": "908b8191297e95d819d660ae29c7d2614e6b35494b31640802021dd9b981c275",
+    "benchmark": "3a94d381b74c5e905f7005d5f2d93eb1e493cc74568381f143f1a0b033832658",
+    "system_prompt": "748f7aba691d95077199191a021ccc6edc2fbc881bfc2badee7ad37ffeba99ab"
+  },
+  "split_rule": "md5(f'{path}:{line}').hexdigest()[0] in '01234567' -> valid"
+}
