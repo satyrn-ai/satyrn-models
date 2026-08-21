@@ -39,8 +39,6 @@ contract says otherwise.
 - **RL dataset production:** generate and verify reward-learning inputs.
 - **RL training:** train against configured reward functions and fail clearly
   when the requested stage cannot run.
-- **Reproducible dataset generation:** make parallel SFT output identity stable
-  across equivalent runs and report rejected examples by category.
 - **Explicit sandbox policy:** make the selected isolation level visible and
   prevent an unapproved security downgrade.
 
