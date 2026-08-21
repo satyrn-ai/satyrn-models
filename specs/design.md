@@ -12,8 +12,7 @@ The intended learning sequence is:
 2. supervised fine-tuning (SFT) on verified prompt/response examples; and
 3. reinforcement learning (RL) against an explicit reward signal.
 
-Local-first means contributors can inspect source data, generated examples,
-training configuration, logs, and artifacts on hardware they control. External
+Local-first means models are expected to be able to run locally on developer machines.
 model, registry, and source services remain explicit dependencies rather than
 hidden execution backends.
 
