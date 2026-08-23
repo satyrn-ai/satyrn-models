@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -125,26 +126,37 @@ def _load_source_ids(gated_path: Path) -> dict[str, str]:
     return mapping
 
 
+def _deliver_row(row: dict, source_ids: dict[str, str], checkouts_dir: Path, llm) -> dict:
+    """Generate trace + question/explanation for one row and assemble it."""
+    source_id = source_ids[row["semantic_id"]]
+    source_path = checkouts_dir / source_id / row["filename"]
+    if not source_path.is_file():
+        raise click.ClickException(f"source file missing: {source_path}")
+    source_text = source_path.read_text()
+    generate_trace(row, llm, source_text, row["filename"])
+    question, explanation = generate_conversation(row, llm, source_text, row["filename"])
+    return assemble_row(row, question, explanation)
+
+
 def run_delivery(
     rows: list[dict],
     source_ids: dict[str, str],
     checkouts_dir: Path,
     llm,
     preview: bool = False,
+    workers: int = 1,
 ) -> list[dict]:
     """Generate prose around each row and return Michal-schema rows."""
-    delivered: list[dict] = []
-    for row in rows:
-        source_id = source_ids[row["semantic_id"]]
-        source_path = checkouts_dir / source_id / row["filename"]
-        if not source_path.is_file():
-            raise click.ClickException(f"source file missing: {source_path}")
-        source_text = source_path.read_text()
-        generate_trace(row, llm, source_text, row["filename"])
-        question, explanation = generate_conversation(row, llm, source_text, row["filename"])
-        delivered.append(assemble_row(row, question, explanation))
-        if preview:
-            click.echo(json.dumps(delivered[-1]))
+    if workers > 1:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            delivered = list(
+                executor.map(lambda row: _deliver_row(row, source_ids, checkouts_dir, llm), rows)
+            )
+    else:
+        delivered = [_deliver_row(row, source_ids, checkouts_dir, llm) for row in rows]
+    if preview:
+        for row in delivered:
+            click.echo(json.dumps(row))
     return delivered
 
 
@@ -207,6 +219,13 @@ def _load_rows(path: Path) -> list[dict]:
 @click.option("--mock-llm", is_flag=True, default=False, help="Use a deterministic fake LLM.")
 @click.option("--preview", is_flag=True, default=False, help="Print each delivered row as it is written.")
 @click.option(
+    "--workers",
+    type=click.IntRange(min=1),
+    default=1,
+    show_default=True,
+    help="Rows to generate in parallel.",
+)
+@click.option(
     "--checkouts-dir",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     default=".cache/sources",
@@ -220,6 +239,7 @@ def main(
     model: str,
     mock_llm: bool,
     preview: bool,
+    workers: int,
     checkouts_dir: Path,
 ) -> None:
     """Deliver frozen SFT rows in Michal's dataset schema."""
@@ -242,7 +262,7 @@ def main(
     sources = {spec.id: {"repo": spec.repo, "commit": spec.commit} for spec in specs}
 
     llm_obj = MockLLM() if mock_llm else get_llm(llm, model)
-    delivered = run_delivery(rows, source_ids, checkouts_dir, llm_obj, preview)
+    delivered = run_delivery(rows, source_ids, checkouts_dir, llm_obj, preview, workers)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     with (output_dir / "sft.jsonl").open("w") as fh:

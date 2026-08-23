@@ -145,6 +145,17 @@ def test_run_delivery_fails_on_missing_source(tmp_path: Path) -> None:
         run_delivery(rows, source_ids, tmp_path / "none", MockLLM())
 
 
+def test_run_delivery_parallel_matches_sequential(tmp_path: Path) -> None:
+    checkouts = tmp_path / "sources"
+    (checkouts / "cpython" / "Lib" / "test").mkdir(parents=True)
+    (checkouts / "cpython" / "Lib" / "test" / "x.py").write_text("def f(): pass\n")
+    source_ids = {ROW["semantic_id"]: "cpython"}
+
+    sequential = run_delivery([dict(ROW) for _ in range(5)], source_ids, checkouts, MockLLM())
+    parallel = run_delivery([dict(ROW) for _ in range(5)], source_ids, checkouts, MockLLM(), workers=4)
+    assert parallel == sequential
+
+
 def test_write_manifest_records_split_and_fingerprints(tmp_path: Path) -> None:
     rows = [
         {
