@@ -185,8 +185,8 @@ def main(cfg: DictConfig) -> None:
                     }
                 )
 
-                # logger.info("Model evaluation before training")
-                # run_eval_qa("pre", model, tokenizer)
+                logger.info("Model evaluation before training")
+                run_eval_qa("pre", model, tokenizer)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")

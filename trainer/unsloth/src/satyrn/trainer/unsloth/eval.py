@@ -16,9 +16,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# transformers.set_seed() (called by SFTTrainer for training reproducibility) reseeds the same
-# global random module OpenTelemetry's default IdGenerator draws trace/span IDs from, causing
-# eval traces from different stages to collide. Isolate trace-ID generation from that seed.
+# Do not remove. SFTTrainer calls transformers.set_seed(), which resets the global RNG that
+# OpenTelemetry uses for trace IDs. Without this setting, every stage produces the same IDs and
+# overwrites the previous stage's eval traces in MLflow.
 os.environ.setdefault("MLFLOW_TRACE_USE_ISOLATED_RANDOM_ID_GENERATOR", "true")
 
 QUESTIONS = [
