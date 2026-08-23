@@ -6,8 +6,6 @@ defaults:
 
 run_name: py-qwen3.6-35b-a3b
 
-eval_batch_size: 1
-
 mlflow:
   experiment_name: Qwen3.6-35B-A3B
 
@@ -23,9 +21,15 @@ datasets:
 cpt:
   seq_len: 4096
   batch_size: 4
+  eval_batch_size: 1
+  eval_steps: 6
+  gradient_accumulation_steps: 2
   num_train_epochs: 4
   prepack_dataset: true
 
 sft:
-  batch_size: 32
+  batch_size: 8
+  eval_batch_size: 4
+  eval_steps: 50
+  gradient_accumulation_steps: 1
   num_train_epochs: 5

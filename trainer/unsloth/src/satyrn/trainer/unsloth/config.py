@@ -28,9 +28,7 @@ class ExperimentConfig(BaseModel):
     model: ModelConfig
     mlflow: MlflowConfig
 
-    eval_batch_size: int
     eval_ratio: float
-    eval_steps: int
     load_in_4bit: bool
     logging_steps: int
     max_seq_length: int
@@ -93,6 +91,8 @@ class CptStageConfig(BaseModel):
     prepack_dataset: bool
     seq_len: int
     batch_size: int
+    eval_batch_size: int
+    eval_steps: int
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
@@ -103,6 +103,8 @@ class SftStageConfig(BaseModel):
 
     seq_len: int
     batch_size: int
+    eval_batch_size: int
+    eval_steps: int
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float

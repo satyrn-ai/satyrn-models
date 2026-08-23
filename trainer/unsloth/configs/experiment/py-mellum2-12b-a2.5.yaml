@@ -6,8 +6,6 @@ defaults:
 
 run_name: py-mellum2-12b-a2.5
 
-eval_batch_size: 8
-
 mlflow:
   experiment_name: Mellum2-12B-A2.5B-Instruct
 
@@ -23,10 +21,12 @@ datasets:
 cpt:
   seq_len: 4096
   batch_size: 8
+  eval_batch_size: 8
   num_train_epochs: 4
   prepack_dataset: true
 
 sft:
   seq_len: 1280
   batch_size: 32
+  eval_batch_size: 8
   num_train_epochs: 5

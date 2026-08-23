@@ -85,11 +85,11 @@ def build_trainer(
     training_args = SFTConfig(
         output_dir=f"outputs/{name}",
         per_device_train_batch_size=stage.batch_size,
-        per_device_eval_batch_size=cfg.eval_batch_size,
+        per_device_eval_batch_size=stage.eval_batch_size,
         gradient_accumulation_steps=stage.gradient_accumulation_steps,
         logging_steps=cfg.logging_steps,
         eval_strategy="steps",
-        eval_steps=cfg.eval_steps,
+        eval_steps=stage.eval_steps,
         report_to="mlflow",
         max_length=stage.seq_len,
         num_train_epochs=stage.num_train_epochs,
