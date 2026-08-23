@@ -113,22 +113,38 @@ def assemble_row(row: dict, question: str, explanation: str) -> dict:
     }
 
 
-def _load_source_ids(gated_path: Path) -> dict[str, str]:
-    """Return semantic_id -> source_id for every gated task."""
-    mapping: dict[str, str] = {}
+def _load_source_ids(gated_path: Path) -> dict[tuple[str, int], str]:
+    """Return (path, line) -> source_id for every gated task.
+
+    Keyed on provenance rather than semantic_id: semantic_id deliberately
+    excludes provenance, so identical-content tasks from different sources
+    collide on it, but (path, line) is unambiguous.
+    """
+    mapping: dict[tuple[str, int], str] = {}
     with gated_path.open("r") as fh:
         for line in fh:
             line = line.strip()
             if not line:
                 continue
             entry = json.loads(line)
-            mapping[entry["semantic_id"]] = entry["provenance"]["source_id"]
+            prov = entry["provenance"]
+            mapping[(prov["path"], int(prov["line"]))] = prov["source_id"]
     return mapping
 
 
-def _deliver_row(row: dict, source_ids: dict[str, str], checkouts_dir: Path, llm) -> dict:
+def _deliver_row(
+    row: dict,
+    source_ids: dict[tuple[str, int], str],
+    checkouts_dir: Path,
+    llm,
+) -> dict:
     """Generate trace + question/explanation for one row and assemble it."""
-    source_id = source_ids[row["semantic_id"]]
+    key = (row["filename"], int(row["_line"]))
+    if key not in source_ids:
+        raise click.ClickException(
+            f"no gated task for {row['filename']}:{row['_line']}; re-freeze the corpus"
+        )
+    source_id = source_ids[key]
     source_path = checkouts_dir / source_id / row["filename"]
     if not source_path.is_file():
         raise click.ClickException(f"source file missing: {source_path}")
@@ -140,7 +156,7 @@ def _deliver_row(row: dict, source_ids: dict[str, str], checkouts_dir: Path, llm
 
 def run_delivery(
     rows: list[dict],
-    source_ids: dict[str, str],
+    source_ids: dict[tuple[str, int], str],
     checkouts_dir: Path,
     llm,
     preview: bool = False,

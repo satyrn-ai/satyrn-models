@@ -116,13 +116,23 @@ def test_assemble_row_matches_michal_schema() -> None:
     assert out["trace"] == "I consider the feature, then build it."
 
 
-def test_load_source_ids_maps_semantic_id_to_source_id(tmp_path: Path) -> None:
+def test_load_source_ids_maps_path_line_to_source_id(tmp_path: Path) -> None:
     gated = tmp_path / "gated.jsonl"
     gated.write_text(
-        '{"semantic_id": "aaa", "provenance": {"source_id": "cpython"}}\n'
-        '{"semantic_id": "bbb", "provenance": {"source_id": "storyville-2026"}}\n'
+        '{"semantic_id": "aaa", "provenance": {"source_id": "cpython", "path": "Lib/x.py", "line": 1}}\n'
+        '{"semantic_id": "bbb", "provenance": {"source_id": "storyville-2026", "path": "s.py", "line": 2}}\n'
     )
-    assert _load_source_ids(gated) == {"aaa": "cpython", "bbb": "storyville-2026"}
+    assert _load_source_ids(gated) == {("Lib/x.py", 1): "cpython", ("s.py", 2): "storyville-2026"}
+
+
+def test_load_source_ids_keeps_both_provenances_on_semantic_id_collision(tmp_path: Path) -> None:
+    """Two identical-content tasks from different files keep distinct (path, line) keys."""
+    gated = tmp_path / "gated.jsonl"
+    gated.write_text(
+        '{"semantic_id": "same", "provenance": {"source_id": "cpython", "path": "Lib/x.py", "line": 1}}\n'
+        '{"semantic_id": "same", "provenance": {"source_id": "storyville-2026", "path": "s.py", "line": 9}}\n'
+    )
+    assert _load_source_ids(gated) == {("Lib/x.py", 1): "cpython", ("s.py", 9): "storyville-2026"}
 
 
 def test_run_delivery_resolves_source_and_assembles(tmp_path: Path) -> None:
@@ -131,7 +141,7 @@ def test_run_delivery_resolves_source_and_assembles(tmp_path: Path) -> None:
     (checkouts / "cpython" / "Lib" / "test" / "x.py").write_text("def f(): pass\n")
 
     rows = [dict(ROW)]
-    source_ids = {ROW["semantic_id"]: "cpython"}
+    source_ids = {("Lib/test/x.py", 1): "cpython"}
     out = run_delivery(rows, source_ids, checkouts, MockLLM())
     assert len(out) == 1
     assert out[0]["prompt"] == [{"role": "user", "content": "What does this code do?"}]
@@ -140,7 +150,7 @@ def test_run_delivery_resolves_source_and_assembles(tmp_path: Path) -> None:
 
 def test_run_delivery_fails_on_missing_source(tmp_path: Path) -> None:
     rows = [dict(ROW)]
-    source_ids = {ROW["semantic_id"]: "cpython"}
+    source_ids = {("Lib/test/x.py", 1): "cpython"}
     with pytest.raises(click.ClickException, match="source file missing"):
         run_delivery(rows, source_ids, tmp_path / "none", MockLLM())
 
@@ -149,7 +159,7 @@ def test_run_delivery_parallel_matches_sequential(tmp_path: Path) -> None:
     checkouts = tmp_path / "sources"
     (checkouts / "cpython" / "Lib" / "test").mkdir(parents=True)
     (checkouts / "cpython" / "Lib" / "test" / "x.py").write_text("def f(): pass\n")
-    source_ids = {ROW["semantic_id"]: "cpython"}
+    source_ids = {("Lib/test/x.py", 1): "cpython"}
 
     sequential = run_delivery([dict(ROW) for _ in range(5)], source_ids, checkouts, MockLLM())
     parallel = run_delivery([dict(ROW) for _ in range(5)], source_ids, checkouts, MockLLM(), workers=4)
