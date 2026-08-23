@@ -1,0 +1,31 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: qwen3.6-35b-a3b
+  - _self_
+
+run_name: py-qwen3.6-35b-a3b
+
+eval_batch_size: 1
+
+mlflow:
+  experiment_name: Qwen3.6-35B-A3B
+
+datasets:
+  cpt:
+    - datasets/python3.14/cpt.jsonl
+    - datasets/python3.15/cpt.jsonl
+  sft:
+    - datasets/python3.14/sft.jsonl
+    - datasets/python3.14/sft-PEP750.jsonl
+    - datasets/python3.15/sft.jsonl
+
+cpt:
+  seq_len: 4096
+  batch_size: 4
+  num_train_epochs: 4
+  prepack_dataset: true
+
+sft:
+  batch_size: 32
+  num_train_epochs: 5
