@@ -17,6 +17,14 @@ def test_help_lists_all_subcommands() -> None:
         assert command in output
 
 
+def test_help_lists_deliver_subcommand() -> None:
+    """Help lists the deliver subcommand."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--help"])
+    assert result.exit_code == 0
+    assert "deliver" in result.output
+
+
 def test_check_diversity_raises_below_floor() -> None:
     """A measured ratio below the floor raises a ClickException."""
     with pytest.raises(click.ClickException, match="below floor"):

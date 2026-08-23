@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 
 from satyrn.dataset.llm.models import get_llm
-from satyrn.tstrings import build, gate, mine, render, split, train, transform
+from satyrn.tstrings import build, deliver, gate, mine, render, split, train, transform
 from satyrn.tstrings import eval as eval_cmd
 from satyrn.tstrings.cells import CELLS
 from satyrn.tstrings.composition import cell_counts, check_composition
@@ -307,4 +307,5 @@ cli.add_command(train.main)
 cli.add_command(eval_cmd.main)
 cli.add_command(eval_cmd.reproduce_cmd)
 cli.add_command(transform.main)
+cli.add_command(deliver.main)
 cli.add_command(postprocess)

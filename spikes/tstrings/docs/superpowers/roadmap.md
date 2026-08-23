@@ -15,7 +15,7 @@ artifacts are, and what must be true before starting the next plan.
 |---|---|---|---|---|
 | M1 | Corpus | 0–5 | `corpus-sft/{train,valid}.jsonl` + `manifest.json` | BRIEF committed (done) |
 | M2 | Measurement | 6–7 | `REPORT.md` + trained adapters + `PREREGISTRATION.md` | M1 corpus frozen, Phase 5 acceptance green |
-| M3 | Upstream | 8–9 | merged PR to `corpus_builder` + Michał-consumable corpus | conversation with Michał (independent of M1/M2) |
+| M3 | Upstream | 8–9 | merged PR to `corpus_builder` + Michał-consumable corpus (prose + reasoning trace via `deliver`) | conversation with Michał (independent of M1/M2) |
 
 M3 is intentionally parallel: it depends on nothing in M1 or M2 and is gated
 only on the human conversation with Michał.
@@ -63,6 +63,10 @@ only on the human conversation with Michał.
    storyville, tdom-svcs, pep750-examples) and re-runs the corpus pipeline
    over the larger seed pool. Independent of M2/M3; it enriches the handoff
    corpus and Michał-format dataset.
+9. **Phase 9 deliverable** is produced by `deliver` — prose explanation + a
+   natural-question prompt + a first-person reasoning trace generated around
+   the deterministic code — superseding the code-only `to-michal` transform.
+   Spec: `docs/superpowers/specs/2026-08-23-cycle-9.1-michal-format-delivery-design.md`.
 
 ## Completion
 
