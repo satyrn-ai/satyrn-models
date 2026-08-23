@@ -32,4 +32,4 @@ sft:
   eval_batch_size: 4
   eval_steps: 50
   gradient_accumulation_steps: 1
-  num_train_epochs: 5
+  num_train_epochs: 3
