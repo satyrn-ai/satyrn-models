@@ -3,12 +3,8 @@
 import json
 from pathlib import Path
 
-import click
-import pytest
-
 from satyrn.tstrings.deliver import (
     MockLLM,
-    _load_source_ids,
     assemble_row,
     generate_conversation,
     generate_trace,
@@ -25,7 +21,6 @@ ROW = {
     "code": 'from string.templatelib import Template\nprint(type(t"x").__name__)',
     "trace": "",
     "expected_output": "Template\n",
-    "_line": 1,
     "semantic_id": "b" * 64,
 }
 
@@ -42,10 +37,16 @@ class RecordingLLM:
         return self.text
 
 
+def _row(**overrides: object) -> dict:
+    row = dict(ROW)
+    row.update(overrides)
+    return row
+
+
 def test_generate_trace_stores_and_returns_prose() -> None:
     llm = RecordingLLM()
-    row = dict(ROW)
-    text = generate_trace(row, llm, "def f(): pass\n", "Lib/test/x.py")
+    row = _row()
+    text = generate_trace(row, llm)
     assert text == "I consider the feature, then build it."
     assert row["trace"] == text
     prompt, context = llm.calls[0]
@@ -55,20 +56,29 @@ def test_generate_trace_stores_and_returns_prose() -> None:
     assert context.system_prompt == (
         "You are an expert Python instructor writing teaching material for the newest Python release."
     )
-    assert context.documents["Lib/test/x.py"] == "def f(): pass\n"
+    assert context.documents == {}
 
 
 def test_generate_conversation_returns_question_and_explanation() -> None:
     llm = RecordingLLM()
-    row = dict(ROW)
-    row["trace"] = "I consider the feature, then build it."
-    question, explanation = generate_conversation(row, llm, None, "Lib/test/x.py")
+    row = _row(trace="I consider the feature, then build it.")
+    question, explanation = generate_conversation(row, llm)
     assert question == "What does this code do?"
     assert explanation == "It builds a t-string."
     prompt, context = llm.calls[0]
     assert "natural user question" in prompt
+    assert "must match" in prompt  # anchoring to the idea
     assert "I consider the feature, then build it." in prompt  # trace fed in
     assert context.expect_json is True
+
+
+def test_generate_conversation_handles_json_string_response() -> None:
+    class StrLLM:
+        def generate(self, prompt, context, thinking=False, effort="medium"):
+            return json.dumps({"prompt": "Q?", "explanation": "E."})
+
+    question, explanation = generate_conversation(_row(), StrLLM())
+    assert (question, explanation) == ("Q?", "E.")
 
 
 def test_mock_llm_keys_on_expect_json() -> None:
@@ -90,8 +100,7 @@ def test_mock_llm_keys_on_expect_json() -> None:
 
 
 def test_assemble_row_matches_michal_schema() -> None:
-    row = dict(ROW)
-    row["trace"] = "I consider the feature, then build it."
+    row = _row(trace="I consider the feature, then build it.")
     out = assemble_row(row, "What does this code do?", "It builds a t-string.")
     assert out["prompt"] == [{"role": "user", "content": "What does this code do?"}]
     assert out["completion"] == [
@@ -111,59 +120,51 @@ def test_assemble_row_matches_michal_schema() -> None:
         "trace",
         "expected_output",
     }
-    assert out["filename"] == "Lib/test/x.py"
-    assert out["code"] == ROW["code"]
-    assert out["trace"] == "I consider the feature, then build it."
 
 
-def test_load_source_ids_maps_path_line_to_source_id(tmp_path: Path) -> None:
-    gated = tmp_path / "gated.jsonl"
-    gated.write_text(
-        '{"semantic_id": "aaa", "provenance": {"source_id": "cpython", "path": "Lib/x.py", "line": 1}}\n'
-        '{"semantic_id": "bbb", "provenance": {"source_id": "storyville-2026", "path": "s.py", "line": 2}}\n'
-    )
-    assert _load_source_ids(gated) == {("Lib/x.py", 1): "cpython", ("s.py", 2): "storyville-2026"}
+def test_run_delivery_delivers_all_rows_in_order(tmp_path: Path) -> None:
+    rows = [_row(semantic_id=f"id{i}") for i in range(3)]
+    delivered, complete = run_delivery(rows, RecordingLLM(), tmp_path)
+    assert complete is True
+    assert [r["prompt"][0]["content"] for r in delivered] == ["What does this code do?"] * 3
+    assert (tmp_path / "_checkpoint.jsonl").exists()
 
 
-def test_load_source_ids_keeps_both_provenances_on_semantic_id_collision(tmp_path: Path) -> None:
-    """Two identical-content tasks from different files keep distinct (path, line) keys."""
-    gated = tmp_path / "gated.jsonl"
-    gated.write_text(
-        '{"semantic_id": "same", "provenance": {"source_id": "cpython", "path": "Lib/x.py", "line": 1}}\n'
-        '{"semantic_id": "same", "provenance": {"source_id": "storyville-2026", "path": "s.py", "line": 9}}\n'
-    )
-    assert _load_source_ids(gated) == {("Lib/x.py", 1): "cpython", ("s.py", 9): "storyville-2026"}
+def test_run_delivery_resumes_skipping_completed(tmp_path: Path) -> None:
+    # Pre-populate the checkpoint with row "id1" already delivered.
+    checkpoint = tmp_path / "_checkpoint.jsonl"
+    done_row = assemble_row(_row(semantic_id="id1"), "Done?", "Done.")
+    checkpoint.write_text(json.dumps({"semantic_id": "id1", "row": done_row}) + "\n")
+
+    llm = RecordingLLM()
+    rows = [_row(semantic_id="id0"), _row(semantic_id="id1"), _row(semantic_id="id2")]
+    delivered, complete = run_delivery(rows, llm, tmp_path)
+    assert complete is True
+    # Only two rows were generated (id1 was skipped).
+    assert len(llm.calls) == 4  # 2 rows x 2 calls
+    assert delivered[1]["prompt"][0]["content"] == "Done?"
 
 
-def test_run_delivery_resolves_source_and_assembles(tmp_path: Path) -> None:
-    checkouts = tmp_path / "sources"
-    (checkouts / "cpython" / "Lib" / "test").mkdir(parents=True)
-    (checkouts / "cpython" / "Lib" / "test" / "x.py").write_text("def f(): pass\n")
+def test_run_delivery_isolates_failures(tmp_path: Path) -> None:
+    class FlakyLLM:
+        def generate(self, prompt, context, thinking=False, effort="medium"):
+            if "IDEA-MARKER" in prompt:
+                raise RuntimeError("boom")
+            if context.expect_json:
+                return {"prompt": "Q?", "explanation": "E."}
+            return "trace"
 
-    rows = [dict(ROW)]
-    source_ids = {("Lib/test/x.py", 1): "cpython"}
-    out = run_delivery(rows, source_ids, checkouts, MockLLM())
-    assert len(out) == 1
-    assert out[0]["prompt"] == [{"role": "user", "content": "What does this code do?"}]
-    assert out[0]["trace"] == "I consider the feature first, then construct the example step by step."
-
-
-def test_run_delivery_fails_on_missing_source(tmp_path: Path) -> None:
-    rows = [dict(ROW)]
-    source_ids = {("Lib/test/x.py", 1): "cpython"}
-    with pytest.raises(click.ClickException, match="source file missing"):
-        run_delivery(rows, source_ids, tmp_path / "none", MockLLM())
+    rows = [_row(semantic_id="id0", idea="IDEA-MARKER"), _row(semantic_id="id1")]
+    delivered, complete = run_delivery(rows, FlakyLLM(), tmp_path)
+    assert complete is False
+    assert len(delivered) == 1  # only id1 delivered; id0 failed and is retryable
 
 
 def test_run_delivery_parallel_matches_sequential(tmp_path: Path) -> None:
-    checkouts = tmp_path / "sources"
-    (checkouts / "cpython" / "Lib" / "test").mkdir(parents=True)
-    (checkouts / "cpython" / "Lib" / "test" / "x.py").write_text("def f(): pass\n")
-    source_ids = {("Lib/test/x.py", 1): "cpython"}
-
-    sequential = run_delivery([dict(ROW) for _ in range(5)], source_ids, checkouts, MockLLM())
-    parallel = run_delivery([dict(ROW) for _ in range(5)], source_ids, checkouts, MockLLM(), workers=4)
-    assert parallel == sequential
+    rows = [_row(semantic_id=f"id{i}") for i in range(5)]
+    seq, _ = run_delivery(rows, MockLLM(), tmp_path / "seq")
+    par, _ = run_delivery(rows, MockLLM(), tmp_path / "par", workers=4)
+    assert par == seq
 
 
 def test_write_manifest_records_split_and_fingerprints(tmp_path: Path) -> None:
@@ -188,24 +189,19 @@ def test_write_manifest_records_split_and_fingerprints(tmp_path: Path) -> None:
         sources={"cpython": {"repo": "https://github.com/python/cpython", "commit": "a" * 40}},
         provider="deepseek",
         model="deepseek-v4-flash",
-        mock=True,
         generated_at="2026-08-23T00:00:00+00:00",
+        note="mock",
         path=path,
     )
     data = json.loads(path.read_text())
     assert data["row_count"] == 1
     assert data["train_semantic_ids"] == ["t1"]
     assert data["valid_semantic_ids"] == ["v1"]
-    assert data["fingerprints"] == {"corpus": "c0ffee", "gated": "decaf"}
-    assert data["provider"] == "deepseek" and data["model"] == "deepseek-v4-flash"
-    assert "mock" in data["note"]
+    assert data["note"] == "mock"
 
 
-def test_write_manifest_omits_note_when_not_mock(tmp_path: Path) -> None:
+def test_write_manifest_omits_note_when_absent(tmp_path: Path) -> None:
     path = tmp_path / "manifest.json"
-    write_manifest(
-        [], [], [], {}, {}, "deepseek", "deepseek-v4-flash", False,
-        "2026-08-23T00:00:00+00:00", path,
-    )
+    write_manifest([], [], [], {}, {}, "deepseek", "deepseek-v4-flash", "2026-08-23T00:00:00+00:00", path)
     data = json.loads(path.read_text())
     assert "note" not in data

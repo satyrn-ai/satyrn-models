@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,23 +15,26 @@ from satyrn.tstrings.types import load_source_specs
 # Mirrors corpus_builder/src/satyrn/dataset/sft.py::SYSTEM_PROMPT
 _SYSTEM_PROMPT = "You are an expert Python instructor writing teaching material for the newest Python release."
 
-# Mirrors sft.py::generate_code_block's trace instruction (trace portion only).
+# Mirrors sft.py::generate_code_block's trace instruction (trace portion only),
+# with a length bound so reasoning chains stay comparable to Michal's (~900 chars).
 _TRACE_INSTRUCTION = (
     "Write the reasoning that leads to this code, in first person and present tense, "
     "as you would think it through before writing it: what the task requires, which "
     "Python 3.14 feature applies and how it behaves, how the code uses it, and step by "
     "step what each statement prints as it runs. Write as though you thought of the "
     "task yourself: do not mention the attached document, the idea, training, datasets, "
-    "or examples, and do not address the reader."
+    "or examples, and do not address the reader. Keep it concise: at most 1200 characters."
 )
 
-# Mirrors sft.py::generate_conversation.
+# Mirrors sft.py::generate_conversation, with explicit anchoring to the idea so the
+# question does not drift onto the mined code's incidental domain.
 _CONVERSATION_INSTRUCTION = (
     "Write a natural user question that this code would answer, and an explanation an "
-    "assistant would give alongside the code in its response. Do not repeat or alter "
-    "the code itself. If this feature replaces or is commonly confused with an older "
-    "idiom or workaround, name that older approach in the explanation and state briefly "
-    "why it no longer applies or is not the right choice here."
+    "assistant would give alongside the code in its response. The question must match "
+    "the 'Example idea' below; do not invent a different domain or topic for it. Do not "
+    "repeat or alter the code itself. If this feature replaces or is commonly confused "
+    "with an older idiom or workaround, name that older approach in the explanation and "
+    "state briefly why it no longer applies or is not the right choice here."
 )
 
 
@@ -65,27 +68,22 @@ def _conversation_prompt(row: dict) -> str:
     )
 
 
-def _context(source_text: str | None, source_title: str) -> Context:
+def _context() -> Context:
     ctx = Context()
     ctx.system_prompt = _SYSTEM_PROMPT
-    if source_text is not None:
-        ctx.add(source_title, source_text)
     return ctx
 
 
-def generate_trace(row: dict, llm, source_text: str | None, source_title: str) -> str:
+def generate_trace(row: dict, llm) -> str:
     """Return a first-person reasoning trace and store it in the row."""
-    ctx = _context(source_text, source_title)
-    text = llm.generate(_trace_prompt(row), ctx, thinking=True)
+    text = llm.generate(_trace_prompt(row), _context(), thinking=True)
     row["trace"] = text
     return text
 
 
-def generate_conversation(
-    row: dict, llm, source_text: str | None, source_title: str
-) -> tuple[str, str]:
+def generate_conversation(row: dict, llm) -> tuple[str, str]:
     """Return (question, explanation) for the row, mirroring sft.py::generate_conversation."""
-    ctx = _context(source_text, source_title)
+    ctx = _context()
     ctx.set_json_schema(
         {
             "type": "object",
@@ -94,6 +92,8 @@ def generate_conversation(
         }
     )
     result = llm.generate(_conversation_prompt(row), ctx, thinking=True)
+    if isinstance(result, str):
+        result = json.loads(result)
     return result["prompt"], result["explanation"]
 
 
@@ -113,67 +113,83 @@ def assemble_row(row: dict, question: str, explanation: str) -> dict:
     }
 
 
-def _load_source_ids(gated_path: Path) -> dict[tuple[str, int], str]:
-    """Return (path, line) -> source_id for every gated task.
+def _deliver_row(row: dict, llm) -> tuple[str, dict]:
+    """Generate trace + question/explanation for one row; return (semantic_id, row)."""
+    generate_trace(row, llm)
+    question, explanation = generate_conversation(row, llm)
+    return row["semantic_id"], assemble_row(row, question, explanation)
 
-    Keyed on provenance rather than semantic_id: semantic_id deliberately
-    excludes provenance, so identical-content tasks from different sources
-    collide on it, but (path, line) is unambiguous.
-    """
-    mapping: dict[tuple[str, int], str] = {}
-    with gated_path.open("r") as fh:
+
+def _load_checkpoint(checkpoint_path: Path) -> dict[str, dict]:
+    """Return semantic_id -> delivered row for everything already delivered."""
+    completed: dict[str, dict] = {}
+    if not checkpoint_path.exists():
+        return completed
+    with checkpoint_path.open("r") as fh:
         for line in fh:
             line = line.strip()
             if not line:
                 continue
             entry = json.loads(line)
-            prov = entry["provenance"]
-            mapping[(prov["path"], int(prov["line"]))] = prov["source_id"]
-    return mapping
+            completed[entry["semantic_id"]] = entry["row"]
+    return completed
 
 
-def _deliver_row(
-    row: dict,
-    source_ids: dict[tuple[str, int], str],
-    checkouts_dir: Path,
-    llm,
-) -> dict:
-    """Generate trace + question/explanation for one row and assemble it."""
-    key = (row["filename"], int(row["_line"]))
-    if key not in source_ids:
-        raise click.ClickException(
-            f"no gated task for {row['filename']}:{row['_line']}; re-freeze the corpus"
-        )
-    source_id = source_ids[key]
-    source_path = checkouts_dir / source_id / row["filename"]
-    if not source_path.is_file():
-        raise click.ClickException(f"source file missing: {source_path}")
-    source_text = source_path.read_text()
-    generate_trace(row, llm, source_text, row["filename"])
-    question, explanation = generate_conversation(row, llm, source_text, row["filename"])
-    return assemble_row(row, question, explanation)
+def _append_checkpoint(checkpoint_path: Path, semantic_id: str, row: dict) -> None:
+    with checkpoint_path.open("a") as fh:
+        fh.write(json.dumps({"semantic_id": semantic_id, "row": row}) + "\n")
+        fh.flush()
 
 
 def run_delivery(
     rows: list[dict],
-    source_ids: dict[tuple[str, int], str],
-    checkouts_dir: Path,
     llm,
+    output_dir: Path,
     preview: bool = False,
     workers: int = 1,
-) -> list[dict]:
-    """Generate prose around each row and return Michal-schema rows."""
-    if workers > 1:
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            delivered = list(
-                executor.map(lambda row: _deliver_row(row, source_ids, checkouts_dir, llm), rows)
-            )
-    else:
-        delivered = [_deliver_row(row, source_ids, checkouts_dir, llm) for row in rows]
-    if preview:
-        for row in delivered:
+    resume: bool = True,
+) -> tuple[list[dict], bool]:
+    """Generate prose around each row; return (ordered delivered rows, complete).
+
+    Resumable: completed rows are checkpointed to output_dir/_checkpoint.jsonl keyed
+    by semantic_id. On resume, already-completed rows are skipped and only the
+    pending ones are regenerated. Failed rows are logged and left un-checkpointed so
+    a later run retries them.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = output_dir / "_checkpoint.jsonl"
+    completed = _load_checkpoint(checkpoint_path) if resume else {}
+
+    pending = [row for row in rows if row["semantic_id"] not in completed]
+
+    def _finish(semantic_id: str, row: dict) -> None:
+        _append_checkpoint(checkpoint_path, semantic_id, row)
+        completed[semantic_id] = row
+        if preview:
             click.echo(json.dumps(row))
-    return delivered
+
+    if pending and workers > 1:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {executor.submit(_deliver_row, row, llm): row for row in pending}
+            for future in as_completed(futures):
+                row = futures[future]
+                try:
+                    semantic_id, delivered = future.result()
+                except Exception as error:
+                    click.echo(f"failed {row['semantic_id']}: {error}", err=True)
+                    continue
+                _finish(semantic_id, delivered)
+    else:
+        for row in pending:
+            try:
+                semantic_id, delivered = _deliver_row(row, llm)
+            except Exception as error:
+                click.echo(f"failed {row['semantic_id']}: {error}", err=True)
+                continue
+            _finish(semantic_id, delivered)
+
+    ordered = [completed[row["semantic_id"]] for row in rows if row["semantic_id"] in completed]
+    return ordered, len(ordered) == len(rows)
 
 
 def write_manifest(
@@ -184,9 +200,9 @@ def write_manifest(
     sources: dict,
     provider: str,
     model: str,
-    mock: bool,
     generated_at: str,
     path: Path,
+    note: str | None = None,
 ) -> None:
     """Write the delivery manifest recording split, fingerprints, and provenance."""
     manifest = {
@@ -199,8 +215,8 @@ def write_manifest(
         "model": model,
         "generated_at": generated_at,
     }
-    if mock:
-        manifest["note"] = "prose is mock/deterministic pending a live-key delivery"
+    if note:
+        manifest["note"] = note
     path.write_text(json.dumps(manifest, indent=2) + "\n")
 
 
@@ -241,13 +257,7 @@ def _load_rows(path: Path) -> list[dict]:
     show_default=True,
     help="Rows to generate in parallel.",
 )
-@click.option(
-    "--checkouts-dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    default=".cache/sources",
-    show_default=True,
-    help="Parent dir of per-source checkouts.",
-)
+@click.option("--fresh", is_flag=True, default=False, help="Ignore any checkpoint and start over.")
 def main(
     input_dir: Path,
     output_dir: Path,
@@ -256,13 +266,12 @@ def main(
     mock_llm: bool,
     preview: bool,
     workers: int,
-    checkouts_dir: Path,
+    fresh: bool,
 ) -> None:
     """Deliver frozen SFT rows in Michal's dataset schema."""
     spike_root = Path(__file__).resolve().parents[3]
     input_dir = spike_root / input_dir
     output_dir = spike_root / output_dir
-    checkouts_dir = spike_root / checkouts_dir
 
     rows: list[dict] = []
     train_ids: list[str] = []
@@ -273,14 +282,14 @@ def main(
         target = train_ids if name == "train" else valid_ids
         target.extend(row["semantic_id"] for row in subset)
 
-    source_ids = _load_source_ids(spike_root / "tasks" / "gated.jsonl")
     specs = load_source_specs(spike_root / "sources.toml")
     sources = {spec.id: {"repo": spec.repo, "commit": spec.commit} for spec in specs}
 
     llm_obj = MockLLM() if mock_llm else get_llm(llm, model)
-    delivered = run_delivery(rows, source_ids, checkouts_dir, llm_obj, preview, workers)
+    delivered, complete = run_delivery(
+        rows, llm_obj, output_dir, preview, workers, resume=not fresh
+    )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
     with (output_dir / "sft.jsonl").open("w") as fh:
         for row in delivered:
             fh.write(json.dumps(row) + "\n")
@@ -290,6 +299,10 @@ def main(
         "corpus": _sha256_bytes(corpus_bytes),
         "gated": _sha256_bytes((spike_root / "tasks" / "gated.jsonl").read_bytes()),
     }
+    note = "prose is mock/deterministic pending a live-key delivery" if mock_llm else None
+    if not complete:
+        pending_note = f"incomplete: {len(rows) - len(delivered)} rows pending — re-run to resume"
+        note = f"{note}; {pending_note}" if note else pending_note
     write_manifest(
         delivered,
         train_ids,
@@ -298,8 +311,8 @@ def main(
         sources,
         llm,
         model,
-        mock_llm,
         datetime.now(timezone.utc).isoformat(),
         output_dir / "manifest.json",
+        note,
     )
-    click.echo(f"Delivered {len(delivered)} rows into {output_dir}")
+    click.echo(f"Delivered {len(delivered)}/{len(rows)} rows into {output_dir}")
