@@ -148,6 +148,7 @@ def run_delivery(
     preview: bool = False,
     workers: int = 1,
     resume: bool = True,
+    progress_every: int = 25,
 ) -> tuple[list[dict], bool]:
     """Generate prose around each row; return (ordered delivered rows, complete).
 
@@ -159,14 +160,22 @@ def run_delivery(
     output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = output_dir / "_checkpoint.jsonl"
     completed = _load_checkpoint(checkpoint_path) if resume else {}
+    total = len(rows)
+    done = len(completed)
+    if done:
+        click.echo(f"resumed: {done}/{total} rows already delivered")
 
     pending = [row for row in rows if row["semantic_id"] not in completed]
 
     def _finish(semantic_id: str, row: dict) -> None:
+        nonlocal done
         _append_checkpoint(checkpoint_path, semantic_id, row)
         completed[semantic_id] = row
+        done += 1
         if preview:
             click.echo(json.dumps(row))
+        if progress_every and (done % progress_every == 0 or done == total):
+            click.echo(f"progress: {done}/{total} rows delivered")
 
     if pending and workers > 1:
         with ThreadPoolExecutor(max_workers=workers) as executor:

@@ -167,6 +167,14 @@ def test_run_delivery_parallel_matches_sequential(tmp_path: Path) -> None:
     assert par == seq
 
 
+def test_run_delivery_reports_progress(capsys, tmp_path: Path) -> None:
+    rows = [_row(semantic_id=f"id{i}") for i in range(6)]
+    run_delivery(rows, MockLLM(), tmp_path, progress_every=3)
+    out = capsys.readouterr().out
+    assert "progress: 3/6" in out
+    assert "progress: 6/6" in out
+
+
 def test_write_manifest_records_split_and_fingerprints(tmp_path: Path) -> None:
     rows = [
         {
