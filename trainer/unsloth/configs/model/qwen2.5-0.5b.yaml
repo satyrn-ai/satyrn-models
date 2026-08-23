@@ -4,6 +4,10 @@
 # Tiny model: use it for local smoke-testing the trainer.
 name: Qwen/Qwen2.5-0.5B-Instruct
 
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
+
 peft:
   r: 16
   lora_dropout: 0.0

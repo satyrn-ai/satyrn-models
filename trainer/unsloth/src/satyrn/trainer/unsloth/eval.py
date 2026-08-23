@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import mlflow
 
+from satyrn.trainer.unsloth.config import StageName
+
 if TYPE_CHECKING:
     from torch.nn import Module
     from transformers import PreTrainedTokenizerBase
@@ -26,7 +28,7 @@ QUESTIONS = [
 ]
 
 
-def run_eval_qa(model: Module, tokenizer: PreTrainedTokenizerBase, stage: str) -> None:
+def run_eval_qa(stage: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Ask every question in QUESTIONS and log the answers."""
 
     @mlflow.trace
@@ -39,6 +41,7 @@ def run_eval_qa(model: Module, tokenizer: PreTrainedTokenizerBase, stage: str) -
         inputs = tokenizer.apply_chat_template(
             [{"role": "user", "content": prompt}],
             add_generation_prompt=True,
+            enable_thinking=False,
             tokenize=True,
             return_dict=True,
             return_tensors="pt",
@@ -55,8 +58,12 @@ def run_eval_qa(model: Module, tokenizer: PreTrainedTokenizerBase, stage: str) -
     if getattr(config, "output_router_logits", None) is not None:
         config.output_router_logits = False
 
-    # Training mode keeps dropout on and, under gradient checkpointing, disables the KV cache
-    model.eval()
+    # Training mode keeps dropout on, gradient checkpointing recomputing, and the KV cache off
+    from unsloth import FastModel
 
-    for question in QUESTIONS:
-        logger.info("%s\n%s\n\n", question, answer_question(question))
+    FastModel.for_inference(model)
+    try:
+        for question in QUESTIONS:
+            logger.info("%s\n%s\n\n", question, answer_question(question))
+    finally:
+        FastModel.for_training(model)

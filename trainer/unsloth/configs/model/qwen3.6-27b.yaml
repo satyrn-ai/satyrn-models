@@ -24,6 +24,11 @@
 #     loftq_config = None, # And LoftQ
 # )
 name: unsloth/Qwen3.6-27B
+enable_thinking: true
+
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
 
 peft:
   r: 8

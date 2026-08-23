@@ -1,4 +1,5 @@
 # @package _global_
+# Testing config: runs with any model= override. Not for real training runs.
 # Swap the model on the command line:
 #   satyrn-unsloth --config-name experiment/py3.15 model=qwen3.6-27b
 defaults:

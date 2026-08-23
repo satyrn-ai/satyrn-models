@@ -1,0 +1,22 @@
+# Architecture: dense, 64 layers, 48 linear + 16 full attention
+# Thinking:     on by default, empty <think></think> block when no reasoning is supplied
+# Multimodal:   text + vision
+#
+# Same qwen3_5 model_type as Qwen3.6-27B: hybrid linear attention, so flash-linear-attention
+# and causal_conv1d apply here too, with a torch fallback when they are missing.
+# The template injects a system turn setting reasoning effort, ahead of the user turn.
+# Reasoning is read from a `reasoning_content` field on the assistant message.
+#
+# No dedicated Unsloth notebook yet; nearest is Qwen3.5-27B, same qwen3_5 architecture:
+# https://github.com/unslothai/notebooks/blob/main/nb/Qwen_3_5_27B_A100(80GB).ipynb
+name: unsloth/Qwen3.8-27B
+enable_thinking: true
+
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
+
+peft:
+  r: 8
+  lora_dropout: 0.0
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "out_proj"]

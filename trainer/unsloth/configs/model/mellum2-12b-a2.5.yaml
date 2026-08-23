@@ -19,6 +19,10 @@
 # )
 name: JetBrains/Mellum2-12B-A2.5B-Instruct
 
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
+
 peft:
   r: 8
   lora_dropout: 0.0

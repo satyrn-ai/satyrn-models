@@ -1,5 +1,5 @@
 # Architecture: MoE, 128 experts / 8 active, 48 layers all sparse, full attention
-# VRAM:         ~64GB for bf16 LoRA; the model alone is 60GB in 16bit
+# VRAM:         ~64GB for bf16 LoRA
 #
 # Unsloth enables LoRA on the expert layers and leaves the router (mlp.gate) untrained.
 # The checkpoint stores separate expert gate_proj/up_proj; gate_up_proj covers
@@ -20,6 +20,10 @@
 #     bias = "none",
 # )
 name: unsloth/Qwen3-Coder-30B-A3B-Instruct
+
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
 
 peft:
   r: 8

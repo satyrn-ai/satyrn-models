@@ -10,6 +10,14 @@ max_steps: -1 # positive values cut a run short, overriding num_train_epochs
 
 model:
 
+  # Render the dataset's reasoning trace into the assistant turn's thinking channel
+  enable_thinking: false
+
+  # Turn headers the model's chat template emits. Training starts after response_part.
+  template:
+    instruction_part: null
+    response_part: null
+
   peft:
     # r - must be explicitly set by model or experiment config
     lora_alpha: ${mul:${.r},2} # r * 2 by default
@@ -43,7 +51,7 @@ cpt:
   learning_rate: 1e-4
 
 sft:
-  seq_len: 1280
+  seq_len: 2048
   batch_size: 8
   gradient_accumulation_steps: 1
   num_train_epochs: 1

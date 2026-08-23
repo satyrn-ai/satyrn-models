@@ -31,10 +31,11 @@ CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 
 def unsloth_init() -> None:
     """Initialize unsloth and patch the training libraries."""
-    global FastModel, SFTConfig, SFTTrainer, torch
+    global FastModel, FastVisionModel, SFTConfig, SFTTrainer, torch, train_on_responses_only
 
     # Unsloth must be imported first to patch transformers, accelerate, etc.
-    from unsloth import FastModel  # noqa: I001
+    from unsloth import FastModel, FastVisionModel  # noqa: I001
+    from unsloth.chat_templates import train_on_responses_only
     import torch
     from trl import SFTConfig, SFTTrainer
 
@@ -51,27 +52,33 @@ def load_dataset(paths: str | list[str]) -> Dataset:
     return Dataset.from_list(rows)
 
 
-def run_supervised_tuning(
+def render_conversations_into_text_field(
+    dataset: Dataset, tokenizer: PreTrainedTokenizerBase, enable_thinking: bool
+) -> Dataset:
+    """Render each prompt+completion row into the text column the trainer tokenizes."""
+
+    def render(row: dict) -> dict:
+        assistant = dict(row["completion"][0])
+        if enable_thinking:
+            assistant["reasoning_content"] = row["trace"]
+        return {"text": tokenizer.apply_chat_template(row["prompt"] + [assistant], tokenize=False)}
+
+    # A row still holding prompt and completion columns takes the trainer's prompt-completion
+    # path, which masks by prompt length and ignores the text column.
+    return dataset.map(render, remove_columns=dataset.column_names)
+
+
+def build_trainer(
     name: StageName,
     model: Module,
     tokenizer: PreTrainedTokenizerBase,
-    dataset_path: str | list[str],
+    dataset: Dataset,
     cfg: ExperimentConfig,
     packing: bool = False,
     packing_strategy: str = "bfd",  # best-fit, decreasing document size order; truncates over max_length
-    dataset_text_field: str | None = None,
-) -> None:
-    logger.info("Starting %s stage", name)
+) -> SFTTrainer:
+    """Split the dataset and build the trainer for one stage."""
     stage = getattr(cfg, name)
-    dataset = load_dataset(dataset_path)
-
-    if packing and cfg.cpt.prepack_dataset:
-        packed = pack_documents(dataset, tokenizer, stage.seq_len)
-        logger.info("Packed %s: %d documents into %d sequences", name, len(dataset), len(packed))
-        dataset = packed
-        logger.warning("Prepacking done, setting packing=false to avoid double packing")
-        packing = False
-
     split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
     train_dataset, eval_dataset = split["train"], split["test"]
 
@@ -94,7 +101,7 @@ def run_supervised_tuning(
         optim=cfg.optim,
         packing=packing,
         packing_strategy=packing_strategy,
-        dataset_text_field=dataset_text_field,
+        dataset_text_field="text",
     )
 
     trainer = SFTTrainer(
@@ -105,9 +112,7 @@ def run_supervised_tuning(
         args=training_args,
     )
 
-    with mlflow.start_run(run_name=name, nested=True):
-        mlflow.log_params({"dataset_path": dataset_path, "dataset_train_rows": len(train_dataset)})
-        trainer.train()
+    return trainer
 
 
 @hydra.main(config_path=CONFIG_DIR)
@@ -124,12 +129,11 @@ def main(cfg: DictConfig) -> None:
         config = validate_config(cfg)
 
         logger.info("Downloading model %s", config.model.name)
-        model, tokenizer = FastModel.from_pretrained(
+        model, tokenizer = FastVisionModel.from_pretrained(
             model_name=config.model.name,
             max_seq_length=config.max_seq_length,
             dtype=None,
             load_in_4bit=config.load_in_4bit,
-            text_only=True,
         )
         # Multimodal models return a Processor; text-only training uses its tokenizer.
         tokenizer = getattr(tokenizer, "tokenizer", tokenizer)
@@ -181,37 +185,60 @@ def main(cfg: DictConfig) -> None:
                     }
                 )
 
-                logger.info("Model evaluation before training")
-                run_eval_qa(model, tokenizer, "pre")
+                # logger.info("Model evaluation before training")
+                # run_eval_qa("pre", model, tokenizer)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
-                    run_supervised_tuning(
+                    dataset = load_dataset(config.datasets.cpt)
+                    packing = config.cpt.packing
+
+                    if packing and config.cpt.prepack_dataset:
+                        packed = pack_documents(dataset, tokenizer, config.cpt.seq_len)
+                        logger.info("Packed cpt: %d documents into %d sequences", len(dataset), len(packed))
+                        dataset = packed
+                        logger.warning("Prepacking done, setting packing=false to avoid double packing")
+                        packing = False
+
+                    trainer = build_trainer(
                         "cpt",
                         model,
                         tokenizer,
-                        config.datasets.cpt,
+                        dataset,
                         config,
-                        packing=config.cpt.packing,
+                        packing=packing,
                         packing_strategy="bfd_split",  # best-fit, decreasing doc size order; splits over max_length
-                        dataset_text_field="text",
                     )
 
+                    with mlflow.start_run(run_name="cpt", nested=True):
+                        mlflow.log_params(
+                            {"dataset_path": config.datasets.cpt, "dataset_train_rows": len(trainer.train_dataset)}
+                        )
+                        trainer.train()
+
                     logger.info("Model evaluation after Continuous Pre-Training (CPT)")
-                    run_eval_qa(model, tokenizer, "cpt")
+                    run_eval_qa("cpt", model, tokenizer)
 
                 if config.datasets.sft is not None:
                     logger.info("Starting Supervised Fine-Tuning (SFT) stage")
-                    run_supervised_tuning(
-                        "sft",
-                        model,
-                        tokenizer,
-                        config.datasets.sft,
-                        config,
+                    dataset = load_dataset(config.datasets.sft)
+                    dataset = render_conversations_into_text_field(dataset, tokenizer, config.model.enable_thinking)
+
+                    trainer = build_trainer("sft", model, tokenizer, dataset, config)
+                    trainer = train_on_responses_only(
+                        trainer,
+                        instruction_part=config.model.template.instruction_part,
+                        response_part=config.model.template.response_part,
                     )
 
+                    with mlflow.start_run(run_name="sft", nested=True):
+                        mlflow.log_params(
+                            {"dataset_path": config.datasets.sft, "dataset_train_rows": len(trainer.train_dataset)}
+                        )
+                        trainer.train()
+
                     logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
-                    run_eval_qa(model, tokenizer, "sft")
+                    run_eval_qa("sft", model, tokenizer)
 
                 if config.datasets.rl is not None:
                     logger.error("Unimplemented: Reinforcement Learning (RL) training")

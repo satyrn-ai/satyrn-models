@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
 
-StageName = Literal["cpt", "sft", "rl"]
+StageName = Literal["pre", "cpt", "sft", "rl"]
 
 OmegaConf.register_resolver("mul", operator.mul)
 OmegaConf.register_resolver("max", lambda *values: max(values))
@@ -55,11 +55,20 @@ class PeftConfig(BaseModel):
     finetune_audio_layers: bool
 
 
+class TemplateConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    instruction_part: str
+    response_part: str
+
+
 class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
+    enable_thinking: bool
     peft: PeftConfig
+    template: TemplateConfig
 
 
 class MlflowConfig(BaseModel):

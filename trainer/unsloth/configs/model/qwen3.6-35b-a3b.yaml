@@ -1,0 +1,36 @@
+# Architecture: MoE, 256 experts / 8 active, 40 layers, 30 linear + 10 full attention (4:1)
+# Thinking:     on by default, empty <think></think> block when no reasoning is supplied
+# Multimodal:   text + vision
+# VRAM:         ~75GB for bf16 LoRA
+#
+# Reasoning is read from a `reasoning_content` field on the assistant message.
+#
+# Reference Unsloth notebook (loads this exact checkpoint):
+# Uses transformers 5.3.0, trl 0.22.2, torch 2.8.0, plus flash-linear-attention and
+# causal_conv1d 1.6.0, which builds only against torch 2.8.0.
+# https://github.com/unslothai/notebooks/blob/main/nb/Qwen3_6_MoE.ipynb
+#
+# model = FastLanguageModel.get_peft_model(
+#     model,
+#     r = lora_rank,
+#     target_modules = [
+#         "q_proj", "k_proj", "v_proj", "o_proj",
+#         "gate_proj", "up_proj", "down_proj", "gate_up_proj", #Enable LoRA on MoE layers
+#     ],
+#     lora_alpha = lora_rank*2,
+#     use_gradient_checkpointing = True,
+#     bias = "none",
+# )
+name: unsloth/Qwen3.6-35B-A3B
+enable_thinking: true
+
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
+
+peft:
+  r: 8
+  lora_dropout: 0.0
+  # Targeting the 256 experts per layer trains 465M params (at r=8)
+  # Consider attention only while the dataset is small: ["q_proj", "k_proj", "v_proj", "o_proj"]
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "gate_up_proj"]
