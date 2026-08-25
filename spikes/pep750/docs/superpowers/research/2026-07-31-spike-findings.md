@@ -1,5 +1,9 @@
 # Spike findings: what the throwaway build established
 
+> **Historical and non-normative.** This dated evidence does not define current
+> behavior. See the [spike index](../../../README.md) and current
+> [product design](../../../../../specs/design.md).
+
 **Date:** 2026-07-31
 **Source:** branch `worktree-overnight-tstrings-spike` (30 commits, treated as
 throwaway). This document is the harvest of its learnings.

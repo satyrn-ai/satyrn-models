@@ -2,6 +2,10 @@
 .env
 outputs/
 unsloth_compiled_cache/
+/corpus_builder/tmp/
+
+# Operating-system metadata
+.DS_Store
 
 
 # Python .gitignore
