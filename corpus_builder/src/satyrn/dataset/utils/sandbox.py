@@ -15,6 +15,12 @@ SANDBOX_LABEL_NAME = "satyrn-sandbox"
 SANDBOX_RUN_IDENTIFIER = uuid4().hex
 
 
+def get_predecessor_python_version(python_version: str) -> str:
+    """Return the Python feature release immediately before python_version."""
+    major, minor, *_ = python_version.split(".")
+    return f"{major}.{int(minor) - 1}"
+
+
 def truncate(text: str, limit: int = MAX_OUTPUT_CHARACTERS) -> str:
     """Return text cut to limit characters, noting how many were cut."""
     if len(text) <= limit:

@@ -73,7 +73,8 @@ satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output datasets/
 
 `sft` uses an LLM to generate prompt-response pairs demonstrating new Python features based on documentation.
 
-Each idea is verified by running in a sandboxed Docker container.
+Each idea is verified by running in sandboxed Docker containers for the target Python version and
+its immediate predecessor. Examples are rejected if both versions produce equivalent output.
 
 Docker is _required_, gVisor (`runsc` runtime) is _recommended_ for sandbox safety. You can verify if both are set 
 up in your environment:

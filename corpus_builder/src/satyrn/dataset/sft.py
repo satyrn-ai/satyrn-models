@@ -14,7 +14,7 @@ from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, get_llm
 from satyrn.dataset.utils.concurrency import split_workers
 from satyrn.dataset.utils.preview import print_dataset_line, print_ideas
-from satyrn.dataset.utils.sandbox import Sandbox, remove_leftover_containers
+from satyrn.dataset.utils.sandbox import Sandbox, get_predecessor_python_version, remove_leftover_containers
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ ideas for short, self-contained code blocks that would demonstrate the described
     return [Idea(doc_path, description, python_version) for description in response["ideas"]]
 
 
-def generate_code_block(model: Model, idea: Idea, sandbox: Sandbox) -> dict:
+def generate_code_block(model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> dict:
     """Return a verified code block, its reasoning trace, and expected output."""
     prompt = f"""
 The attached document describes a change in Python version {idea.python_version}. Write the `code`
@@ -109,9 +109,34 @@ In `expected_output` state exactly what running the code outputs, whether to std
     max_attempts = 3
     for attempt in range(max_attempts):
         code_block = model.generate(prompt, context, thinking=True)
-        verified, actual_output = verify_code_block(code_block["code"], code_block["expected_output"], sandbox)
+        verified, actual_output = verify_code_block(
+            code_block["code"], code_block["expected_output"], sandbox, predecessor_sandbox
+        )
         if verified:
             return code_block
+
+        if actual_output.strip() == code_block["expected_output"].strip():
+            prompt += f"""\n
+Your previous code:
+{code_block["code"]}
+
+Reasoning trace:
+{code_block["trace"]}
+
+Predicted output:
+{code_block["expected_output"]}
+
+The code produced equivalent output under both Python {sandbox.python_version} and Python
+{predecessor_sandbox.python_version}, so it does not demonstrate behavior introduced in Python
+{sandbox.python_version}. Fix the code to specifically demonstrate the new behavior.
+            """
+            logger.warning(
+                "Attempt %d/%d: code block behaved equivalently under Python %s. Prompting model to retry.",
+                attempt + 1,
+                max_attempts,
+                predecessor_sandbox.python_version,
+            )
+            continue
 
         judgement = judge_code_block(model, idea, code_block, actual_output)
         if judgement["passed"]:
@@ -202,19 +227,33 @@ If `passed` is true, judgement should be brief information that the problem was 
     return model.generate(prompt, context)
 
 
-def verify_code_block(code: str, expected_output: str, sandbox: Sandbox) -> tuple[bool, str]:
-    """Run code in sandbox. Return whether its output matches expected_output, and the actual output."""
+def verify_code_block(
+    code: str, expected_output: str, sandbox: Sandbox, predecessor_sandbox: Sandbox
+) -> tuple[bool, str]:
+    """Verify expected target output and reject equivalent predecessor behavior."""
     actual_output = sandbox.run(code)
-    if actual_output.strip() == expected_output.strip():
-        return True, actual_output
-    logger.warning(
-        "Code block did not verify under Python %s.\nCode:\n%s\nExpected output:\n%s\nActual output:\n%s",
-        sandbox.python_version,
-        code,
-        expected_output,
-        actual_output,
-    )
-    return False, actual_output
+    if actual_output.strip() != expected_output.strip():
+        logger.warning(
+            "Code block did not verify under Python %s.\nCode:\n%s\nExpected output:\n%s\nActual output:\n%s",
+            sandbox.python_version,
+            code,
+            expected_output,
+            actual_output,
+        )
+        return False, actual_output
+
+    predecessor_output = predecessor_sandbox.run(code)
+    if predecessor_output.strip() == actual_output.strip():
+        logger.warning(
+            "Code block behaved equivalently under Python %s and Python %s.\nCode:\n%s\nOutput:\n%s",
+            sandbox.python_version,
+            predecessor_sandbox.python_version,
+            code,
+            actual_output,
+        )
+        return False, actual_output
+
+    return True, actual_output
 
 
 def generate_conversation(model: Model, idea: Idea, code_block: dict) -> dict:
@@ -314,10 +353,10 @@ In `judgement`, explain your decision.
         raise ValueError(f"Judge rejected conversation: {response['judgement']}")
 
 
-def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox) -> dict | None:
+def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> dict | None:
     """Return a verified dataset line for idea, or None if it was rejected."""
     try:
-        code_block = generate_code_block(model, idea, sandbox)
+        code_block = generate_code_block(model, idea, sandbox, predecessor_sandbox)
         conversation = generate_conversation(model, idea, code_block)
         judge_conversation(model, idea, code_block, conversation)
     except ValueError as error:
@@ -369,6 +408,7 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
     """Generate an SFT dataset for every doc file under input_path."""
     model = get_llm("deepseek", "deepseek-v4-flash")
     sandbox = Sandbox(python_version)
+    predecessor_sandbox = Sandbox(get_predecessor_python_version(python_version))
     file_workers, idea_workers = split_workers(workers)
 
     # Prepare output file
@@ -390,7 +430,7 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
 
         # Process each conversation idea for the current doc file
         with ThreadPoolExecutor(max_workers=idea_workers) as executor:
-            futures = [executor.submit(build_dataset_line, model, idea, sandbox) for idea in ideas]
+            futures = [executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox) for idea in ideas]
             for future in as_completed(futures):
                 dataset_line = future.result()
                 if dataset_line is None:
