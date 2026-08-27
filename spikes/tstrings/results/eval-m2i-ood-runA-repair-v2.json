@@ -1,0 +1,848 @@
+{
+  "breakdowns": {
+    "capability": {
+      "billing": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "builds": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "cli": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "events": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "exports": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "frontend": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "html": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "http": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "logging": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "markdown": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "messaging": {
+        "failure_stages": {},
+        "passed": 1,
+        "total": 1
+      },
+      "metrics": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "notifications": {
+        "failure_stages": {
+          "policy": 1,
+          "semantic_check": 1
+        },
+        "passed": 0,
+        "total": 2
+      },
+      "observability": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "paths": {
+        "failure_stages": {
+          "policy": 2
+        },
+        "passed": 0,
+        "total": 2
+      },
+      "reporting": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "retries": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "routing": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "security": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "shell": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "sql": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "uploads": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "urls": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      }
+    },
+    "family": {
+      "independently-authored": {
+        "failure_stages": {
+          "candidate_execute": 5,
+          "policy": 18,
+          "semantic_check": 1
+        },
+        "passed": 1,
+        "total": 25
+      }
+    },
+    "framing": {
+      "natural": {
+        "failure_stages": {
+          "candidate_execute": 5,
+          "policy": 18,
+          "semantic_check": 1
+        },
+        "passed": 1,
+        "total": 25
+      }
+    },
+    "operation": {
+      "billing": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "builds": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "cli": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "events": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "exports": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "frontend": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "html": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "http": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "logging": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "markdown": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "messaging": {
+        "failure_stages": {},
+        "passed": 1,
+        "total": 1
+      },
+      "metrics": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "notifications": {
+        "failure_stages": {
+          "policy": 1,
+          "semantic_check": 1
+        },
+        "passed": 0,
+        "total": 2
+      },
+      "observability": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "paths": {
+        "failure_stages": {
+          "policy": 2
+        },
+        "passed": 0,
+        "total": 2
+      },
+      "reporting": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "retries": {
+        "failure_stages": {
+          "candidate_execute": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "routing": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "security": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "shell": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "sql": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "uploads": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      },
+      "urls": {
+        "failure_stages": {
+          "policy": 1
+        },
+        "passed": 0,
+        "total": 1
+      }
+    },
+    "role": {
+      "consumer": {
+        "failure_stages": {
+          "candidate_execute": 5,
+          "policy": 18,
+          "semantic_check": 1
+        },
+        "passed": 1,
+        "total": 25
+      }
+    }
+  },
+  "reference_observations": {
+    "010a14c281c185ea73334a1c61b5d0093fe39355f49fd1beb6555fa8719697ad": [
+      {
+        "kind": "name_value",
+        "name": "summary",
+        "repr": "'2 files uploaded'"
+      }
+    ],
+    "082bdf2d57cc40c5a871221f73ddeaa002e099959ca8da1826fa6698623164d4": [
+      {
+        "kind": "name_value",
+        "name": "csv_row",
+        "repr": "'\"Ada, Inc.\",ada@example.test,enterprise'"
+      }
+    ],
+    "10e6fd9920111c72254419890c63cf4bb2771928d04905ef2481297a1dd4200d": [
+      {
+        "kind": "name_value",
+        "name": "retry_line",
+        "repr": "'retry=042'"
+      }
+    ],
+    "2107ff4f81063e32614f3dd2456d6235bb52f9f4ee8fbbe347c14af323142bb6": [
+      {
+        "kind": "name_value",
+        "name": "status_label",
+        "repr": "\"[  'ok'] score=007.25\""
+      }
+    ],
+    "2ef05d599c6849f460bb1cc9783784ed9143ea8fdc59791b660ba3181a71ddbf": [
+      {
+        "kind": "name_value",
+        "name": "issue_url",
+        "repr": "'/projects/road%20map/issues?label=needs%20review'"
+      }
+    ],
+    "2f5d384575e8f938fad03b853caa1bba771f298d691360c0c0a45d690a98cd88": [
+      {
+        "kind": "name_value",
+        "name": "fields",
+        "repr": "({'expression': 'user_id', 'value': 42, 'conversion': None, 'format_spec': ''}, {'expression': 'action', 'value': 'checkout', 'conversion': 'r', 'format_spec': ''}, {'expression': 'latency', 'value': 18.25, 'conversion': None, 'format_spec': '.1f'})"
+      }
+    ],
+    "3c6bf88e1dbac0ee1f725df0a868363a667ac231e736385dc5255a6d7d8b2611": [
+      {
+        "kind": "name_value",
+        "name": "statement",
+        "repr": "('SELECT id, title FROM tickets WHERE tenant_id = $1 AND status = $2', (17, 'open'))"
+      }
+    ],
+    "4964c915ea082aade7acd2af3a79ad7f7d0593806f3fbe87014df580125e4a9b": [
+      {
+        "kind": "name_value",
+        "name": "headers",
+        "repr": "{'x-request-id': 'req-7', 'x-span-id': 'span-3'}"
+      }
+    ],
+    "4aec158caf54059a0a9b174b4a192b919897b09b8aeef1d585922528e80c960d": [
+      {
+        "kind": "name_value",
+        "name": "update",
+        "repr": "'## Database migration\\n\\nOwner: `ops`\\n\\nThe rollout is paused.'"
+      }
+    ],
+    "4efb2142e335bbdf0c7f357144daa761091633d98b99491564dfbf18308a61af": [
+      {
+        "kind": "name_value",
+        "name": "alert",
+        "repr": "'Hello, Nora! You have 4 unread messages.'"
+      }
+    ],
+    "557c193cc06567f127a682619af0495a318484e19f85905d352242fc952db990": [
+      {
+        "kind": "name_value",
+        "name": "windows_path",
+        "repr": "'Path: C:\\\\new\\\\logs\\\\archive'"
+      }
+    ],
+    "64574ac47ca4a87a99a4435d8c19f6c0b334c91b7ecbe57edcc048453081f18b": [
+      {
+        "kind": "name_value",
+        "name": "trace",
+        "repr": "(('region.upper()', 'EU'), ('shard + 1', 4))"
+      }
+    ],
+    "6975e7c7d1c5db1f28abc719c4d172afbe48fbf6adf62d7695725a02c7aafb8b": [
+      {
+        "kind": "name_value",
+        "name": "html",
+        "repr": "'<a href=\"/search?q=5 &lt; 7 &amp; 9\">Starter &quot;Plus&quot;</a>'"
+      }
+    ],
+    "70ed7891ed4bec057f16be12007793f8d4847287fbea850af70abb8368fb6c9d": [
+      {
+        "kind": "name_value",
+        "name": "metric_line",
+        "repr": "'queue_depth{service=\"worker\",queue=\"emails\"} 17'"
+      }
+    ],
+    "85fe60f8a7f7d2a650765a1b4bbf076ca0cbeee218fb7987fb60a96356975045": [
+      {
+        "kind": "name_value",
+        "name": "event_fields",
+        "repr": "{'request_id': 'req-19', 'customer[\"id\"]': 501}"
+      }
+    ],
+    "9184b305c58610a35b99086dda2ce1ec0fe1404a202528c4c88c5da1e0981b61": [
+      {
+        "kind": "name_value",
+        "name": "archive_path",
+        "repr": "'/srv/app/exports/prod/report.csv'"
+      }
+    ],
+    "a5ad21352d42489393efe7c210a4785bc4bc7bf7f783e4ee44421026fa865915": [
+      {
+        "kind": "name_value",
+        "name": "answer",
+        "repr": "'Welcome, Ari!'"
+      }
+    ],
+    "ae0a557cec9ede6884a483da2d0d834f311cf7b3c7a066aca765135ec638c503": [
+      {
+        "kind": "name_value",
+        "name": "email_body",
+        "repr": "'Hi Mina,\\n\\nNorthwind has 03 overdue invoices.\\n'"
+      }
+    ],
+    "b58d9022d91c8c3653ae9b396a064329035b384de2fcdc653f857ca8f704e93f": [
+      {
+        "kind": "name_value",
+        "name": "total_line",
+        "repr": "'Total: 1,234.50'"
+      }
+    ],
+    "b8764518f13d0b8aa014681b7a4adbf67a5c3e1b57734154f3d39756b7accaea": [
+      {
+        "kind": "name_value",
+        "name": "route_descriptor",
+        "repr": "{'method': 'GET', 'strings': ('GET /accounts/', '/orders/', ''), 'parameters': ('account_id', 'order_id'), 'values': (12, 88)}"
+      }
+    ],
+    "b8feb03d38de2d3281a4428182ceec37d0feb73b6f2e59e0290174424e0f5f18": [
+      {
+        "kind": "name_value",
+        "name": "server_command",
+        "repr": "'serve --host 127.0.0.1 --port 8080'"
+      }
+    ],
+    "c6c05b0674a92ce11788b4a2eaf7a5d5a09d7999c5e1edff8c76bf32268b3b9d": [
+      {
+        "kind": "name_value",
+        "name": "captured_greeting",
+        "repr": "'Hello Mia'"
+      }
+    ],
+    "d5a0db8bc050eeb8b437bbefecef298b965fd1dfda538e6007858f5799ee2a30": [
+      {
+        "kind": "name_value",
+        "name": "css",
+        "repr": "'.button { color: #0af; }'"
+      }
+    ],
+    "e6bf2c45b9d58107a585e2a0cbddbb525b720e71e1687bf245cff9414e18ba5f": [
+      {
+        "kind": "name_value",
+        "name": "command",
+        "repr": "\"git commit -m 'fix: handle spaces' --author 'Dev Example <dev@example.test>'\""
+      }
+    ],
+    "fdf3cb306e086da087b8cb40e622305007c34311b30d878d876900cd4598c2a7": [
+      {
+        "kind": "name_value",
+        "name": "diagnostic",
+        "repr": "'login user=riley password=*** api_token=***'"
+      }
+    ]
+  },
+  "results": [
+    {
+      "candidate": "name = \"Ari\"\nanswer = f\"Hello, {name}!\"",
+      "completion": "name = \"Ari\"\nanswer = f\"Hello, {name}!\"\n",
+      "elapsed": 1.1,
+      "id": "a5ad21352d42489393efe7c210a4785bc4bc7bf7f783e4ee44421026fa865915",
+      "passed": false,
+      "prompt": "Turn the supplied customer name into the greeting text a notification service should send. Use a t-string and leave the rendered text in `answer`. The name is `\"Ari\"`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\nname = \"Ari\"\ntemplate = t\"Welcome, {name}!\"\nanswer = \"\".join(part if isinstance(part, str) else str(part.value) for part in template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(escape(value))\n    return \"\".join(parts)\n\ndef escape(s: str) -> str:\n    return s.replace(\"&\", \"&amp;\").replace(\"<\", \"&lt;\").replace(\">\", \"&gt;\")\n\nquery = 5 < 7 & 9\ntitle = 'Starter \"Plus\"'\ntemplate = Template(\n    '<a href=\"https://example.com/product?query={query}\" title={title}>Product</a>'\n)\nhtml = render_template(template)",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(escape(value))\n    return \"\".join(parts)\n\ndef escape(s: str) -> str:\n    return s.replace(\"&\", \"&amp;\").replace(\"<\", \"&lt;\").replace(\">\", \"&gt;\")\n\nquery = 5 < 7 & 9\ntitle = 'Starter \"Plus\"'\ntemplate = Template(\n    '<a href=\"https://example.com/product?query={query}\" title={title}>Product</a>'\n)\nhtml = render_template(template)\n",
+      "elapsed": 3.03,
+      "id": "6975e7c7d1c5db1f28abc719c4d172afbe48fbf6adf62d7695725a02c7aafb8b",
+      "passed": false,
+      "prompt": "Render this product link safely for an HTML email. The query is `5 < 7 & 9` and the title is `Starter \"Plus\"`. Escape every interpolated value, including attribute values, while keeping the markup literals intact. Put the finished HTML in `html`.",
+      "reason": "no t-string literal found where reference uses one",
+      "reference": "from html import escape\nfrom string.templatelib import Interpolation\n\ndef render_html(template):\n    pieces = []\n    for part in template:\n        if isinstance(part, str):\n            pieces.append(part)\n        else:\n            pieces.append(escape(str(part.value), quote=True))\n    return \"\".join(pieces)\n\nquery = \"5 < 7 & 9\"\ntitle = 'Starter \"Plus\"'\ntemplate = t'<a href=\"/search?q={query}\">{title}</a>'\nhtml = render_html(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "tag = \"ok\"\nscore = 7.25\nstatus_label = f'Status: {tag!r:>8} ({score:08.2f})'",
+      "completion": "tag = \"ok\"\nscore = 7.25\nstatus_label = f'Status: {tag!r:>8} ({score:08.2f})'\n",
+      "elapsed": 0.72,
+      "id": "2107ff4f81063e32614f3dd2456d6235bb52f9f4ee8fbbe347c14af323142bb6",
+      "passed": false,
+      "prompt": "Format a compact build-status label from `tag = \"ok\"` and `score = 7.25`. Honor the `!r`, alignment, zero-padding, and precision written in the t-string; leave the final label in `status_label`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    pieces = []\n    for part in template:\n        if isinstance(part, str):\n            pieces.append(part)\n            continue\n        value = part.value\n        if part.conversion == \"r\":\n            value = repr(value)\n        elif part.conversion == \"s\":\n            value = str(value)\n        elif part.conversion == \"a\":\n            value = ascii(value)\n        pieces.append(format(value, part.format_spec))\n    return \"\".join(pieces)\n\ntag = \"ok\"\nscore = 7.25\ntemplate = t\"[{tag!r:>6}] score={score:06.2f}\"\nstatus_label = render(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "statement = (\n    \"SELECT * FROM tickets WHERE tenant = $1 AND status = $2\",\n    (17, \"open\")\n)",
+      "completion": "statement = (\n    \"SELECT * FROM tickets WHERE tenant = $1 AND status = $2\",\n    (17, \"open\")\n)\n",
+      "elapsed": 0.62,
+      "id": "3c6bf88e1dbac0ee1f725df0a868363a667ac231e736385dc5255a6d7d8b2611",
+      "passed": false,
+      "prompt": "Build a parameterized SQL query for tenant 17 and status `\"open\"`. Keep user values out of SQL text: produce a `(query, parameters)` pair in `statement`, using PostgreSQL `$1`, `$2` placeholders.",
+      "reason": "no t-string literal found where reference uses one",
+      "reference": "from string.templatelib import Interpolation\n\ndef parameterize(template):\n    sql = []\n    parameters = []\n    for part in template:\n        if isinstance(part, str):\n            sql.append(part)\n        else:\n            parameters.append(part.value)\n            sql.append(f\"${len(parameters)}\")\n    return \"\".join(sql), tuple(parameters)\n\ntenant = 17\nstatus = \"open\"\ntemplate = t\"SELECT id, title FROM tickets WHERE tenant_id = {tenant} AND status = {status}\"\nstatement = parameterize(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "t_string = t_string('user_id={user_id} action={action!r} latency_ms={latency:.1f}')\nfields = tuple(\n    {\n        \"expression\": part.expression,\n        \"value\": part.value,\n        \"conversion\": part.conversion,\n        \"format_spec\": part.format_spec,\n    }\n    for part in t_string.interpolations\n)",
+      "completion": "t_string = t_string('user_id={user_id} action={action!r} latency_ms={latency:.1f}')\nfields = tuple(\n    {\n        \"expression\": part.expression,\n        \"value\": part.value,\n        \"conversion\": part.conversion,\n        \"format_spec\": part.format_spec,\n    }\n    for part in t_string.interpolations\n)\n",
+      "elapsed": 1.48,
+      "id": "2f5d384575e8f938fad03b853caa1bba771f298d691360c0c0a45d690a98cd88",
+      "passed": false,
+      "prompt": "Make an audit record from the t-string `user_id={user_id} action={action!r} latency_ms={latency:.1f}`. Preserve each interpolation's source expression, evaluated value, conversion, and format specification in a tuple of dictionaries named `fields`.",
+      "reason": "no t-string literal found where reference uses one",
+      "reference": "from string.templatelib import Interpolation\n\nuser_id = 42\naction = \"checkout\"\nlatency = 18.25\ntemplate = t\"user_id={user_id} action={action!r} latency_ms={latency:.1f}\"\nfields = tuple(\n    {\n        \"expression\": part.expression,\n        \"value\": part.value,\n        \"conversion\": part.conversion,\n        \"format_spec\": part.format_spec,\n    }\n    for part in template\n    if isinstance(part, Interpolation)\n)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Template\n\ntemplate = Template(\n    'git commit -m \"{message}\" --author=\"{author}\"'\n)\ncommand = template.values",
+      "completion": "from string.templatelib import Template\n\ntemplate = Template(\n    'git commit -m \"{message}\" --author=\"{author}\"'\n)\ncommand = template.values\n",
+      "elapsed": 0.7,
+      "id": "e6bf2c45b9d58107a585e2a0cbddbb525b720e71e1687bf245cff9414e18ba5f",
+      "passed": false,
+      "prompt": "Prepare a safe shell command for committing message `fix: handle spaces` as author `Dev Example <dev@example.test>`. Quote only interpolated values with the standard library and leave the command string in `command`.",
+      "reason": "no t-string literal found where reference uses one",
+      "reference": "import shlex\nfrom string.templatelib import Interpolation\n\ndef shell_command(template):\n    return \"\".join(part if isinstance(part, str) else shlex.quote(str(part.value)) for part in template)\n\nmessage = \"fix: handle spaces\"\nauthor = \"Dev Example <dev@example.test>\"\ntemplate = t\"git commit -m {message} --author {author}\"\ncommand = shell_command(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template.interpolations:\n        value = convert(part.value, part.conversion)\n        parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\nbase = PurePath('/srv/app')\nenv = 'prod'\nfilename = 'report.csv'\ntemplate = tstring(f\"{base}/{env}/{filename}\")\narchive_path = render_template(template)",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template.interpolations:\n        value = convert(part.value, part.conversion)\n        parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\nbase = PurePath('/srv/app')\nenv = 'prod'\nfilename = 'report.csv'\ntemplate = tstring(f\"{base}/{env}/{filename}\")\narchive_path = render_template(template)\n",
+      "elapsed": 1.94,
+      "id": "9184b305c58610a35b99086dda2ce1ec0fe1404a202528c4c88c5da1e0981b61",
+      "passed": false,
+      "prompt": "Generate the archive path for base `PurePath('/srv/app')`, environment `prod`, and filename `report.csv`. Use a t-string as the path template, then leave the normalized POSIX path text in `archive_path`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from pathlib import PurePath\nfrom string.templatelib import Interpolation\n\ndef render_path(template):\n    return \"\".join(part if isinstance(part, str) else str(part.value) for part in template)\n\nbase = PurePath(\"/srv/app\")\nenvironment = \"prod\"\nfilename = \"report.csv\"\ntemplate = t\"{base}/exports/{environment}/{filename}\"\narchive_path = str(PurePath(render_path(template)))",
+      "stage": "policy"
+    },
+    {
+      "candidate": "email_body = f\"\"\"\nHello Mina,\n\nYour account \"Northwind\" has 3 overdue invoices.\nPlease settle them promptly to avoid service disruption.\n\nThank you,\nBilling Team\n\"\"\".strip()",
+      "completion": "email_body = f\"\"\"\nHello Mina,\n\nYour account \"Northwind\" has 3 overdue invoices.\nPlease settle them promptly to avoid service disruption.\n\nThank you,\nBilling Team\n\"\"\".strip()\n",
+      "elapsed": 0.8,
+      "id": "ae0a557cec9ede6884a483da2d0d834f311cf7b3c7a066aca765135ec638c503",
+      "passed": false,
+      "prompt": "Create the billing-email body for first name `Mina`, account name `Northwind`, and 3 overdue invoices. The count must display as two digits. Render the t-string faithfully and assign the body to `email_body`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(\n        part if isinstance(part, str) else format(part.value, part.format_spec)\n        for part in template\n    )\n\nfirst_name = \"Mina\"\naccount = \"Northwind\"\noverdue = 3\ntemplate = t\"Hi {first_name},\\n\\n{account} has {overdue:02d} overdue invoices.\\n\"\nemail_body = render(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ntitle = \"Database migration\"\nowner = \"ops\"\nbody = \"The rollout is paused.\"\ntemplate = render_template(\n    f\"## {title}\\n\\n**Owner:** {owner}\\n\\n{body}\"\n)\nupdate = template",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ntitle = \"Database migration\"\nowner = \"ops\"\nbody = \"The rollout is paused.\"\ntemplate = render_template(\n    f\"## {title}\\n\\n**Owner:** {owner}\\n\\n{body}\"\n)\nupdate = template\n",
+      "elapsed": 2.37,
+      "id": "4aec158caf54059a0a9b174b4a192b919897b09b8aeef1d585922528e80c960d",
+      "passed": false,
+      "prompt": "Render a short Markdown incident update. Given title `Database migration`, owner `ops`, and body `The rollout is paused.`, put the complete Markdown in `update`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\ndef markdown(template):\n    return \"\".join(part if isinstance(part, str) else str(part.value) for part in template)\n\ntitle = \"Database migration\"\nowner = \"ops\"\nbody = \"The rollout is paused.\"\ntemplate = t\"## {title}\\n\\nOwner: `{owner}`\\n\\n{body}\"\nupdate = markdown(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template\n\ndef build_event_fields(t_string: str) -> dict:\n    template = Template(t_string)\n    return {part.expression: part.value for part in template.interpolations}\n\nevent_fields = build_event_fields(t'User {request_id} with ID {customer[\"id\"]}')",
+      "completion": "from string.templatelib import Interpolation, Template\n\ndef build_event_fields(t_string: str) -> dict:\n    template = Template(t_string)\n    return {part.expression: part.value for part in template.interpolations}\n\nevent_fields = build_event_fields(t'User {request_id} with ID {customer[\"id\"]}')\n",
+      "elapsed": 1.35,
+      "id": "85fe60f8a7f7d2a650765a1b4bbf076ca0cbeee218fb7987fb60a96356975045",
+      "passed": false,
+      "prompt": "An event pipeline needs structured data instead of a rendered line. From a t-string containing `request_id` and `customer[\"id\"]`, build a dictionary keyed by each interpolation expression and leave it in `event_fields`.",
+      "reason": "candidate raised NameError",
+      "reference": "from string.templatelib import Interpolation\n\nrequest_id = \"req-19\"\ncustomer = {\"id\": 501, \"name\": \"Lena\"}\ntemplate = t\"request={request_id} customer={customer[\"id\"]}\"\nevent_fields = {\n    part.expression: part.value\n    for part in template\n    if isinstance(part, Interpolation)\n}",
+      "stage": "candidate_execute"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ncredentials = {\n    \"username\": \"alice\",\n    \"password\": \"secret123\",\n    \"token\": \"abc123\"\n}\ntemplate = Template(\n    \"Login as {{username}} with password {{password}} and token {{token}}.\"\n)\ndiagnostic = render_template(template)",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ncredentials = {\n    \"username\": \"alice\",\n    \"password\": \"secret123\",\n    \"token\": \"abc123\"\n}\ntemplate = Template(\n    \"Login as {{username}} with password {{password}} and token {{token}}.\"\n)\ndiagnostic = render_template(template)\n",
+      "elapsed": 2.51,
+      "id": "fdf3cb306e086da087b8cb40e622305007c34311b30d878d876900cd4598c2a7",
+      "passed": false,
+      "prompt": "Render a login diagnostic, but redact any interpolation whose expression contains `password` or `token`. With the supplied credentials, leave the safe line in `diagnostic`.",
+      "reason": "no t-string literal found where reference uses one",
+      "reference": "from string.templatelib import Interpolation\n\ndef redact(template):\n    pieces = []\n    for part in template:\n        if isinstance(part, str):\n            pieces.append(part)\n        elif \"password\" in part.expression or \"token\" in part.expression:\n            pieces.append(\"***\")\n        else:\n            pieces.append(str(part.value))\n    return \"\".join(pieces)\n\nuser = \"riley\"\npassword = \"swordfish\"\napi_token = \"token-123\"\ntemplate = t\"login user={user} password={password} api_token={api_token}\"\ndiagnostic = redact(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "project = \"road map\"\nlabel = \"needs review\"\nissue_url = f\"https://example.com/issues/{project}/{label}\"",
+      "completion": "project = \"road map\"\nlabel = \"needs review\"\nissue_url = f\"https://example.com/issues/{project}/{label}\"\n",
+      "elapsed": 0.61,
+      "id": "2ef05d599c6849f460bb1cc9783784ed9143ea8fdc59791b660ba3181a71ddbf",
+      "passed": false,
+      "prompt": "Build a percent-encoded issue URL from project `road map` and label `needs review`. Treat the t-string's interpolated values as URL path/query components, and leave the URL in `issue_url`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\nfrom urllib.parse import quote\n\ndef render_url(template):\n    return \"\".join(\n        part if isinstance(part, str) else quote(str(part.value), safe=\"\")\n        for part in template\n    )\n\nproject = \"road map\"\nlabel = \"needs review\"\ntemplate = t\"/projects/{project}/issues?label={label}\"\nissue_url = render_url(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\nt1 = t\"Hello\"\nt2 = t\", \"\nt3 = t\"Nora! You have 4 unread messages.\"\ntemplate = t1 + t2 + t3\nalert = render_template(template)",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\nt1 = t\"Hello\"\nt2 = t\", \"\nt3 = t\"Nora! You have 4 unread messages.\"\ntemplate = t1 + t2 + t3\nalert = render_template(template)\n",
+      "elapsed": 2.39,
+      "id": "4efb2142e335bbdf0c7f357144daa761091633d98b99491564dfbf18308a61af",
+      "passed": true,
+      "prompt": "Compose three t-strings to make an alert for user `Nora` with 4 unread messages. Render the combined template and put the final sentence in `alert`.",
+      "reason": null,
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(part if isinstance(part, str) else str(part.value) for part in template)\n\nuser = \"Nora\"\nunread = 4\ntemplate = t\"Hello, \" + t\"{user}\" + t\"! You have {unread} unread messages.\"\nalert = render(template)",
+      "stage": null
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\nuser = \"Mia\"\ntemplate = t\"Hello, {user}!\"\ncaptured_greeting = render_template(template)\nuser = \"Theo\"",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\nuser = \"Mia\"\ntemplate = t\"Hello, {user}!\"\ncaptured_greeting = render_template(template)\nuser = \"Theo\"\n",
+      "elapsed": 2.11,
+      "id": "c6c05b0674a92ce11788b4a2eaf7a5d5a09d7999c5e1edff8c76bf32268b3b9d",
+      "passed": false,
+      "prompt": "Capture a greeting template while `user` is `Mia`, then change `user` to `Theo`. Render the already-created template and leave the result in `captured_greeting`; it should use the value captured by the t-string.",
+      "reason": "'captured_greeting' mismatch",
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(part if isinstance(part, str) else str(part.value) for part in template)\n\nuser = \"Mia\"\ntemplate = t\"Hello {user}\"\nuser = \"Theo\"\ncaptured_greeting = render(template)",
+      "stage": "semantic_check"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ntemplate = t'body { accent-color: #0af; }'\ncss = render_template(template)",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ntemplate = t'body { accent-color: #0af; }'\ncss = render_template(template)\n",
+      "elapsed": 1.98,
+      "id": "d5a0db8bc050eeb8b437bbefecef298b965fd1dfda538e6007858f5799ee2a30",
+      "passed": false,
+      "prompt": "Generate a CSS rule using accent color `#0af`. The literal braces around the rule must survive t-string parsing. Render the stylesheet and store it as `css`.",
+      "reason": "candidate raised NameError",
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(part if isinstance(part, str) else str(part.value) for part in template)\n\naccent = \"#0af\"\ntemplate = t\".button {{ color: {accent}; }}\"\ncss = render(template)",
+      "stage": "candidate_execute"
+    },
+    {
+      "candidate": "directory = r'C:\\new\\logs'\nwindows_path = f'r{directory}\\archive'",
+      "completion": "directory = r'C:\\new\\logs'\nwindows_path = f'r{directory}\\archive'\n",
+      "elapsed": 0.49,
+      "id": "557c193cc06567f127a682619af0495a318484e19f85905d352242fc952db990",
+      "passed": false,
+      "prompt": "Document a Windows archive location without interpreting `\\n` as a newline. With `directory = r'C:\\new\\logs'`, use a raw t-string to form the path ending in `\\archive`, render it, and assign it to `windows_path`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(part if isinstance(part, str) else str(part.value) for part in template)\n\ndirectory = r\"C:\\new\\logs\"\ntemplate = rt\"Path: {directory}\\archive\"\nwindows_path = render(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from decimal import Decimal\ntotal_line = f'${Decimal(\"1234.5\"):grouped,.2f}'",
+      "completion": "from decimal import Decimal\ntotal_line = f'${Decimal(\"1234.5\"):grouped,.2f}'\n",
+      "elapsed": 0.53,
+      "id": "b58d9022d91c8c3653ae9b396a064329035b384de2fcdc653f857ca8f704e93f",
+      "passed": false,
+      "prompt": "Format `Decimal('1234.5')` as the monetary total for a report, with grouping and exactly two decimal places. Use the format spec written in a t-string and leave the rendered line in `total_line`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from decimal import Decimal\nfrom string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(\n        part if isinstance(part, str) else format(part.value, part.format_spec)\n        for part in template\n    )\n\ntotal = Decimal(\"1234.5\")\ntemplate = t\"Total: {total:,.2f}\"\ntotal_line = render(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Template\n\ntemplate = Template('GET /accounts/{account_id}/orders/{order_id}')\nroute_descriptor = {\n    \"method\": template.method,\n    \"literal_segments\": template.literal_segments,\n    \"parameter_expressions\": template.parameter_expressions,\n    \"parameter_values\": template.parameter_values,\n}",
+      "completion": "from string.templatelib import Template\n\ntemplate = Template('GET /accounts/{account_id}/orders/{order_id}')\nroute_descriptor = {\n    \"method\": template.method,\n    \"literal_segments\": template.literal_segments,\n    \"parameter_expressions\": template.parameter_expressions,\n    \"parameter_values\": template.parameter_values,\n}\n",
+      "elapsed": 1.32,
+      "id": "b8764518f13d0b8aa014681b7a4adbf67a5c3e1b57734154f3d39756b7accaea",
+      "passed": false,
+      "prompt": "Describe the route template `GET /accounts/{account_id}/orders/{order_id}` for a router debugger. Leave a dictionary named `route_descriptor` containing the method, literal string segments, parameter expressions, and parameter values.",
+      "reason": "no t-string literal found where reference uses one",
+      "reference": "from string.templatelib import Interpolation\n\naccount_id = 12\norder_id = 88\ntemplate = t\"GET /accounts/{account_id}/orders/{order_id}\"\nroute_descriptor = {\n    \"method\": \"GET\",\n    \"strings\": template.strings,\n    \"parameters\": tuple(\n        part.expression for part in template if isinstance(part, Interpolation)\n    ),\n    \"values\": template.values,\n}",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\nregion = 'eu'\nshard = 3\ntemplate = t\"region={region} shard={shard}\"\ntrace = tuple(\n    (part.expression, convert(part.expression, part.value_type))\n    for part in template.interpolations\n)",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\nregion = 'eu'\nshard = 3\ntemplate = t\"region={region} shard={shard}\"\ntrace = tuple(\n    (part.expression, convert(part.expression, part.value_type))\n    for part in template.interpolations\n)\n",
+      "elapsed": 1.19,
+      "id": "64574ac47ca4a87a99a4435d8c19f6c0b334c91b7ecbe57edcc048453081f18b",
+      "passed": false,
+      "prompt": "For a feature-flag trace, retain the source code of the expressions as well as their evaluated values. Use `region = 'eu'` and `shard = 3` in a t-string, then leave a tuple of `(expression, value)` pairs in `trace`.",
+      "reason": "candidate raised AttributeError",
+      "reference": "from string.templatelib import Interpolation\n\nregion = \"eu\"\nshard = 3\ntemplate = t\"region={region.upper()} shard={shard + 1}\"\ntrace = tuple(\n    (part.expression, part.value)\n    for part in template\n    if isinstance(part, Interpolation)\n)",
+      "stage": "candidate_execute"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template\n\ninterpolation = Interpolation(\n    expression='retry_count',\n    value=42,\n    format_spec='03d',\n    source=None,\n    target=None,\n)\ntemplate = Template(\n    'retry=042',\n    interpolations=[interpolation],\n    strings=['retry=042'],\n)\nretry_line = template.render()",
+      "completion": "from string.templatelib import Interpolation, Template\n\ninterpolation = Interpolation(\n    expression='retry_count',\n    value=42,\n    format_spec='03d',\n    source=None,\n    target=None,\n)\ntemplate = Template(\n    'retry=042',\n    interpolations=[interpolation],\n    strings=['retry=042'],\n)\nretry_line = template.render()\n",
+      "elapsed": 1.48,
+      "id": "10e6fd9920111c72254419890c63cf4bb2771928d04905ef2481297a1dd4200d",
+      "passed": false,
+      "prompt": "A retry policy stores an interpolation separately from its literal text. Construct a `Template` manually for `retry=042`, using an `Interpolation` with expression `retry_count` and format spec `03d`; render it into `retry_line`.",
+      "reason": "candidate raised TypeError",
+      "reference": "from string.templatelib import Interpolation, Template\n\ndef render(template):\n    return \"\".join(\n        part if isinstance(part, str) else format(part.value, part.format_spec)\n        for part in template\n    )\n\nretry_count = 42\ninterpolation = Interpolation(retry_count, \"retry_count\", None, \"03d\")\ntemplate = Template(\"retry=\", interpolation)\nretry_line = render(template)",
+      "stage": "candidate_execute"
+    },
+    {
+      "candidate": "import csv\nfrom string.templatelib import Interpolation, Template\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = part.value\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ntemplate = t\"name: {name}, email: {email}, tier: {tier}\"\nvalues = (name, email, tier) = (\"Ada, Inc.\", \"ada@example.test\", \"enterprise\")\ncsv_row = render_template(template)",
+      "completion": "import csv\nfrom string.templatelib import Interpolation, Template\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = part.value\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ntemplate = t\"name: {name}, email: {email}, tier: {tier}\"\nvalues = (name, email, tier) = (\"Ada, Inc.\", \"ada@example.test\", \"enterprise\")\ncsv_row = render_template(template)\n",
+      "elapsed": 2.31,
+      "id": "082bdf2d57cc40c5a871221f73ddeaa002e099959ca8da1826fa6698623164d4",
+      "passed": false,
+      "prompt": "Create one CSV data row from name `Ada, Inc.`, email `ada@example.test`, and tier `enterprise`. Start with a t-string so field values remain distinct, serialize the interpolation values with the standard `csv` module, and leave the line without its record terminator in `csv_row`.",
+      "reason": "candidate raised NameError",
+      "reference": "import csv\nfrom io import StringIO\nfrom string.templatelib import Interpolation\n\nname = \"Ada, Inc.\"\nemail = \"ada@example.test\"\ntier = \"enterprise\"\ntemplate = t\"{name},{email},{tier}\"\nfields = [part.value for part in template if isinstance(part, Interpolation)]\nbuffer = StringIO()\ncsv.writer(buffer, lineterminator=\"\\n\").writerow(fields)\ncsv_row = buffer.getvalue().removesuffix(\"\\n\")",
+      "stage": "candidate_execute"
+    },
+    {
+      "candidate": "headers = f\"req-7 span-3\".lower().split()",
+      "completion": "headers = f\"req-7 span-3\".lower().split()\n",
+      "elapsed": 0.39,
+      "id": "4964c915ea082aade7acd2af3a79ad7f7d0593806f3fbe87014df580125e4a9b",
+      "passed": false,
+      "prompt": "Build HTTP trace headers from request id `req-7` and span id `span-3`. Use a t-string to retain the two values, then leave the lowercase header mapping in `headers`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\nrequest_id = \"req-7\"\nspan_id = \"span-3\"\ntemplate = t\"{request_id} {span_id}\"\nvalues = [part.value for part in template if isinstance(part, Interpolation)]\nheaders = {\"x-request-id\": values[0], \"x-span-id\": values[1]}",
+      "stage": "policy"
+    },
+    {
+      "candidate": "server_command = f\"python -m http.server 8080:d\"",
+      "completion": "server_command = f\"python -m http.server 8080:d\"\n",
+      "elapsed": 0.45,
+      "id": "b8feb03d38de2d3281a4428182ceec37d0feb73b6f2e59e0290174424e0f5f18",
+      "passed": false,
+      "prompt": "Render a local server command for host `127.0.0.1` and port 8080. Honor the `:d` t-string format specification and put the command in `server_command`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(\n        part if isinstance(part, str) else format(part.value, part.format_spec)\n        for part in template\n    )\n\nhost = \"127.0.0.1\"\nport = 8080\ntemplate = t\"serve --host {host} --port {port:d}\"\nserver_command = render(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "uploaded = 2\nnoun = \"file\"\nsummary = f\"You have uploaded {uploaded} {noun}.\"",
+      "completion": "uploaded = 2\nnoun = \"file\"\nsummary = f\"You have uploaded {uploaded} {noun}.\"\n",
+      "elapsed": 0.53,
+      "id": "010a14c281c185ea73334a1c61b5d0093fe39355f49fd1beb6555fa8719697ad",
+      "passed": false,
+      "prompt": "Produce an upload summary for `uploaded = 2`. Select the correct noun before interpolating it into a t-string, render the result, and assign it to `summary`.",
+      "reason": "old-form f-string detected where t-string required",
+      "reference": "from string.templatelib import Interpolation\n\ndef render(template):\n    return \"\".join(part if isinstance(part, str) else str(part.value) for part in template)\n\nuploaded = 2\nnoun = \"file\" if uploaded == 1 else \"files\"\ntemplate = t\"{uploaded} {noun} uploaded\"\nsummary = render(template)",
+      "stage": "policy"
+    },
+    {
+      "candidate": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n",
+      "completion": "from string.templatelib import Interpolation, Template, convert\n\ndef render_template(template: Template) -> str:\n    parts: list[str] = []\n    for part in template:\n        if isinstance(part, str):\n            parts.append(part)\n        elif isinstance(part, Interpolation):\n            value = convert(part.value, part.conversion)\n            parts.append(format(value, part.format_spec))\n    return \"\".join(parts)\n\ntemplate = t'worker{queue=\"emails\",depth=17}'\nmetric_line = render_template(template)\n",
+      "elapsed": 1.99,
+      "id": "70ed7891ed4bec057f16be12007793f8d4847287fbea850af70abb8368fb6c9d",
+      "passed": false,
+      "prompt": "Create a Prometheus-style metric line for service `worker`, queue `emails`, and depth 17. Escape label values for backslashes and quotes while rendering the t-string, and leave the line in `metric_line`.",
+      "reason": "no t-string literal found where reference uses one",
+      "reference": "from string.templatelib import Interpolation\n\ndef metric_escape(value):\n    return str(value).replace(\"\\\\\", r\"\\\\\").replace('\\\"', r'\\\"')\n\ndef render_metric(template):\n    return \"\".join(\n        part if isinstance(part, str) else metric_escape(part.value)\n        for part in template\n    )\n\nservice = \"worker\"\nqueue = \"emails\"\ndepth = 17\ntemplate = t'queue_depth{{service=\"{service}\",queue=\"{queue}\"}} {depth}'\nmetric_line = render_metric(template)",
+      "stage": "policy"
+    }
+  ],
+  "run": {
+    "adapter": "adapters/m2i-runA-repair-v2",
+    "adapter_revision": "runA-repair-v2",
+    "backend": "mlx",
+    "benchmark": "benchmark/ood-v1/tasks.jsonl",
+    "benchmark_fingerprint": "189aa7cee0dfb10f1514235ec867dd171c1b2778e2da7003a0f4bb47dfd1f37d",
+    "docs_path": null,
+    "docs_source_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "max_tokens": 700,
+    "model": "jedisct1/Mellum2-12B-A2.5B-Instruct-mlx-8bit",
+    "model_revision": "mellum2-instruct-8bit",
+    "prompt_fingerprint": "f5b7a7da9d731c5a4f8fe1555d300548764bf49e08ccfefc6e997d9ef775dd90",
+    "runtime": {
+      "evaluator_revision": "e045891451164b0037ed4128e750ce39e90ca79c",
+      "mlx_lm_version": "0.31.3",
+      "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+      "python_version": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]"
+    },
+    "system_prompt": "You are a Python 3.14 code generator. Output ONLY a single Python program as plain code \u2014 no explanation, no markdown fences, no comments about the code. The program must run on CPython 3.14 and define the variable `result`.",
+    "task_limit": null,
+    "tokenizer_revision": "mellum2-instruct-8bit"
+  },
+  "summary": {
+    "failure_stages": {
+      "candidate_execute": 5,
+      "policy": 18,
+      "semantic_check": 1
+    },
+    "passed": 1,
+    "score": 0.04,
+    "total": 25
+  },
+  "tag": "m2i-ood-runA-repair-v2"
+}
