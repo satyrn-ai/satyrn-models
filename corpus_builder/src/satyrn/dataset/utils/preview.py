@@ -31,11 +31,11 @@ def print_dataset_line(dataset_line: dict) -> None:
         if dataset_line.get(key):
             console.print(f"[bold]{key}:[/bold] {dataset_line[key]}")
 
-    markdown_fields = ["code", "trace", "expected_output"]
+    markdown_fields = ["code", "solution", "trace", "expected_output"]
     for key in markdown_fields:
         if dataset_line.get(key):
             console.print(f"[bold]{key}:[/bold]")
-            text = f"```python\n{dataset_line[key]}\n```" if key == "code" else dataset_line[key]
+            text = f"```python\n{dataset_line[key]}\n```" if key in ("code", "solution") else dataset_line[key]
             console.print(Markdown(text))
 
     known_keys = set(fields) | set(markdown_fields) | {"prompt", "completion"}
@@ -44,4 +44,7 @@ def print_dataset_line(dataset_line: dict) -> None:
             console.print(f"[bold]{key}:[/bold] {value}")
 
     console.print()
-    print_messages(dataset_line.get("prompt", []) + dataset_line.get("completion", []))
+    prompt = dataset_line.get("prompt", [])
+    messages = list(prompt) if isinstance(prompt, list) else [{"role": "user", "content": prompt}]
+    messages += dataset_line.get("completion", [])
+    print_messages(messages)

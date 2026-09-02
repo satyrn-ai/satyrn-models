@@ -54,7 +54,7 @@ Each subcommand generates one dataset type, writing JSONL to the `--output` file
 ```sh
 satyrn-dataset cpt --input-dir DIR --output FILE.jsonl   # Continued Pretraining (CPT)
 satyrn-dataset sft --input PATH --output FILE.jsonl      # Supervised Fine-Tuning (SFT)
-satyrn-dataset rl  --input PATH --output FILE.jsonl      # Reinforcement Learning (RL)
+satyrn-dataset rl  --input PATH --output FILE.jsonl      # Evaluation / Reinforcement Learning (RL)
 ```
 
 ### Generate Continued Pretraining (CPT) datasets
@@ -107,4 +107,32 @@ Generating examples 24 at a time:
 
 ```sh
 satyrn-dataset sft -i datasets/python3.15/input/docs -o datasets/python3.15/sft.jsonl --python-version 3.15 --workers 24
+```
+
+### Generate evaluation and Reinforcement Learning datasets
+
+`rl` turns each demonstrable change in a PEP or Python documentation file into a small callable
+programming task. Each JSONL row contains:
+
+- `prompt`: a self-contained problem and callable signature;
+- `test_cases`: 5-12 independent checks, each with a documented input, expected output, and executable assertion;
+- `solution`: a reference implementation used to verify the tests; and
+- `metadata`: the source document, normalized PEP identifier when applicable, Python version,
+  originating idea, entry point, and test count.
+
+The reference solution must pass every test under the target Python version. The same solution and
+suite are then run under the immediately preceding version, and the row is rejected if all tests
+still pass there. A candidate model response can be scored by running every test independently and
+using `passed_tests / total_tests`, producing a score between 0 and 1.
+
+Docker has the same requirements as for `sft`. Generate from a single PEP with preview:
+
+```sh
+satyrn-dataset rl -i datasets/python3.15/input/docs/PEP815.rst -o datasets/python3.15/rl.jsonl --python-version 3.15 --preview
+```
+
+Generate across all downloaded documents with parallel workers:
+
+```sh
+satyrn-dataset rl -i datasets/python3.15/input/docs -o datasets/python3.15/rl.jsonl --python-version 3.15 --workers 24
 ```
