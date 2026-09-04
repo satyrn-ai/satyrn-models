@@ -52,18 +52,8 @@ def run_eval_qa(stage: StageName, model: Module, tokenizer: PreTrainedTokenizerB
         generated = output[0][inputs["input_ids"].shape[-1] :]
         return tokenizer.decode(generated, skip_special_tokens=True)
 
-    # For MoE models, output_router_logits carries the router's load-balancing loss during
-    # training. Generation collects no router logits, so it must be off here.
-    config = model.config.get_text_config()
-    if getattr(config, "output_router_logits", None) is not None:
-        config.output_router_logits = False
+    from satyrn.trainer.unsloth.eval.utils import model_in_inference_mode
 
-    # Training mode keeps dropout on, gradient checkpointing recomputing, and the KV cache off
-    from unsloth import FastModel
-
-    FastModel.for_inference(model)
-    try:
+    with model_in_inference_mode(model):
         for question in QUESTIONS:
             logger.info("%s\n%s\n\n", question, answer_question(question))
-    finally:
-        FastModel.for_training(model)
