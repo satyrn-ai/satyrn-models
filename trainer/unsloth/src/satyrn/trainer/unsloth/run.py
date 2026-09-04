@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from transformers import PreTrainedTokenizerBase
 
 logger = logging.getLogger(__name__)
+logging.getLogger("satyrn").setLevel(logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")

@@ -30,11 +30,12 @@ QUESTIONS = [
 
 def run_eval_qa(stage: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Ask every question in QUESTIONS and log the answers."""
+    session_id = f"{stage}-{mlflow.active_run().info.run_id[:8]}"
 
     @mlflow.trace
     def answer_question(prompt: str) -> str:
         """Return the model's answer to one question."""
-        mlflow.update_current_trace(session_id=stage)
+        mlflow.update_current_trace(session_id=session_id)
         if span := mlflow.get_current_active_span():
             span.set_inputs(prompt)
 
