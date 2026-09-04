@@ -1,0 +1,2 @@
+# unsloth caps datasets <4.4.0; inspect-evals needs >=4.8.5. datasets 5.x runs fine with both.
+override-dependencies = ["datasets>=4.8.5"]
