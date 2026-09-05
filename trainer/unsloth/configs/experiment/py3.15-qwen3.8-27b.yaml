@@ -1,0 +1,41 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: qwen3.8-27b
+  - _self_
+
+run_name: py3.15-Qwen3.8-27B
+
+mlflow:
+  experiment_name: Qwen3.8-27B
+
+load_in_4bit: false
+
+datasets:
+  cpt:
+    - datasets/python3.14/cpt.jsonl
+    - datasets/python3.15/cpt.jsonl
+  sft:
+    - datasets/python3.14/sft.jsonl
+    - datasets/python3.14/sft-PEP750.jsonl
+    - datasets/python3.15/sft.jsonl
+  rl: null
+
+cpt:
+  seq_len: 4096
+  batch_size: 8
+  eval_batch_size: 1
+  eval_steps: 4
+  gradient_accumulation_steps: 2
+  num_train_epochs: 3
+  learning_rate: 1e-4
+  prepack_dataset: true
+
+sft:
+  seq_len: 1280
+  batch_size: 24
+  eval_batch_size: 4
+  eval_steps: 10
+  gradient_accumulation_steps: 1
+  num_train_epochs: 1
+  learning_rate: 2e-4
