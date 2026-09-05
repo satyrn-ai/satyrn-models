@@ -21,8 +21,7 @@ def run_inspect_eval(
     stage,
     model,
     tokenizer,
-    enable_thinking=True,
-    reasoning_effort="medium",
+    enable_thinking=False,
     max_new_tokens=4096,
     batch_size=8,
     limit=None,
@@ -31,7 +30,7 @@ def run_inspect_eval(
     # Lazy import to allow Unsloth patching of Torch and Transformers
     from satyrn.trainer.unsloth.eval.inspect_api import InMemoryHuggingFaceAPI
 
-    api = InMemoryHuggingFaceAPI(model, tokenizer, enable_thinking, reasoning_effort)
+    api = InMemoryHuggingFaceAPI(model, tokenizer, enable_thinking)
     with model_in_inference_mode(model):
         log = inspect_ai.eval(
             humaneval(sandbox="local"),
