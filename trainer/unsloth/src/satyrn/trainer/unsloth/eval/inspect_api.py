@@ -1,10 +1,17 @@
 """`ModelAPI` that lets inspect_ai eval a live in-memory (model, tokenizer) pair."""
 
+from __future__ import annotations
+
 from copy import copy
+from typing import TYPE_CHECKING
 
 from inspect_ai._util.registry import RegistryInfo, set_registry_info
 from inspect_ai.model._model import ModelAPI
 from inspect_ai.model._providers.hf import HuggingFaceAPI
+
+if TYPE_CHECKING:
+    from torch.nn import Module
+    from transformers import PreTrainedTokenizerBase
 
 
 class InMemoryHuggingFaceAPI(HuggingFaceAPI):
@@ -13,7 +20,7 @@ class InMemoryHuggingFaceAPI(HuggingFaceAPI):
     Skips `HuggingFaceAPI.__init__` (which always calls `from_pretrained`).
     """
 
-    def __init__(self, model, tokenizer, enable_thinking: bool):
+    def __init__(self, model: Module, tokenizer: PreTrainedTokenizerBase, enable_thinking: bool) -> None:
         name = "huggingface-local"
         ModelAPI.__init__(self, model_name=name)
         set_registry_info(self, RegistryInfo(type="modelapi", name=name))

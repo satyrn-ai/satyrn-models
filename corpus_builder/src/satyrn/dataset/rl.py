@@ -204,6 +204,10 @@ Set `passed` to true only if all of these hold:
 - The task accurately and substantially tests the documented Python {idea.python_version} API or behavior.
 - The prompt is self-contained and includes a clear callable signature and return contract.
 - The solution is a natural implementation, not code contrived to satisfy the visible tests.
+- The version dependence comes from the reference solution's own code, not the test inputs. Reject a
+  task if the reference solution would behave identically on the release before Python
+  {idea.python_version} and only the test data (crafted source strings, version-specific literals)
+  makes the suite version-specific.
 - Every test's documented input and expected output agree with its assertion code.
 - The tests are independent, non-vacuous, deterministic, and collectively cover normal behavior,
   boundaries, empty or unusual inputs where applicable, errors where applicable, and interactions
@@ -251,8 +255,9 @@ understanding of the new Python API rather than algorithmic difficulty.
   assertion. Keep setup inside that test's `test_code`.
 - The solution and tests must be deterministic, use only the Python standard library, perform no
   network access, and finish quickly.
-- The task must depend on behavior introduced in Python {idea.python_version}; the complete reference
-  solution and test suite must not pass unchanged on the preceding Python feature release.
+- The reference solution's own code must depend on Python {idea.python_version}: it must behave
+  differently, or fail, on the preceding Python feature release. Do not put the version-specific part
+  in the test inputs while the solution stays version-agnostic.
 
 {PYTHON_CODE_RULES}
     """
