@@ -11,11 +11,13 @@ import hydra
 import mlflow
 from datasets import Dataset
 from hydra.core.hydra_config import HydraConfig
+from inspect_evals.humaneval import humaneval
 from omegaconf import DictConfig
 
 from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
 from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
+from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
@@ -40,6 +42,12 @@ def unsloth_init() -> None:
     from unsloth.chat_templates import train_on_responses_only
     import torch
     from trl import SFTConfig, SFTTrainer
+
+    # In notebooks, NotebookProgressCallback logs loss to an IPython handle we cannot capture in the logs
+    import transformers.trainer
+    from transformers.trainer_callback import ProgressCallback
+
+    transformers.trainer.DEFAULT_PROGRESS_CALLBACK = ProgressCallback
 
 
 def load_dataset(paths: str | list[str]) -> Dataset:
@@ -117,6 +125,13 @@ def build_trainer(
     return trainer
 
 
+def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
+    """Run every eval against the model as it stands after stage_name."""
+    run_eval_qa(stage_name, model, tokenizer)
+    run_inspect_eval(stage_name, model, tokenizer, humaneval(sandbox="local"))
+    run_inspect_eval(stage_name, model, tokenizer, python_eval())
+
+
 @hydra.main(config_path=CONFIG_DIR)
 def main(cfg: DictConfig) -> None:
     if not cfg:
@@ -188,8 +203,7 @@ def main(cfg: DictConfig) -> None:
                 )
 
                 logger.info("Model evaluation before training")
-                run_eval_qa("pre", model, tokenizer)
-                run_inspect_eval("pre", model, tokenizer)
+                evaluate_model("pre", model, tokenizer)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
@@ -220,8 +234,7 @@ def main(cfg: DictConfig) -> None:
                         trainer.train()
 
                     logger.info("Model evaluation after Continuous Pre-Training (CPT)")
-                    run_eval_qa("cpt", model, tokenizer)
-                    run_inspect_eval("cpt", model, tokenizer)
+                    evaluate_model("cpt", model, tokenizer)
 
                 if config.datasets.sft is not None:
                     logger.info("Starting Supervised Fine-Tuning (SFT) stage")
@@ -242,8 +255,7 @@ def main(cfg: DictConfig) -> None:
                         trainer.train()
 
                     logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
-                    run_eval_qa("sft", model, tokenizer)
-                    run_inspect_eval("sft", model, tokenizer)
+                    evaluate_model("sft", model, tokenizer)
 
                 if config.datasets.rl is not None:
                     logger.error("Unimplemented: Reinforcement Learning (RL) training")
