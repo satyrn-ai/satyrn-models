@@ -15,7 +15,8 @@ from omegaconf import DictConfig
 
 from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
-from satyrn.trainer.unsloth.eval import run_eval_qa
+from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
+from satyrn.trainer.unsloth.eval.qa import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.secrets import load_secrets
 
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from transformers import PreTrainedTokenizerBase
 
 logger = logging.getLogger(__name__)
+logging.getLogger("satyrn").setLevel(logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
@@ -187,6 +189,7 @@ def main(cfg: DictConfig) -> None:
 
                 logger.info("Model evaluation before training")
                 run_eval_qa("pre", model, tokenizer)
+                run_inspect_eval("pre", model, tokenizer)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
@@ -218,6 +221,7 @@ def main(cfg: DictConfig) -> None:
 
                     logger.info("Model evaluation after Continuous Pre-Training (CPT)")
                     run_eval_qa("cpt", model, tokenizer)
+                    run_inspect_eval("cpt", model, tokenizer)
 
                 if config.datasets.sft is not None:
                     logger.info("Starting Supervised Fine-Tuning (SFT) stage")
@@ -239,6 +243,7 @@ def main(cfg: DictConfig) -> None:
 
                     logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
                     run_eval_qa("sft", model, tokenizer)
+                    run_inspect_eval("sft", model, tokenizer)
 
                 if config.datasets.rl is not None:
                     logger.error("Unimplemented: Reinforcement Learning (RL) training")
