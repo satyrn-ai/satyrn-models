@@ -209,8 +209,9 @@ def main(cfg: DictConfig) -> None:
                     }
                 )
 
-                logger.info("Model evaluation before training")
-                evaluate_model("pre", model, tokenizer)
+                if config.pre_model_eval:
+                    logger.info("Model evaluation before training")
+                    evaluate_model("pre", model, tokenizer)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
@@ -271,6 +272,7 @@ def main(cfg: DictConfig) -> None:
                         gradient_accumulation_steps=config.rl.gradient_accumulation_steps,
                         num_generations=config.rl.num_generations,
                         max_completion_length=config.rl.max_completion_length,
+                        num_train_epochs=config.rl.num_train_epochs,
                         learning_rate=config.rl.learning_rate,
                         beta=config.rl.beta,
                         logging_steps=config.logging_steps,
@@ -279,6 +281,7 @@ def main(cfg: DictConfig) -> None:
                         report_to="mlflow",
                         bf16=torch.cuda.is_bf16_supported(),
                         fp16=not torch.cuda.is_bf16_supported(),
+                        disable_tqdm=True,  # ProgressCallback breaks in marimo notebooks
                     )
                     trainer = GRPOTrainer(
                         model=model,

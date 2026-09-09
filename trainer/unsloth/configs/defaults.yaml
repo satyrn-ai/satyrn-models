@@ -5,6 +5,7 @@ optim: paged_adamw_8bit
 logging_steps: 2
 eval_ratio: 0.1
 max_steps: -1 # positive values cut a run short, overriding num_train_epochs
+pre_model_eval: true # run the full eval suite on the untrained model before any stage
 
 model:
 
@@ -64,6 +65,7 @@ rl:
   gradient_accumulation_steps: 1
   num_generations: ${rl.batch_size} # a prompt's group fills one batch
   max_completion_length: 1024
+  num_train_epochs: 3
   learning_rate: 5e-6
   beta: 0.0 # KL penalty weight; values above 0 keep the policy closer to the reference model
 

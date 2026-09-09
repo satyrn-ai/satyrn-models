@@ -34,6 +34,7 @@ class ExperimentConfig(BaseModel):
     max_seq_length: int
     max_steps: int
     optim: str
+    pre_model_eval: bool
     run_name: str
 
 
@@ -117,6 +118,7 @@ class RlStageConfig(BaseModel):
     gradient_accumulation_steps: int
     num_generations: int
     max_completion_length: int
+    num_train_epochs: int
     learning_rate: float
     beta: float
 
