@@ -64,7 +64,8 @@ rl:
   gradient_accumulation_steps: 1
   num_generations: ${rl.batch_size} # a prompt's group fills one batch
   max_completion_length: 1024
-  learning_rate: 1e-6
+  learning_rate: 5e-6
+  beta: 0.0 # KL penalty weight; values above 0 keep the policy closer to the reference model
 
 hydra:
   run:

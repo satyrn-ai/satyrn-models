@@ -16,6 +16,7 @@ from satyrn.trainer.unsloth.rl.code_tester import (
     make_test_programs,
     pass_fraction,
 )
+from satyrn.trainer.unsloth.rl.prompt import INSTRUCTION
 
 DATASETS_DIR = Path(__file__).resolve().parents[7] / "datasets"
 EVAL_SETS = [
@@ -23,11 +24,6 @@ EVAL_SETS = [
     str(DATASETS_DIR / "python3.15/eval.jsonl"),
 ]
 NO_PEP = "no-pep"
-
-INSTRUCTION = """
-Write the function described below. Your response should only contain the code
-for this function and any imports it needs.\n
-"""
 
 
 @task

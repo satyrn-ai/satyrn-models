@@ -118,6 +118,7 @@ class RlStageConfig(BaseModel):
     num_generations: int
     max_completion_length: int
     learning_rate: float
+    beta: float
 
 
 def validate_config(cfg: DictConfig) -> ExperimentConfig:
