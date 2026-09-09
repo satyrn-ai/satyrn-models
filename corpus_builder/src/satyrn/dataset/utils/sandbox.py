@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import urllib.request
 from functools import lru_cache
+from pathlib import Path
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -13,6 +14,7 @@ MAX_OUTPUT_CHARACTERS = 12000
 TIMEOUT_SECONDS = 20
 SANDBOX_LABEL_NAME = "satyrn-sandbox"
 SANDBOX_RUN_IDENTIFIER = uuid4().hex
+SANDBOX_DOCKERFILE = Path(__file__).resolve().parents[5] / "Dockerfile.sandbox"
 
 
 def get_predecessor_python_version(python_version: str) -> str:
@@ -47,12 +49,12 @@ def gvisor_available() -> bool:
 
 @lru_cache
 def get_python_docker_image(python_version: str) -> str:
-    """Return the Docker image tag for python_version."""
-    tag = f"{python_version}-slim"
+    """Return the full upstream Python image for python_version."""
+    tag = python_version
     if tag_exists_on_docker_hub(tag):
         return f"python:{tag}"
 
-    rc_tag = f"{python_version}-rc-slim"
+    rc_tag = f"{python_version}-rc"
     if tag_exists_on_docker_hub(rc_tag):
         return f"python:{rc_tag}"
 
@@ -71,10 +73,29 @@ def tag_exists_on_docker_hub(tag: str) -> bool:
         raise
 
 
-def pull_image(image: str) -> None:
-    """Pull image if it isn't already local."""
-    if subprocess.run(["docker", "image", "inspect", image], capture_output=True).returncode != 0:
-        subprocess.run(["docker", "pull", image])
+def build_sandbox_image(python_version: str) -> str:
+    """Build and return the project sandbox image for python_version if needed."""
+    image = f"{SANDBOX_LABEL_NAME}:{python_version}"
+    if subprocess.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0:
+        return image
+
+    python_image = get_python_docker_image(python_version)
+    python_image_tag = python_image.removeprefix("python:")
+    subprocess.run(
+        [
+            "docker",
+            "build",
+            "--build-arg",
+            f"PYTHON_IMAGE_TAG={python_image_tag}",
+            "--tag",
+            image,
+            "--file",
+            str(SANDBOX_DOCKERFILE),
+            str(SANDBOX_DOCKERFILE.parent),
+        ],
+        check=True,
+    )
+    return image
 
 
 def remove_leftover_containers() -> int:
@@ -98,11 +119,10 @@ class Sandbox:
             raise RuntimeError("Docker is not available.")
 
         self.python_version = python_version
-        self.image = get_python_docker_image(python_version)
+        self.image = build_sandbox_image(python_version)
         self.use_gvisor = gvisor_available()
         if not self.use_gvisor:
             logger.warning("gVisor (runsc) is not registered with Docker; running without sandbox isolation.")
-        pull_image(self.image)
 
     def run(self, code: str) -> str:
         """Run code in the container. Return its combined output."""
@@ -129,7 +149,7 @@ class Sandbox:
             "-w",
             "/tmp",
             "--tmpfs",
-            "/tmp:rw,noexec,nosuid,nodev",
+            "/tmp:rw,nosuid,nodev",
         ]
         if self.use_gvisor:
             command.append("--runtime=runsc")
