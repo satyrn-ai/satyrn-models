@@ -14,7 +14,7 @@ MAX_OUTPUT_CHARACTERS = 12000
 TIMEOUT_SECONDS = 20
 SANDBOX_LABEL_NAME = "satyrn-sandbox"
 SANDBOX_RUN_IDENTIFIER = uuid4().hex
-SANDBOX_DOCKERFILE = Path(__file__).resolve().parents[5] / "Dockerfile.sandbox"
+SANDBOX_DOCKERFILE = Path(__file__).with_name("sandbox.dockerfile")
 
 
 def get_predecessor_python_version(python_version: str) -> str:
