@@ -2,9 +2,16 @@
 
 import re
 import subprocess
+from dataclasses import dataclass
 from functools import lru_cache
 
 VERIFY_TIMEOUT = 30
+
+
+@dataclass(frozen=True)
+class TestCase:
+    name: str
+    test_code: str
 
 
 def find_code(completion: str) -> str:
@@ -35,18 +42,18 @@ def find_interpreter(python_version: str) -> str:
     return result.stdout.strip()
 
 
-def make_test_programs(answer_code: str, test_cases: list[dict]) -> list[str]:
+def make_test_programs(answer_code: str, test_cases: list[TestCase]) -> list[str]:
     """Return one runnable program per test case: answer followed by its test code."""
-    return [f"{answer_code.rstrip()}\n\n{test_case['test_code'].rstrip()}\n" for test_case in test_cases]
+    return [f"{answer_code.rstrip()}\n\n{test_case.test_code.rstrip()}\n" for test_case in test_cases]
 
 
-def pass_fraction(test_cases: list[dict], results: list) -> tuple[float, str]:
+def pass_fraction(test_cases: list[TestCase], results: list) -> tuple[float, str]:
     """Return (fraction of results that exited 0, failure lines joined or success message).
 
     Each result needs .returncode and .stderr (subprocess.CompletedProcess or inspect ExecResult).
     """
     failures = [
-        f"{test_case['name']}: {result.stderr.strip()}"
+        f"{test_case.name}: {result.stderr.strip()}"
         for test_case, result in zip(test_cases, results, strict=True)
         if result.returncode != 0
     ]
@@ -73,7 +80,7 @@ def run_test_programs(interpreter: str, programs: list[str]) -> list[subprocess.
     return results
 
 
-def score_version_specific_code(answer: str, test_cases: list[dict], python_version: str) -> float:
+def score_version_specific_code(answer: str, test_cases: list[TestCase], python_version: str) -> float:
     """Return the test-pass fraction on python_version, or 0.0 when the code is not version-specific."""
     programs = make_test_programs(answer, test_cases)
     predecessor = get_predecessor_python_version(python_version)

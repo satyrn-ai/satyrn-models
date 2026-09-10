@@ -1,7 +1,7 @@
 """How a code problem is framed for the model, shared by the eval scorer and RL."""
 
 INSTRUCTION = """
-Write the function described below. Your response should only contain the code
+Write the Python function described below. Your response should only contain the code
 for this function and any imports it needs.\n
 """
 

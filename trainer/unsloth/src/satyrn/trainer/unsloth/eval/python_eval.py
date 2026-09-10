@@ -10,6 +10,7 @@ from inspect_ai.util import ExecResult, sandbox
 
 from satyrn.trainer.unsloth.rl.code_tester import (
     VERIFY_TIMEOUT,
+    TestCase,
     find_code,
     find_interpreter,
     get_predecessor_python_version,
@@ -103,6 +104,7 @@ async def run_test_programs(interpreter: str, programs: list[str]) -> list[ExecR
 
 async def score_version_specific_code(answer: str, test_cases: list[dict], python_version: str) -> tuple[float, str]:
     """Return (test-pass fraction on python_version, explanation); (0.0, ...) if not version-specific."""
+    test_cases = [TestCase(name=case["name"], test_code=case["test_code"]) for case in test_cases]
     programs = make_test_programs(answer, test_cases)
     predecessor = get_predecessor_python_version(python_version)
 
