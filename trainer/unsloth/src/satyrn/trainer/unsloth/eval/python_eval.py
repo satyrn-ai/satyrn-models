@@ -1,8 +1,5 @@
 """inspect_ai task scoring generated solutions for version-specific Python features."""
 
-import re
-import subprocess
-from functools import lru_cache
 from pathlib import Path
 
 from inspect_ai import Task, task
@@ -11,18 +8,23 @@ from inspect_ai.scorer import Score, Scorer, Target, accuracy, grouped, scorer, 
 from inspect_ai.solver import TaskState, generate
 from inspect_ai.util import ExecResult, sandbox
 
+from satyrn.trainer.unsloth.rl.code_tester import (
+    VERIFY_TIMEOUT,
+    TestCase,
+    find_code,
+    find_interpreter,
+    get_predecessor_python_version,
+    make_test_programs,
+    pass_fraction,
+)
+from satyrn.trainer.unsloth.rl.prompt import INSTRUCTION
+
 DATASETS_DIR = Path(__file__).resolve().parents[7] / "datasets"
 EVAL_SETS = [
     str(DATASETS_DIR / "python3.14/eval.jsonl"),
     str(DATASETS_DIR / "python3.15/eval.jsonl"),
 ]
-VERIFY_TIMEOUT = 30
 NO_PEP = "no-pep"
-
-INSTRUCTION = """
-Write the function described below. Your response should only contain the code
-for this function and any imports it needs.\n
-"""
 
 
 @task
@@ -31,14 +33,36 @@ def python_eval() -> Task:
     dataset = load_dataset(EVAL_SETS)
     versions = {sample.metadata["python_version"] for sample in dataset}
     versions |= {get_predecessor_python_version(version) for version in versions}
-    interpreters = {version: find_interpreter(version) for version in versions}
+    for version in versions:
+        find_interpreter(version)
 
     return Task(
         dataset=dataset,
         solver=generate(),
-        scorer=verify(interpreters),
+        scorer=verify(),
         sandbox="local",
     )
+
+
+@scorer(
+    metrics=[
+        accuracy(),
+        stderr(),
+        grouped(accuracy(), "python_version", all=False, name_template="py{group_name}"),
+        grouped(accuracy(), "pep", all=False),
+    ]
+)
+def verify() -> Scorer:
+    """Score each sample as the fraction of its test cases that pass."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        answer = find_code(state.output.completion)
+        value, explanation = await score_version_specific_code(
+            answer, state.metadata["test_cases"], state.metadata["python_version"]
+        )
+        return Score(value=value, answer=answer, explanation=explanation)
+
+    return score
 
 
 def load_dataset(dataset_paths: list[str]) -> MemoryDataset:
@@ -67,83 +91,27 @@ def record_to_sample(record: dict) -> Sample:
     )
 
 
-def get_predecessor_python_version(python_version: str) -> str:
-    """Return the Python feature release immediately before python_version."""
-    major, minor, *_ = python_version.split(".")
-    return f"{major}.{int(minor) - 1}"
-
-
-@lru_cache
-def find_interpreter(python_version: str) -> str:
-    """Return the interpreter uv resolves for python_version."""
-    result = subprocess.run(
-        ["uv", "python", "find", python_version],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise ValueError(
-            f"No Python {python_version} interpreter: {result.stderr.strip()}\n"
-            f"Install it with: uv python install {python_version}"
-        )
-    return result.stdout.strip()
-
-
-async def failing_tests(interpreter: str, answer: str, test_cases: list[dict]) -> list[str]:
-    """Return a failure line for each test case that does not pass under interpreter."""
-    failures = []
-    for test_case in test_cases:
-        program = f"{answer.rstrip()}\n\n{test_case['test_code'].rstrip()}\n"
+async def run_test_programs(interpreter: str, programs: list[str]) -> list[ExecResult]:
+    """Run each program on interpreter in the inspect sandbox and return the results in order."""
+    results = []
+    for program in programs:
         try:
-            result = await sandbox().exec(
-                cmd=[interpreter, "-"],
-                input=program,
-                timeout=VERIFY_TIMEOUT,
-            )
+            results.append(await sandbox().exec(cmd=[interpreter, "-"], input=program, timeout=VERIFY_TIMEOUT))
         except TimeoutError:
-            result = ExecResult(False, 1, "", "Verification timed out.")
-        if not result.success:
-            failures.append(f"{test_case['name']}: {result.stderr.strip()}")
-    return failures
+            results.append(ExecResult(False, 1, "", "Verification timed out."))
+    return results
 
 
-@scorer(
-    metrics=[
-        accuracy(),
-        stderr(),
-        grouped(accuracy(), "python_version", all=False, name_template="py{group_name}"),
-        grouped(accuracy(), "pep", all=False),
-    ]
-)
-def verify(interpreters: dict[str, str]) -> Scorer:
-    """Score each sample as the fraction of its test cases that pass."""
+async def score_version_specific_code(answer: str, test_cases: list[dict], python_version: str) -> tuple[float, str]:
+    """Return (test-pass fraction on python_version, explanation); (0.0, ...) if not version-specific."""
+    test_cases = [TestCase(name=case["name"], test_code=case["test_code"]) for case in test_cases]
+    programs = make_test_programs(answer, test_cases)
+    predecessor = get_predecessor_python_version(python_version)
 
-    async def score(state: TaskState, target: Target) -> Score:
-        answer = find_code(state.output.completion)
-        version = state.metadata["python_version"]
-        predecessor = get_predecessor_python_version(version)
-        test_cases = state.metadata["test_cases"]
+    predecessor_results = await run_test_programs(find_interpreter(predecessor), programs)
+    predecessor_passing = sum(result.success for result in predecessor_results)
+    if predecessor_passing:
+        return 0.0, f"{predecessor_passing} test cases pass on Python {predecessor}; not version-specific."
 
-        predecessor_failures = await failing_tests(interpreters[predecessor], answer, test_cases)
-        predecessor_passing = len(test_cases) - len(predecessor_failures)
-        if predecessor_passing:
-            return Score(
-                value=0.0,
-                answer=answer,
-                explanation=f"{predecessor_passing} test cases pass on Python {predecessor}; not version-specific.",
-            )
-
-        failures = await failing_tests(interpreters[version], answer, test_cases)
-        return Score(
-            value=(len(test_cases) - len(failures)) / len(test_cases),
-            answer=answer,
-            explanation="\n".join(failures) or "All test cases passed.",
-        )
-
-    return score
-
-
-def find_code(completion: str) -> str:
-    """Return the first fenced code block, or the whole completion when unfenced."""
-    match = re.search(r"```(?:python)?\n(.*?)```", completion, re.DOTALL)
-    return match.group(1) if match else completion
+    target_results = await run_test_programs(find_interpreter(python_version), programs)
+    return pass_fraction(test_cases, target_results)

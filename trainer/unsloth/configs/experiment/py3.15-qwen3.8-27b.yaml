@@ -19,7 +19,8 @@ datasets:
     - datasets/python3.14/sft.jsonl
     - datasets/python3.14/sft-PEP750.jsonl
     - datasets/python3.15/sft.jsonl
-  rl: null
+  rl:
+    - datasets/python3.14/rl-PEP750.jsonl
 
 cpt:
   seq_len: 4096
@@ -39,3 +40,11 @@ sft:
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 2e-4
+
+rl:
+  batch_size: 16
+  gradient_accumulation_steps: 2
+  num_generations: 8
+  max_completion_length: 1024
+  num_train_epochs: 8
+  learning_rate: 5e-6

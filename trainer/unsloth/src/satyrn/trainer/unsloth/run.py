@@ -20,11 +20,13 @@ from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
+from satyrn.trainer.unsloth.rl.prompt import to_chat_prompt
+from satyrn.trainer.unsloth.rl.reward import reward_correct_code
 from satyrn.trainer.unsloth.secrets import load_secrets
 
 if TYPE_CHECKING:
     from torch.nn import Module
-    from transformers import PreTrainedTokenizerBase
+    from transformers import PreTrainedTokenizerBase, Trainer
 
 logger = logging.getLogger(__name__)
 logging.getLogger("satyrn").setLevel(logging.INFO)
@@ -35,13 +37,13 @@ CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 
 def unsloth_init() -> None:
     """Initialize unsloth and patch the training libraries."""
-    global FastModel, FastVisionModel, SFTConfig, SFTTrainer, torch, train_on_responses_only
+    global FastModel, FastVisionModel, GRPOConfig, GRPOTrainer, SFTConfig, SFTTrainer, torch, train_on_responses_only
 
     # Unsloth must be imported first to patch transformers, accelerate, etc.
     from unsloth import FastModel, FastVisionModel  # noqa: I001
     from unsloth.chat_templates import train_on_responses_only
     import torch
-    from trl import SFTConfig, SFTTrainer
+    from trl import GRPOConfig, GRPOTrainer, SFTConfig, SFTTrainer
 
     # In notebooks, NotebookProgressCallback logs loss to an IPython handle we cannot capture in the logs
     import transformers.trainer
@@ -125,6 +127,11 @@ def build_trainer(
     return trainer
 
 
+def log_dataset_params(dataset_path: str | list[str], trainer: Trainer) -> None:
+    """Record the stage's dataset path and training row count on the active MLflow run."""
+    mlflow.log_params({"dataset_path": dataset_path, "dataset_train_rows": len(trainer.train_dataset)})
+
+
 def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Run every eval against the model as it stands after stage_name."""
     run_eval_qa(stage_name, model, tokenizer)
@@ -202,8 +209,9 @@ def main(cfg: DictConfig) -> None:
                     }
                 )
 
-                logger.info("Model evaluation before training")
-                evaluate_model("pre", model, tokenizer)
+                if config.pre_model_eval:
+                    logger.info("Model evaluation before training")
+                    evaluate_model("pre", model, tokenizer)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
@@ -228,9 +236,7 @@ def main(cfg: DictConfig) -> None:
                     )
 
                     with mlflow.start_run(run_name="cpt", nested=True):
-                        mlflow.log_params(
-                            {"dataset_path": config.datasets.cpt, "dataset_train_rows": len(trainer.train_dataset)}
-                        )
+                        log_dataset_params(config.datasets.cpt, trainer)
                         trainer.train()
 
                     logger.info("Model evaluation after Continuous Pre-Training (CPT)")
@@ -249,16 +255,48 @@ def main(cfg: DictConfig) -> None:
                     )
 
                     with mlflow.start_run(run_name="sft", nested=True):
-                        mlflow.log_params(
-                            {"dataset_path": config.datasets.sft, "dataset_train_rows": len(trainer.train_dataset)}
-                        )
+                        log_dataset_params(config.datasets.sft, trainer)
                         trainer.train()
 
                     logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
                     evaluate_model("sft", model, tokenizer)
 
                 if config.datasets.rl is not None:
-                    logger.error("Unimplemented: Reinforcement Learning (RL) training")
+                    logger.info("Starting Reinforcement Learning (RL) stage")
+                    dataset = load_dataset(config.datasets.rl)
+                    dataset = dataset.map(to_chat_prompt)
+
+                    training_args = GRPOConfig(
+                        output_dir="outputs/rl",
+                        per_device_train_batch_size=config.rl.batch_size,
+                        gradient_accumulation_steps=config.rl.gradient_accumulation_steps,
+                        num_generations=config.rl.num_generations,
+                        max_completion_length=config.rl.max_completion_length,
+                        num_train_epochs=config.rl.num_train_epochs,
+                        learning_rate=config.rl.learning_rate,
+                        beta=config.rl.beta,
+                        logging_steps=config.logging_steps,
+                        max_steps=config.max_steps,
+                        optim=config.optim,
+                        report_to="mlflow",
+                        bf16=torch.cuda.is_bf16_supported(),
+                        fp16=not torch.cuda.is_bf16_supported(),
+                        disable_tqdm=True,  # ProgressCallback breaks in marimo notebooks
+                    )
+                    trainer = GRPOTrainer(
+                        model=model,
+                        processing_class=tokenizer,
+                        reward_funcs=[reward_correct_code],
+                        args=training_args,
+                        train_dataset=dataset,
+                    )
+
+                    with mlflow.start_run(run_name="rl", nested=True):
+                        log_dataset_params(config.datasets.rl, trainer)
+                        trainer.train()
+
+                    logger.info("Model evaluation after Reinforcement Learning (RL)")
+                    evaluate_model("rl", model, tokenizer)
 
             except Exception:
                 logger.exception("Run failed")
