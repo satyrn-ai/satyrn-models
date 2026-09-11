@@ -1,0 +1,17 @@
+[cells.author.construct]
+min_tasks = 532
+
+[cells.consumer.read_strings]
+min_tasks = 17
+
+[cells.consumer.read_values]
+min_tasks = 17
+
+[cells.consumer.read_interpolations]
+min_tasks = 7
+
+[cells.consumer.render]
+min_tasks = 10
+
+[cells.consumer.negative_control]
+min_tasks = 6

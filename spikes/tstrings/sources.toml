@@ -1,0 +1,44 @@
+# Bumping `commit` requires re-running mine and reviewing the seeds/mined.jsonl diff.
+
+[cpython]
+repo = "https://github.com/python/cpython"
+tag = "v3.14.5"
+commit = "5607950ef232dad16d75c0cf53101d9649d89115"
+license = "PSF-2.0"
+paths = ["Lib"]
+
+[regex-template-2026]
+repo = "https://github.com/treyhunner/regex-template"
+commit = "f4ea6979113623760153eb6666a3aacdbe681fa3"
+license = "MIT"
+paths = ["."]
+
+[t-sql-2026]
+repo = "https://github.com/nhumrich/t-sql"
+commit = "01275e310804ff4409aa206afd4b2ddae5082ecd"
+license = "MIT"
+paths = ["."]
+
+[tdom-2026]
+repo = "https://github.com/ianjosephwilson/tdom"
+commit = "98264091b3154a36f4af2e205ac6c3b7c793fb20"
+license = "MIT"
+paths = ["."]
+
+[storyville-2026]
+repo = "https://github.com/pauleveritt/storyville"
+commit = "5fe71ce49dcf15674dbda063135f8dd4a3a9c954"
+license = "MIT"
+paths = ["."]
+
+[tdom-svcs-2026]
+repo = "https://github.com/pauleveritt/tdom-svcs"
+commit = "d2f6e3a1f7f0ff9295fe596ea29316e024c3befd"
+license = "MIT"
+paths = ["."]
+
+[pep750-examples-2026]
+repo = "https://github.com/t-strings/pep750-examples"
+commit = "2e644e624f7fafda964d70d2150af4029a8431e2"
+license = "MIT"
+paths = ["."]
