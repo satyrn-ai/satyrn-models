@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Satyrn Dataset Builder"
 requires-python = ">=3.13"
 dependencies = [
+    "agent-client-protocol==0.12.1",
     "click",
     "jsonschema",
     "openai",
