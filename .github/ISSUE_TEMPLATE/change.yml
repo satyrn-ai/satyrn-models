@@ -1,0 +1,59 @@
+name: Change proposal
+description: Propose a repository change with an explicit outcome and acceptance criteria.
+title: "[Change]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The issue body is the canonical owner of work-item scope and acceptance criteria. Keep implementation details in the pull request when they emerge during delivery.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What outcome should this change produce, and for whom?
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current behavior
+      description: What is true today, including relevant limitations or evidence?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What work belongs in this issue?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that must be satisfied before delivery.
+      placeholder: |
+        - [ ] Observable result one
+        - [ ] Observable result two
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link blocking or related issues, or write "None."
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: What adjacent work is intentionally excluded?
+    validations:
+      required: true
