@@ -1,0 +1,47 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: ornith-1.5-9b
+  - _self_
+
+run_name: py3.15-Ornith-1.5-9B
+
+mlflow:
+  experiment_name: Ornith-1.5-9B
+
+load_in_4bit: false
+
+datasets:
+  cpt:
+    - datasets/python3.14/cpt.jsonl
+    - datasets/python3.15/cpt.jsonl
+  sft:
+    - datasets/python3.14/sft.jsonl
+    - datasets/python3.14/sft-PEP750.jsonl
+    - datasets/python3.15/sft.jsonl
+  rl:
+    - datasets/python3.14/rl-PEP750.jsonl
+
+cpt:
+  seq_len: 4096
+  batch_size: 16
+  eval_batch_size: 1
+  eval_steps: 4
+  num_train_epochs: 3
+  learning_rate: 1e-4
+  prepack_dataset: true
+
+sft:
+  seq_len: 1280
+  batch_size: 48
+  eval_batch_size: 4
+  eval_steps: 10
+  num_train_epochs: 1
+  learning_rate: 2e-4
+
+rl:
+  batch_size: 32
+  num_generations: 8
+  max_completion_length: 1024
+  num_train_epochs: 8
+  learning_rate: 5e-6
