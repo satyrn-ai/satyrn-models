@@ -6,6 +6,7 @@ requires-python = ">=3.13.9,<3.14"
 dependencies = [
     "unsloth==2026.8.18",
     "unsloth-zoo==2026.8.12",
+    "agent-client-protocol==0.12.1",
     "pydantic",
     "python-dotenv",
     "hydra-core>=1.4.0.dev8",
