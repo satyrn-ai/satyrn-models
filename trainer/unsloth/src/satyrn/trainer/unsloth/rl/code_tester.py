@@ -47,18 +47,27 @@ def make_test_programs(answer_code: str, test_cases: list[TestCase]) -> list[str
     return [f"{answer_code.rstrip()}\n\n{test_case.test_code.rstrip()}\n" for test_case in test_cases]
 
 
-def pass_fraction(test_cases: list[TestCase], results: list) -> tuple[float, str]:
-    """Return (fraction of results that exited 0, failure lines joined or success message).
+def score_test_results(
+    test_cases: list[TestCase], target_version_results: list, predecessor_results: list
+) -> tuple[float, str]:
+    """Return (share of tests passing only on the target version, explanation of the others).
 
-    Each result needs .returncode and .stderr (subprocess.CompletedProcess or inspect ExecResult).
+    Results need .returncode and .stderr (subprocess.CompletedProcess or inspect ExecResult).
     """
-    failures = [
-        f"{test_case.name}: {result.stderr.strip()}"
-        for test_case, result in zip(test_cases, results, strict=True)
-        if result.returncode != 0
-    ]
-    fraction = (len(test_cases) - len(failures)) / len(test_cases)
-    return fraction, "\n".join(failures) or "All test cases passed."
+    passed_only_on_target_version = 0
+    explanations = []
+    for test_case, target_version, predecessor in zip(
+        test_cases, target_version_results, predecessor_results, strict=True
+    ):
+        passed_on_target_version = target_version.returncode == 0
+        passed_on_predecessor = predecessor.returncode == 0
+        if passed_on_target_version and not passed_on_predecessor:
+            passed_only_on_target_version += 1
+        elif passed_on_target_version:
+            explanations.append(f"{test_case.name}: also passes on the predecessor version")
+        else:
+            explanations.append(f"{test_case.name}: {target_version.stderr.strip()}")
+    return passed_only_on_target_version / len(test_cases), "\n".join(explanations) or "All test cases passed."
 
 
 def run_test_programs(interpreter: str, programs: list[str]) -> list[subprocess.CompletedProcess]:
@@ -81,14 +90,11 @@ def run_test_programs(interpreter: str, programs: list[str]) -> list[subprocess.
 
 
 def score_version_specific_code(answer: str, test_cases: list[TestCase], python_version: str) -> float:
-    """Return the test-pass fraction on python_version, or 0.0 when the code is not version-specific."""
+    """Return the share of tests that pass on python_version but not on its predecessor."""
     programs = make_test_programs(answer, test_cases)
     predecessor = get_predecessor_python_version(python_version)
 
     predecessor_results = run_test_programs(find_interpreter(predecessor), programs)
-    if any(result.returncode == 0 for result in predecessor_results):
-        return 0.0
-
-    target_results = run_test_programs(find_interpreter(python_version), programs)
-    fraction, _ = pass_fraction(test_cases, target_results)
-    return fraction
+    target_version_results = run_test_programs(find_interpreter(python_version), programs)
+    score, _ = score_test_results(test_cases, target_version_results, predecessor_results)
+    return score
