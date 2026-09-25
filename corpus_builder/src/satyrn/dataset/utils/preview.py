@@ -23,6 +23,16 @@ def print_ideas(ideas: list) -> None:
     console.print()
 
 
+def print_test_cases(test_cases: list[dict]) -> None:
+    """Print each test case as its name, input, expected output and test code."""
+    console.print(f"[bold]test_cases ({len(test_cases)}):[/bold]")
+    for index, test_case in enumerate(test_cases, start=1):
+        console.print(f"[bold]{index}. {test_case['name']}[/bold]", markup=True, highlight=False)
+        console.print(Markdown(f"input:\n```python\n{test_case['input']}\n```"))
+        console.print(Markdown(f"expected output:\n```python\n{test_case['expected_output']}\n```"))
+        console.print(Markdown(f"test code:\n```python\n{test_case['test_code']}\n```"))
+
+
 def print_dataset_line(dataset_line: dict) -> None:
     """Print a dataset line with messages and metadata."""
     console.rule("[bold blue]Dataset Line[/bold blue]")
@@ -38,7 +48,10 @@ def print_dataset_line(dataset_line: dict) -> None:
             text = f"```python\n{dataset_line[key]}\n```" if key in ("code", "solution") else dataset_line[key]
             console.print(Markdown(text))
 
-    known_keys = set(fields) | set(markdown_fields) | {"prompt", "completion"}
+    if dataset_line.get("test_cases"):
+        print_test_cases(dataset_line["test_cases"])
+
+    known_keys = set(fields) | set(markdown_fields) | {"prompt", "completion", "test_cases"}
     for key, value in dataset_line.items():
         if key not in known_keys and value:
             console.print(f"[bold]{key}:[/bold] {value}")
