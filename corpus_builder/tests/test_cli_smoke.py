@@ -1,21 +1,21 @@
 """Smoke tests: the satyrn-dataset CLI imports and responds to --help."""
 
-from collections.abc import Iterator
+from unittest.mock import Mock
 
 import pytest
 from click.testing import CliRunner
 
 from satyrn.dataset.cli import cli
 
-EXPECTED_COMMANDS = ["collect-doc-changes", "cpt", "download-inputs", "rl", "sft"]
+EXPECTED_COMMANDS = ["collect-doc-changes", "cpt", "download-inputs", "eval", "rl", "sft"]
 
 
 @pytest.fixture
-def runner() -> Iterator[CliRunner]:
-    """Run from a temporary directory: the sft and rl commands create results/ on startup."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        yield runner
+def runner(monkeypatch: pytest.MonkeyPatch) -> CliRunner:
+    """Run the CLI without creating a results/ directory."""
+    # start_run_log writes results/ into the current directory; skip it so the tests create no files.
+    monkeypatch.setattr("satyrn.dataset.cli.start_run_log", Mock())
+    return CliRunner()
 
 
 def test_group_help(runner: CliRunner) -> None:

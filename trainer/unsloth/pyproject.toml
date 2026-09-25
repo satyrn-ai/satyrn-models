@@ -16,6 +16,7 @@ dependencies = [
     "pyrsmi>=1.1.0",
     "inspect-ai==0.3.260",
     "inspect-evals==0.19.0",
+    "agent-client-protocol==0.12.1",
 ]
 
 [project.optional-dependencies]
