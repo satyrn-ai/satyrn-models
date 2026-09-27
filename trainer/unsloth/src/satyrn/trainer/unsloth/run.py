@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -14,7 +15,7 @@ from hydra.core.hydra_config import HydraConfig
 from inspect_evals.humaneval import humaneval
 from omegaconf import DictConfig
 
-from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
+from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, basename, log_config, validate_config
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
 from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
@@ -137,6 +138,14 @@ def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTo
     run_eval_qa(stage_name, model, tokenizer)
     run_inspect_eval(stage_name, model, tokenizer, humaneval(sandbox="local"))
     run_inspect_eval(stage_name, model, tokenizer, python_eval())
+
+
+def upload_to_hub(model: Module, tokenizer: PreTrainedTokenizerBase, model_name: str) -> None:
+    """Push the trained model to the Hugging Face Hub."""
+    hub_model_id = f"{os.environ['HF_USERNAME']}/{basename(model_name)}"
+    logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
+    model.push_to_hub_merged(hub_model_id, tokenizer, save_method="merged_16bit")
+    model.push_to_hub_gguf(hub_model_id, tokenizer, quantization_method="q4_k_m")
 
 
 @hydra.main(config_path=CONFIG_DIR)
@@ -297,6 +306,9 @@ def main(cfg: DictConfig) -> None:
 
                     logger.info("Model evaluation after Reinforcement Learning (RL)")
                     evaluate_model("rl", model, tokenizer)
+
+                if config.push_to_hub:
+                    upload_to_hub(model, tokenizer, config.model.name)
 
             except Exception:
                 logger.exception("Run failed")
