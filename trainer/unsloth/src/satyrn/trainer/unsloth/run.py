@@ -146,7 +146,7 @@ def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentCo
     """Push the trained model to the Hugging Face Hub."""
     hub_model_id = config.push_to_hub_path or f"{os.environ['HF_USERNAME']}/{basename(config.model.name)}"
     logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
-    # model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
+    model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
     model.push_to_hub_gguf(hub_model_id, processor, quantization_method="q4_k_m")
 
 
