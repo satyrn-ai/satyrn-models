@@ -47,20 +47,8 @@ def pep_identifier(doc_path: Path) -> str | None:
     return f"PEP {int(match.group(1))}" if match else None
 
 
-def generate_ideas(model: Model, doc_path: Path, python_version: str) -> list[Idea]:
-    """Return distinct Python example ideas for features described in doc_path."""
-    prompt = f"""
-The attached document describes a change in Python version {python_version}. Describe between 0 and 50
-ideas for short, self-contained code blocks that would demonstrate the described features.
-
-- Each idea is a short description of what the example would show.
-- Propose fewer ideas if the document only covers a small change.
-- Do not repeat the same idea.
-- DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
-  C API changes, shell commands and CLI invocations, or build configuration.
-
-{PYTHON_CODE_RULES}
-    """
+def generate_ideas(model: Model, doc_path: Path, python_version: str, prompt: str) -> list[Idea]:
+    """Return the ideas the model proposes for doc_path in response to prompt."""
     schema = {
         "type": "object",
         "properties": {

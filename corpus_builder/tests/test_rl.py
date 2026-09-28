@@ -31,6 +31,15 @@ class StubSandbox:
         return self.outputs[len(self.programs) - 1]
 
 
+@dataclass
+class StubBuilderTools:
+    """Hold stub sandboxes in place of the Docker ones."""
+
+    model: object
+    sandbox: StubSandbox
+    predecessor_sandbox: StubSandbox
+
+
 TEST_CASES = [
     RLTestCase(name="zero", input="0", expected_output="0", test_code="assert solve(0) == 0"),
     RLTestCase(name="one", input="1", expected_output="2", test_code="assert solve(1) == 2"),
@@ -91,7 +100,7 @@ def test_build_dataset_line_includes_problem_and_source_metadata(monkeypatch: py
     monkeypatch.setattr("satyrn.dataset.rl.generate_problem", lambda *args: problem)
     idea = Idea(Path("PEP815.rst"), "Use the new API", "3.15")
 
-    row = build_dataset_line(object(), idea, object(), object())
+    row = build_dataset_line(object(), idea)
 
     assert row == {
         "prompt": problem.prompt,
@@ -111,8 +120,9 @@ def test_build_dataset_line_includes_problem_and_source_metadata(monkeypatch: py
 def test_verify_problem_stops_after_a_target_failure() -> None:
     target = StubSandbox("3.15", [PASS_MARKER, "failed"])
     predecessor = StubSandbox("3.14", [PASS_MARKER, PASS_MARKER])
+    tools = StubBuilderTools(None, target, predecessor)
 
-    result = verify_problem("def solve(value): return value * 2", TEST_CASES, target, predecessor)
+    result = verify_problem("def solve(value): return value * 2", TEST_CASES, tools)
 
     assert result.passed is False
     assert result.target.score == 0.5
@@ -123,8 +133,9 @@ def test_verify_problem_stops_after_a_target_failure() -> None:
 def test_verify_problem_rejects_suite_that_passes_on_predecessor() -> None:
     target = StubSandbox("3.15", [PASS_MARKER, PASS_MARKER])
     predecessor = StubSandbox("3.14", [PASS_MARKER, PASS_MARKER])
+    tools = StubBuilderTools(None, target, predecessor)
 
-    result = verify_problem("def solve(value): return value * 2", TEST_CASES, target, predecessor)
+    result = verify_problem("def solve(value): return value * 2", TEST_CASES, tools)
 
     assert result.passed is False
     assert result.predecessor is not None
@@ -134,8 +145,9 @@ def test_verify_problem_rejects_suite_that_passes_on_predecessor() -> None:
 def test_verify_problem_accepts_target_only_suite() -> None:
     target = StubSandbox("3.15", [PASS_MARKER, PASS_MARKER])
     predecessor = StubSandbox("3.14", ["SyntaxError", "SyntaxError"])
+    tools = StubBuilderTools(None, target, predecessor)
 
-    result = verify_problem("def solve(value): return value * 2", TEST_CASES, target, predecessor)
+    result = verify_problem("def solve(value): return value * 2", TEST_CASES, tools)
 
     assert result.passed is True
     assert result.target.score == 1.0

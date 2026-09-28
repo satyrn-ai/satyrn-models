@@ -28,6 +28,23 @@ from satyrn.dataset.utils.sandbox import Sandbox, get_predecessor_python_version
 logger = logging.getLogger(__name__)
 
 
+def generate_sft_ideas(model: Model, doc_path: Path, python_version: str) -> list[Idea]:
+    """Return distinct ideas for code blocks that demonstrate the features described in doc_path."""
+    prompt = f"""
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for short, self-contained code blocks that would demonstrate the described features.
+
+- Each idea is a short description of what the example would show.
+- Propose fewer ideas if the document only covers a small change.
+- Do not repeat the same idea.
+- DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
+  C API changes, shell commands and CLI invocations, or build configuration.
+
+{PYTHON_CODE_RULES}
+    """
+    return generate_ideas(model, doc_path, python_version, prompt)
+
+
 def generate_code_block(model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> dict:
     """Return a verified code block, its reasoning trace, and expected output."""
     prompt = f"""
@@ -366,7 +383,7 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
 
     def process_doc(doc_path: Path) -> None:
         """Generate and write every dataset line for one doc file."""
-        ideas = generate_ideas(model, doc_path, python_version)
+        ideas = generate_sft_ideas(model, doc_path, python_version)
         logger.info("Generated %d ideas for %s", len(ideas), doc_path.name)
         if preview:
             print_ideas(ideas)

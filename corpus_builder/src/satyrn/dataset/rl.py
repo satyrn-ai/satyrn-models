@@ -30,7 +30,7 @@ from satyrn.dataset.utils.sandbox import Sandbox, get_predecessor_python_version
 logger = logging.getLogger(__name__)
 
 PASS_MARKER = "__SATYRN_TEST_PASSED__"
-MIN_TEST_CASES = 5
+MIN_TEST_CASES = 4
 MAX_TEST_CASES = 12
 
 
@@ -133,6 +133,15 @@ class VerificationResult:
     reason: str
 
 
+class BuilderTools:
+    """The model and the target and predecessor sandboxes used to build a dataset."""
+
+    def __init__(self, model: Model, python_version: str) -> None:
+        self.model = model
+        self.sandbox = Sandbox(python_version)
+        self.predecessor_sandbox = Sandbox(get_predecessor_python_version(python_version))
+
+
 def evaluate_solution(solution: str, test_cases: list[TestCase], sandbox: Sandbox) -> EvaluationResult:
     """Run each test independently and return passed/total as a score from 0 to 1."""
     if not test_cases:
@@ -149,20 +158,15 @@ def evaluate_solution(solution: str, test_cases: list[TestCase], sandbox: Sandbo
     return EvaluationResult(passed_count / len(results), results)
 
 
-def verify_problem(
-    solution: str,
-    test_cases: list[TestCase],
-    sandbox: Sandbox,
-    predecessor_sandbox: Sandbox,
-) -> VerificationResult:
-    """Require all target tests to pass and reject a suite that also passes on the predecessor."""
-    target = evaluate_solution(solution, test_cases, sandbox)
+def verify_problem(solution: str, test_cases: list[TestCase], tools: BuilderTools) -> VerificationResult:
+    """Require all tests to pass on target Python and fail on predecessor."""
+    target = evaluate_solution(solution, test_cases, tools.sandbox)
     if target.score != 1.0:
         return VerificationResult(False, target, None, "reference solution failed target-version tests")
 
-    predecessor = evaluate_solution(solution, test_cases, predecessor_sandbox)
-    if predecessor.score == 1.0:
-        return VerificationResult(False, target, predecessor, "suite also passed on the predecessor version")
+    predecessor = evaluate_solution(solution, test_cases, tools.predecessor_sandbox)
+    if any(result.passed for result in predecessor.tests):
+        return VerificationResult(False, target, predecessor, "some tests also passed on the predecessor version")
 
     return VerificationResult(True, target, predecessor, "verified")
 
@@ -180,7 +184,7 @@ def _validate_problem_structure(problem: Problem) -> None:
         raise ValueError("Test case names must be non-empty and unique")
     for test_case in test_cases:
         if not test_case.input.strip() or not test_case.expected_output.strip():
-            raise ValueError("Every test needs a documented input and expected output")
+            raise ValueError(f"Test {test_case.name!r} needs a non-empty documented input and expected output")
         if "assert" not in test_case.test_code:
             raise ValueError(f"Test {test_case.name!r} does not contain an assertion")
         if problem.entry_point not in test_case.test_code:
@@ -213,6 +217,8 @@ Set `passed` to true only if all of these hold:
   boundaries, empty or unusual inputs where applicable, errors where applicable, and interactions
   between important options.
 - Each test checks one useful behavior so passed-tests / total-tests is a meaningful partial score.
+- The suite cannot be passed by a solution that returns constants or hardcodes the expected results:
+  the results must have to be computed from the arguments.
 
 In `judgement`, explain any concrete weakness. Do not pass a task whose tests merely repeat the same
 case or whose assertions could pass without exercising the entry point.
@@ -232,7 +238,28 @@ case or whose assertions could pass without exercising the entry point.
     return model.generate(prompt, context)
 
 
-def generate_problem(model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> Problem:
+def generate_task_ideas(model: Model, doc_path: Path, python_version: str) -> list[Idea]:
+    """Return distinct ideas for programming tasks that use the features described in doc_path."""
+    prompt = f"""
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for short programming tasks in which the solver must use the described features to produce a result.
+
+- Each idea is one sentence describing, in words, the behavior the solver must produce: no function
+  signature, code, dictionary keys, or attribute and method names.
+- Each idea requires the solver to create or use the feature itself. Do not propose tasks that only
+  read fields of an object handed to the solver.
+- Ideas that differ only by input case are one idea; propose one idea per distinct skill.
+- Propose fewer ideas if the document only covers a small change.
+- Do not repeat the same idea.
+- DO NOT propose ideas for parts of the document that cannot be exercised in Python code, such as
+  C API changes, shell commands and CLI invocations, or build configuration.
+
+{PYTHON_CODE_RULES}
+    """
+    return generate_ideas(model, doc_path, python_version, prompt)
+
+
+def generate_problem(tools: BuilderTools, idea: Idea, generator_instructions: str = "") -> Problem:
     """Return a reference-solved problem with a verified, independently scored test suite."""
     prompt = f"""
 The attached document describes a change in Python version {idea.python_version}. Create a small
@@ -245,6 +272,11 @@ understanding of the new Python API rather than algorithmic difficulty.
 
 - In `prompt`, describe the problem, include the exact signature of one callable entry point, and
   specify its return value. Do not reveal the solution.
+- `prompt` must not tell the solver to restrict itself to, or check, a Python version.
+- `prompt` must state which names already exist when the entry point runs and which names the
+  solution has to define itself.
+- `prompt` must name the Python {idea.python_version} feature and require the solver to use it, so an
+  answer written without the feature does not satisfy the task.
 - In `entry_point`, give only the callable's name.
 - In `solution`, provide a complete reference implementation defining that callable.
 - Provide between {MIN_TEST_CASES} and {MAX_TEST_CASES} independent test cases covering ordinary
@@ -258,6 +290,24 @@ understanding of the new Python API rather than algorithmic difficulty.
 - The reference solution's own code must depend on Python {idea.python_version}: it must behave
   differently, or fail, on the preceding Python feature release. Do not put the version-specific part
   in the test inputs while the solution stays version-agnostic.
+- Every test must fail on Python {tools.predecessor_sandbox.python_version} when run with your reference
+  solution. A test that only checks that something is absent, unchanged or still accepted passes on
+  the older release too and earns no credit; each assertion must depend on behavior that is new in
+  Python {idea.python_version}.
+- Every test must fail when the entry point is replaced by a stub: a function with the same name
+  that ignores its arguments and returns `None`. If `None` is the expected result, also assert an
+  effect of the call that the stub does not produce.
+- A test must not assert the text of an exception or warning message; assert its type or the behavior
+  instead. If exact text is required, state it exactly in `prompt`.
+- Each test must check a behavior that no other test checks; do not repeat a case with only different
+  input values.
+- The entry point must take arguments, and tests must call it with several different arguments, so a
+  solution that returns constants cannot pass. Do not ask for facts the solution could state without
+  computing them.
+- Each test's code runs in the same program as the solution, right after it, so the solution's names
+  are already defined. `prompt` must not mention modules or files, and tests must not import the
+  solution.
+{generator_instructions}
 
 {PYTHON_CODE_RULES}
     """
@@ -266,9 +316,9 @@ understanding of the new Python API rather than algorithmic difficulty.
     context.add(idea.doc_path.name, idea.doc_path)
     context.set_json_schema(Problem.get_schema())
 
-    max_attempts = 3
+    max_attempts = 4
     for attempt in range(max_attempts):
-        generated_problem = model.generate(prompt, context, thinking=True)
+        generated_problem = tools.model.generate(prompt, context, thinking=True)
         if not isinstance(generated_problem, dict):
             raise TypeError("Problem-writing model did not return a JSON object")
         problem = Problem.from_dict(generated_problem)
@@ -277,23 +327,29 @@ understanding of the new Python API rather than algorithmic difficulty.
         except ValueError as error:
             verification_feedback = str(error)
         else:
-            verification = verify_problem(problem.solution, problem.test_cases, sandbox, predecessor_sandbox)
+            verification = verify_problem(problem.solution, problem.test_cases, tools)
             if verification.passed:
-                judgement = judge_problem(model, idea, problem)
+                judgement = judge_problem(tools.model, idea, problem)
                 if judgement["passed"]:
                     return problem
                 verification_feedback = judgement["judgement"]
-            elif verification.predecessor is not None and verification.predecessor.score == 1.0:
+            elif verification.predecessor is not None:
+                tests_passed_on_predecessor = [
+                    result.name for result in verification.predecessor.tests if result.passed
+                ]
                 verification_feedback = (
-                    f"The complete suite also passed on Python {predecessor_sandbox.python_version}; "
-                    f"make the task specifically exercise Python {sandbox.python_version} behavior."
+                    f"These tests also pass on Python {tools.predecessor_sandbox.python_version} with your "
+                    f"reference solution: {tests_passed_on_predecessor}. Remove them or rewrite each so it "
+                    f"depends on Python {tools.sandbox.python_version} behavior. "
+                    f"Keep {MIN_TEST_CASES} to {MAX_TEST_CASES} tests."
                 )
             else:
                 failed_names = [result.name for result in verification.target.tests if not result.passed]
                 verification_feedback = f"The reference solution failed target tests: {failed_names}."
 
+        context.add("Previous rejected programming task", json.dumps(generated_problem, indent=2))
         prompt += f"""\n
-Your previous task was rejected for this reason:
+Your previous programming task was rejected for this reason:
 {verification_feedback}
 
 Generate a corrected complete task and test suite.
@@ -305,10 +361,10 @@ Generate a corrected complete task and test suite.
     raise ValueError(f"Could not generate a verified task for idea: {idea.description}")
 
 
-def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> dict | None:
-    """Return one verified evaluation/RL row for idea, or None when generation fails."""
+def build_dataset_line(tools: BuilderTools, idea: Idea, generator_instructions: str = "") -> dict | None:
+    """Return one verified dataset row for idea, or None when generation fails."""
     try:
-        problem = generate_problem(model, idea, sandbox, predecessor_sandbox)
+        problem = generate_problem(tools, idea, generator_instructions)
     except Exception as error:
         logger.error("Skipping idea: %s", error)
         return None
@@ -352,8 +408,7 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
 def main(input_path: Path, output_path: Path, python_version: str, preview: bool, workers: int) -> None:
     """Generate a testable evaluation and Reinforcement Learning dataset."""
     model = get_llm("deepseek", "deepseek-v4-flash")
-    sandbox = Sandbox(python_version)
-    predecessor_sandbox = Sandbox(get_predecessor_python_version(python_version))
+    tools = BuilderTools(model, python_version)
     file_workers, idea_workers = split_workers(workers)
 
     prepare_output_file(output_path)
@@ -361,13 +416,13 @@ def main(input_path: Path, output_path: Path, python_version: str, preview: bool
 
     def process_doc(doc_path: Path) -> None:
         """Generate and write every testable task for one source document."""
-        ideas = generate_ideas(model, doc_path, python_version)
+        ideas = generate_task_ideas(model, doc_path, python_version)
         logger.info("Generated %d ideas for %s", len(ideas), doc_path.name)
         if preview:
             print_ideas(ideas)
 
         with ThreadPoolExecutor(max_workers=idea_workers) as executor:
-            futures = [executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox) for idea in ideas]
+            futures = [executor.submit(build_dataset_line, tools, idea) for idea in ideas]
             for future in as_completed(futures):
                 dataset_line = future.result()
                 if dataset_line is None:
