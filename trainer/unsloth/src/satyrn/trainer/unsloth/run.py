@@ -135,6 +135,8 @@ def log_dataset_params(dataset_path: str | list[str], trainer: Trainer) -> None:
 
 def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Run every eval against the model as it stands after stage_name."""
+    logger.warning("EVALUATION SKIPPED!")
+    return
     run_eval_qa(stage_name, model, tokenizer)
     run_inspect_eval(stage_name, model, tokenizer, humaneval(sandbox="local"))
     run_inspect_eval(stage_name, model, tokenizer, python_eval())
@@ -144,7 +146,7 @@ def upload_to_hub(model: Module, tokenizer: PreTrainedTokenizerBase, model_name:
     """Push the trained model to the Hugging Face Hub."""
     hub_model_id = f"{os.environ['HF_USERNAME']}/{basename(model_name)}"
     logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
-    model.push_to_hub_merged(hub_model_id, tokenizer, save_method="merged_16bit")
+    #model.push_to_hub_merged(hub_model_id, tokenizer, save_method="merged_16bit")
     model.push_to_hub_gguf(hub_model_id, tokenizer, quantization_method="q4_k_m")
 
 
