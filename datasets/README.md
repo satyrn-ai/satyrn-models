@@ -8,3 +8,4 @@ This table records the methodology used to generate each dataset: model and prom
 | `python3.15/cpt.jsonl` | 154  | -                 | As above.                                                                                                                                    |
 | `python3.14/sft.jsonl` | 1537 | deepseek-v4-flash | Using code from [PR #19](https://github.com/satyrn-ai/satyrn-models/pull/19), which improves the `trace` field holding the model's reasoning. |
 | `python3.15/sft.jsonl` | 1511 | deepseek-v4-pro   |                                                                                                                                              |
+| `python3.15/sft2.jsonl` | 1902 | deepseek-v4-flash |                                                                                                                                             |
