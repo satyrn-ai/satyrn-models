@@ -7,6 +7,7 @@ eval_ratio: 0.1
 max_steps: -1 # positive values cut a run short, overriding num_train_epochs
 pre_model_eval: true # run the full eval suite on the untrained model before any stage
 push_to_hub: false # upload the trained model to Hugging Face
+push_to_hub_path: null # repo id; defaults to $HF_USERNAME/<base model name>
 
 model:
 
