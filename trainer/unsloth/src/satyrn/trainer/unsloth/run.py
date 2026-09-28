@@ -27,7 +27,7 @@ from satyrn.trainer.unsloth.secrets import load_secrets
 
 if TYPE_CHECKING:
     from torch.nn import Module
-    from transformers import PreTrainedTokenizerBase, Trainer
+    from transformers import PreTrainedTokenizerBase, ProcessorMixin, Trainer
 
 logger = logging.getLogger(__name__)
 logging.getLogger("satyrn").setLevel(logging.INFO)
@@ -142,12 +142,12 @@ def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTo
     run_inspect_eval(stage_name, model, tokenizer, python_eval())
 
 
-def upload_to_hub(model: Module, tokenizer: PreTrainedTokenizerBase, model_name: str) -> None:
+def upload_to_hub(model: Module, processor: ProcessorMixin, model_name: str) -> None:
     """Push the trained model to the Hugging Face Hub."""
     hub_model_id = f"{os.environ['HF_USERNAME']}/{basename(model_name)}"
     logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
-    #model.push_to_hub_merged(hub_model_id, tokenizer, save_method="merged_16bit")
-    model.push_to_hub_gguf(hub_model_id, tokenizer, quantization_method="q4_k_m")
+    # model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
+    model.push_to_hub_gguf(hub_model_id, processor, quantization_method="q4_k_m")
 
 
 @hydra.main(config_path=CONFIG_DIR)
@@ -164,14 +164,14 @@ def main(cfg: DictConfig) -> None:
         config = validate_config(cfg)
 
         logger.info("Downloading model %s", config.model.name)
-        model, tokenizer = FastVisionModel.from_pretrained(
+        model, processor = FastVisionModel.from_pretrained(
             model_name=config.model.name,
             max_seq_length=config.max_seq_length,
             dtype=None,
             load_in_4bit=config.load_in_4bit,
         )
         # Multimodal models return a Processor; text-only training uses its tokenizer.
-        tokenizer = getattr(tokenizer, "tokenizer", tokenizer)
+        tokenizer = getattr(processor, "tokenizer", processor)
 
         model = FastModel.get_peft_model(
             model,
@@ -310,7 +310,7 @@ def main(cfg: DictConfig) -> None:
                     evaluate_model("rl", model, tokenizer)
 
                 if config.push_to_hub:
-                    upload_to_hub(model, tokenizer, config.model.name)
+                    upload_to_hub(model, processor, config.model.name)
 
             except Exception:
                 logger.exception("Run failed")
