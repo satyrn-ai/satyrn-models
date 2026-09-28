@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import operator
-import os
+from pathlib import Path
 from typing import Literal
 
 from omegaconf import DictConfig, OmegaConf
@@ -17,7 +17,7 @@ StageName = Literal["pre", "cpt", "sft", "rl"]
 
 def basename(path: str) -> str:
     """Return the final path segment."""
-    return os.path.basename(path)
+    return Path(path).name
 
 
 OmegaConf.register_resolver("mul", operator.mul)
