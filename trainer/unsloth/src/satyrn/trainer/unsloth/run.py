@@ -135,8 +135,6 @@ def log_dataset_params(dataset_path: str | list[str], trainer: Trainer) -> None:
 
 def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Run every eval against the model as it stands after stage_name."""
-    logger.warning("EVALUATION SKIPPED!")
-    return
     run_eval_qa(stage_name, model, tokenizer)
     run_inspect_eval(stage_name, model, tokenizer, humaneval(sandbox="local"))
     run_inspect_eval(stage_name, model, tokenizer, python_eval())
