@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import operator
+from pathlib import Path
 from typing import Literal
 
 from omegaconf import DictConfig, OmegaConf
@@ -13,9 +14,15 @@ logger = logging.getLogger(__name__)
 
 StageName = Literal["pre", "cpt", "sft", "rl"]
 
+
+def basename(path: str) -> str:
+    """Return the final path segment."""
+    return Path(path).name
+
+
 OmegaConf.register_resolver("mul", operator.mul)
 OmegaConf.register_resolver("max", lambda *values: max(values))
-OmegaConf.register_resolver("basename", lambda model_id: model_id.rpartition("/")[-1])
+OmegaConf.register_resolver("basename", basename)
 
 
 class ExperimentConfig(BaseModel):
@@ -36,6 +43,9 @@ class ExperimentConfig(BaseModel):
     optim: str
     pre_model_eval: bool
     run_name: str
+
+    push_to_hub: bool
+    push_to_hub_path: str | None
 
 
 class PeftConfig(BaseModel):

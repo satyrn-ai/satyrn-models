@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -14,7 +15,7 @@ from hydra.core.hydra_config import HydraConfig
 from inspect_evals.humaneval import humaneval
 from omegaconf import DictConfig
 
-from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, log_config, validate_config
+from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, basename, log_config, validate_config
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
 from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
@@ -26,7 +27,7 @@ from satyrn.trainer.unsloth.secrets import load_secrets
 
 if TYPE_CHECKING:
     from torch.nn import Module
-    from transformers import PreTrainedTokenizerBase, Trainer
+    from transformers import PreTrainedTokenizerBase, ProcessorMixin, Trainer
 
 logger = logging.getLogger(__name__)
 logging.getLogger("satyrn").setLevel(logging.INFO)
@@ -139,6 +140,14 @@ def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTo
     run_inspect_eval(stage_name, model, tokenizer, python_eval())
 
 
+def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentConfig) -> None:
+    """Push the trained model to the Hugging Face Hub."""
+    hub_model_id = config.push_to_hub_path or f"{os.environ['HF_USERNAME']}/{basename(config.model.name)}"
+    logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
+    model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
+    model.push_to_hub_gguf(hub_model_id, processor, quantization_method="q4_k_m")
+
+
 @hydra.main(config_path=CONFIG_DIR)
 def main(cfg: DictConfig) -> None:
     if not cfg:
@@ -153,14 +162,14 @@ def main(cfg: DictConfig) -> None:
         config = validate_config(cfg)
 
         logger.info("Downloading model %s", config.model.name)
-        model, tokenizer = FastVisionModel.from_pretrained(
+        model, processor = FastVisionModel.from_pretrained(
             model_name=config.model.name,
             max_seq_length=config.max_seq_length,
             dtype=None,
             load_in_4bit=config.load_in_4bit,
         )
         # Multimodal models return a Processor; text-only training uses its tokenizer.
-        tokenizer = getattr(tokenizer, "tokenizer", tokenizer)
+        tokenizer = getattr(processor, "tokenizer", processor)
 
         model = FastModel.get_peft_model(
             model,
@@ -297,6 +306,9 @@ def main(cfg: DictConfig) -> None:
 
                     logger.info("Model evaluation after Reinforcement Learning (RL)")
                     evaluate_model("rl", model, tokenizer)
+
+                if config.push_to_hub:
+                    upload_to_hub(model, processor, config)
 
             except Exception:
                 logger.exception("Run failed")
