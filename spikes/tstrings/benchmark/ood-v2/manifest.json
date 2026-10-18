@@ -1,0 +1,1002 @@
+[
+  {
+    "answer_variable": "skeleton",
+    "capability": "notification",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "notification",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "bcec3817eddc9d0b5811620f7c60a2dd1b4842a9a60641b89992d69341f096c5"
+  },
+  {
+    "answer_variable": "static_parts",
+    "capability": "math",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "math",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "12f34024d64080e7524f155f66c0c49005791f9f1984dfad2cb8eb68adeb3c6d"
+  },
+  {
+    "answer_variable": "empty_segment_count",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "75449fbbca714590820bcdf3be4df77a9060d480737f26e04af9ce12b96fd251"
+  },
+  {
+    "answer_variable": "closing_fragment",
+    "capability": "greeting",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "greeting",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "de03aaed1eccb720cac98c2b6ed130a087a49da74bd0fdb4b3212758c44dff28"
+  },
+  {
+    "answer_variable": "static_char_total",
+    "capability": "ecommerce",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "ecommerce",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "573806261fecf9d901f605e3434ff85a225b85cc3df2a8a7d50af2a1fb1d5393"
+  },
+  {
+    "answer_variable": "dimensions",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "e63ba1debc99d8117769c656bc3e8592b20e3bad847d06c6cab8098b3328ecb9"
+  },
+  {
+    "answer_variable": "average_score",
+    "capability": "education",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "education",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "a6a28f664caf6a87282ae754583331b35c895a46e12c6ce6662390f731c01fc6"
+  },
+  {
+    "answer_variable": "raw_values",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "25c3ff467bb78a91996f0b95ed766a57b596eafd68772b3fb61cf9fbf63e7744"
+  },
+  {
+    "answer_variable": "tag_set",
+    "capability": "tagging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "tagging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "b8bef4af329246cdaf6ce8cf5eb67d0d5001273e52845e57424015941d2fb561"
+  },
+  {
+    "answer_variable": "final_price",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "4b53b47d426e92ef02cdb8987fb8736a206bf4f13dfa3d413849b354b1828350"
+  },
+  {
+    "answer_variable": "age_interpolation",
+    "capability": "profile",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "profile",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "5074c9b31fc9530afd32c9835ee9b74799647966a1a4ea0fd1cb232146bc8d3e"
+  },
+  {
+    "answer_variable": "radius_value",
+    "capability": "science",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "science",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "d57706f27034d954b4f8f9e082041663d16b5f7a3eb373a62461090faf4b5292"
+  },
+  {
+    "answer_variable": "source_expr",
+    "capability": "debug",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "debug",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "1bc800b3ce5ffe7cfa1cd12dd6a2882dcccfba85209221b509cdf329ccbec90e"
+  },
+  {
+    "answer_variable": "spec_used",
+    "capability": "debug",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "debug",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "6838716562be1ed3ff72483aa9a8a8be69005d1f4ecefdecb5ae1af9388e85d2"
+  },
+  {
+    "answer_variable": "conv_flag",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "4828c7713a05d3fc8c82261186d5260748d810cf2f7288d5ac865e245903cb11"
+  },
+  {
+    "answer_variable": "defaults_seen",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "5c991a7106ddf79897ed96a8a5e6d6ab4f1c21e57827d0cb516f44eae748f170"
+  },
+  {
+    "answer_variable": "field_names",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "7d607ec4fdfd27ff245a1609fd9923e854c7fd849391fcb4d6dead47e7c8035e"
+  },
+  {
+    "answer_variable": "percent_text",
+    "capability": "finance",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "finance",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "b1026783fadabfacb1c6021906717e1eb1f831853e7b501bbf5f8002853d9fe6"
+  },
+  {
+    "answer_variable": "interpolation_count",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "5ad031ae50c4ee8f219d4511dcce71cec5c25238191d47e9134adb88806ace6b"
+  },
+  {
+    "answer_variable": "interp_summary",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "d39e7a1610463dc85c3d66519ff15c4ac00ddfafdc0e6c2bc0716cc2df29daf8"
+  },
+  {
+    "answer_variable": "part_types",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "ab41134eb7edc881777632d38d3fee9f3b7ad3d9ec292edbaad07d9efcb107d9"
+  },
+  {
+    "answer_variable": "collected_values",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "6efe9d49c564b821520750986ba7ab00b5bbd257eb40967c271e88aa689c4899"
+  },
+  {
+    "answer_variable": "static_only",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "8281c297bc4082dab835c0e2a5af22a26d646b1d9e30594698e5eb3afffc48c4"
+  },
+  {
+    "answer_variable": "alternation",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "0a23e75c10000ddcdeb52b4326705cbf6cae999c6dbb582c39fda2f17cec1fb1"
+  },
+  {
+    "answer_variable": "rebuilt_letters",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "dfb28b35e40476c7244280a1c2ecf660cbe6e8cd4bfd3a19db2fd7628b443453"
+  },
+  {
+    "answer_variable": "greeting",
+    "capability": "greeting",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "greeting",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "8fb956381f147b468a659436dfd07fa68def5963db24e2a189d3629f3018582a"
+  },
+  {
+    "answer_variable": "receipt_line",
+    "capability": "ecommerce",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "ecommerce",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "0437745949eb9912f71e45d42cdd3a5d47c2cfd29d3bdc089aa760f3b80ed8cd"
+  },
+  {
+    "answer_variable": "debug_line",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "7913a6bf69e6557a7f7dfdfbc2eaa813fac728db9605a7ac4f886bae77d6233a"
+  },
+  {
+    "answer_variable": "padded_label",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "5ad56e1a2ac125a3417de3bd8d2dc7e9cd41983a3b69065886635a8a23c36679"
+  },
+  {
+    "answer_variable": "scoreboard_line",
+    "capability": "gaming",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "gaming",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "442aa3537ab900a771a71377a6dd8cdd3c3270e6bc703f41f0febc66c58aac4a"
+  },
+  {
+    "answer_variable": "debug_dump",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "f7a9cebbcd9c7bdd999982ac5251573bb7d0fc53fe699401e642f3ef33b527d6"
+  },
+  {
+    "answer_variable": "two_readings",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "8f337bd01d9900db179e0ce2b59b73a386caf94bcf257b88e0576091fe074edf"
+  },
+  {
+    "answer_variable": "hex_readout",
+    "capability": "debug",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "debug",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "abf08918b4bc22697f21d63b9bd6575a63b9d08cc5e39498c45b50ae8d8f4da4"
+  },
+  {
+    "answer_variable": "rate_display",
+    "capability": "finance",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "finance",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "833a49d4478112faf46ffc1efed8e98aa11f3b533290a62a3ef8c4d64492a53a"
+  },
+  {
+    "answer_variable": "full_message",
+    "capability": "greeting",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "greeting",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "2f6b39c87fb668540f36f1b8665222849f024b77fa0e626bc6f636e73a48c44a"
+  },
+  {
+    "answer_variable": "status_line",
+    "capability": "http-headers",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "http-headers",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "19dc8cf23b7ab2bd66b517c88a25afcb1749e967e21b5750dc81360b60882ed8"
+  },
+  {
+    "answer_variable": "elapsed_display",
+    "capability": "monitoring",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "monitoring",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "f9d1e434ec7d0e4d53e435aaaf19478581f4fd820ed4c80718ea3bee71572bbb"
+  },
+  {
+    "answer_variable": "binary_readout",
+    "capability": "debug",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "debug",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "d74a6e0222eb2478d00c7a092f937370e8c22585e3ac902e73476268d302bcdf"
+  },
+  {
+    "answer_variable": "ascii_safe_line",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "ca100dd6eb93af71737fbe9b61a1e4f0ca807a60d343343448101226f45e77c5"
+  },
+  {
+    "answer_variable": "pi_readouts",
+    "capability": "science",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "science",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "d204c285ead34575fa4c4b1679a0c3b81b132204af7ee03c92fa6dbf89a8eb59"
+  },
+  {
+    "answer_variable": "call_count",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "96d92184ddae9ec79e17d297b74e00e57c69c19498d3bc1c1504c3f246e5f1a6"
+  },
+  {
+    "answer_variable": "captured_reading",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "589d278c54b2d4af48291ca1d561ba9a08472868f90a1f00645a382f22135bb4"
+  },
+  {
+    "answer_variable": "item_count_at_creation",
+    "capability": "csv",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "csv",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "da7a1497a0d3aaf34e4734f9316f1cd89308b14ba2fb1e8ae0a39aecc5f58061"
+  },
+  {
+    "answer_variable": "frozen_values",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "ccfde74d55072f16f41b349737fbd2d09b25482780d2ed5ded2a983ab648e8cd"
+  },
+  {
+    "answer_variable": "price_snapshot",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "dd09e6d1461d762d4d21817b19737a2f25ba82139990e839796a5fb2b619251e"
+  },
+  {
+    "answer_variable": "call_order",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "66de3689c5fe15153b46f13b8172252e179b5beec0b82cbaf14a106e91bc3b72"
+  },
+  {
+    "answer_variable": "nested_value_type",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "94c3c8e5bae7e7d529b50bd267ec8773c844e8104fc01556080cdc5fc41ae00e"
+  },
+  {
+    "answer_variable": "flattened_line",
+    "capability": "ecommerce",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "ecommerce",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "19bf51d43d83339f50438dfe61884b268fe3240790e8a2b6bf80fa259e139b72"
+  },
+  {
+    "answer_variable": "report_text",
+    "capability": "reporting",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "reporting",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "1af30b9c5882368f42f3e218fd8433015174a6a7a3477a44c8e7d7b20c33183f"
+  },
+  {
+    "answer_variable": "nested_list",
+    "capability": "csv",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "csv",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "9cc072c41a3d4c380eccb484f65132d92d90dabdb1ab99eb3c91b50f964ecb3f"
+  },
+  {
+    "answer_variable": "conv_on_nested",
+    "capability": "shell",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "shell",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "fb53fce9ef21dee0c7b7277fd01e228cbf88950cc74cefb943d4f46a18702638"
+  },
+  {
+    "answer_variable": "combined_report",
+    "capability": "reporting",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "reporting",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "da965134e36a19686439a14a8f8a5acaa4bbf6b09b78ccc97030ff542d203670"
+  },
+  {
+    "answer_variable": "request_url",
+    "capability": "url",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "url",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "767d3a8449da0c896693f144bc865a7a25a7e6e3410a4d76be9141b3906e571d"
+  },
+  {
+    "answer_variable": "branch_result_type",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "29e05f4be2e7a131df5bfe72ab6d2988864f25dc763a4db03417308c3c6860d6"
+  },
+  {
+    "answer_variable": "safe_html",
+    "capability": "html",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "html",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "bf997d8a23768e19c89bd3ad0276ac1c1e951c5048d74437bde75100c3a83657"
+  },
+  {
+    "answer_variable": "safe_query",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "2982f46b8ca3feea7e6fbd41c987c48f52f318ff41f1d6629f0433362ff81796"
+  },
+  {
+    "answer_variable": "redacted_line",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "aa008eb636ab10ab11e4d72d530587a307871afa9cbeb24288f5c05572e9b365"
+  },
+  {
+    "answer_variable": "audit_line",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "3e38abc676a2f49c5907270ee137a1826aecc0d201d401516705c75d467c4a11"
+  },
+  {
+    "answer_variable": "shell_command",
+    "capability": "shell",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "shell",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "3c0d2b6fa361c990d7e49a8f1f3171782009bdbdd5e6506a23c1a343bb052aae"
+  },
+  {
+    "answer_variable": "accounting_line",
+    "capability": "finance",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "finance",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "51826526a21c5d13f38a2fcfe144c07c333cc6f22cffcc5ba1005500a2badec2"
+  },
+  {
+    "answer_variable": "shouting_line",
+    "capability": "notification",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "notification",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "49ef1c7e1aea7d842ba175bcda3007db02e15944552162dcf35c709bac14af93"
+  },
+  {
+    "answer_variable": "slug_line",
+    "capability": "url",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "url",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "9bcb3af075958047a7a0677e47cc76daed8b92313630075200a0cb54a192120c"
+  },
+  {
+    "answer_variable": "filled_message",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "d5f04d471c261b2e82d92552fc8d56c00451454b4592526fc0fe769613b5a3df"
+  },
+  {
+    "answer_variable": "scrubbed_note",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "bb80dd30f5e89a8ca4385b7a3dd33613debf1406de1fa846f58a99a673e0558a"
+  },
+  {
+    "answer_variable": "json_fragment",
+    "capability": "json",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "json",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "c17db1d4fe1de5433c60c911b630709e1565590b0ada162c032c1cc21c0ca5f8"
+  },
+  {
+    "answer_variable": "clean_header",
+    "capability": "http-headers",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "http-headers",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "b5dc092ff30fbe6a471d444095a4feba3fc9ddf98cb19daeec060a67cae38f3a"
+  },
+  {
+    "answer_variable": "profile_line",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "6a004e8c54ea75df46b1a1f1dd925f49cc8d293a2f71ccec6f0fcf0c152237da"
+  },
+  {
+    "answer_variable": "markdown_safe",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "e8e3ac435b115c34b9b788bcb0ba54cb53bcc3015eb052c8265ae963c8a58caf"
+  },
+  {
+    "answer_variable": "parameterized_query",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "616c2179a62e408359d067cb27a6ab52d7cd163d41c8f00f40f0cfa5d481d266"
+  },
+  {
+    "answer_variable": "log_record",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "293f876c9fd2d616a17a22cb2b5b43d439dc89fe5ed86bf4313411aaa243f221"
+  },
+  {
+    "answer_variable": "record_tuple",
+    "capability": "csv",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "csv",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "60e214605670eeef45a8117bc57dafe465e06c6e9c1822035ed7e5c642182aaf"
+  },
+  {
+    "answer_variable": "access_log_entry",
+    "capability": "http-headers",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "http-headers",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "29500a1919891156caaea5060c8eecf3eac859f93effd695d1dcc437931e8772"
+  },
+  {
+    "answer_variable": "csv_row",
+    "capability": "csv",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "csv",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "c1d2fa350105445fd9c67511ec4fa6ac0e858c5aa6b91ebe314e560d9e7e8e8d"
+  },
+  {
+    "answer_variable": "config_map",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "2c0a0c04f5a8dc8e7b8740e46a010d69cced46d7dcf2e83e0c2e22babcd98296"
+  },
+  {
+    "answer_variable": "email_record",
+    "capability": "email",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "email",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "848631e8f1e163ca0e927ac548b32aba5a7be091eec344b89c661e279edfb3c0"
+  },
+  {
+    "answer_variable": "metric_pairs",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "7e4727d69c54502d5f03a49842f21418284efa743412778f5264674df7acbde2"
+  },
+  {
+    "answer_variable": "parsed_request",
+    "capability": "url",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "url",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "c3e2748da2512efa81bd6bf2ef0adcaefe9ef345b9beaed510a3c266f9c2daf2"
+  },
+  {
+    "answer_variable": "filter_condition",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "3153c707a149bb3c3a01db991b28bb1480d9263e362b942eda86f78b30dad920"
+  },
+  {
+    "answer_variable": "robots_rules",
+    "capability": "seo",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "seo",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "32ed93e093f3ca91d54da5f670cb5a89714e3b39cfd1f2ecc9b081e798c8195e"
+  },
+  {
+    "answer_variable": "invoice_line",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "042b8f85e42d547cdcf72f8df1fb61959f9434d0975b135c4a388d5450d42063"
+  },
+  {
+    "answer_variable": "http_header",
+    "capability": "http-headers",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "http-headers",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "d418d77f1972f0b16d826e3c8e901beb989069fb77d95b9c401b5e610c4aae13"
+  },
+  {
+    "answer_variable": "xml_field",
+    "capability": "xml",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "xml",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "940ed81a391d862ea6ff165523144658655cfe235271cd506abe5e83e1d71d30"
+  },
+  {
+    "answer_variable": "translation_pair",
+    "capability": "i18n",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "i18n",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "47a37ea7be767af7577734c387b67e680a50cd0d0e959005799dfcd1be925969"
+  },
+  {
+    "answer_variable": "query_and_param",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "220e6588ea41b32d662eb2c5c92d7329b4e9997727e8de44895f63bdd8a28080"
+  },
+  {
+    "answer_variable": "contains_user_input",
+    "capability": "html",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "html",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "ed561c9f013cbcf8fdd3e3fea5f58daef4a1e01703371e2fcbf0220c173ce23f"
+  },
+  {
+    "answer_variable": "safe_command",
+    "capability": "shell",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "shell",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "5e80744e475c0293596aa9a9895a76d1c6a623accab8fe7e9833fa2b005de478"
+  },
+  {
+    "answer_variable": "expression_names",
+    "capability": "i18n",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "i18n",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "7f6a586f0ed4a384ff97597ebef6797be47fdd618e8b368fe5a445a62b03c9ed"
+  },
+  {
+    "answer_variable": "content_parts",
+    "capability": "html",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "html",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "8e842dc54640bb537cd7c1f50c6ad2bc61bb11cfbd598c9bf64f3c16a341d5ad"
+  },
+  {
+    "answer_variable": "static_length",
+    "capability": "text",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "text",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "beff77d01419fedb96d7de41d51498c2bdb60ccd4817ea7981eab26af6521393"
+  },
+  {
+    "answer_variable": "value_types",
+    "capability": "config",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "config",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "fc1e593b154d534cda389b2a1e272ab9262689e0baa1405b584e99a3e7cc80bd"
+  },
+  {
+    "answer_variable": "alert_payload",
+    "capability": "logging",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "logging",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "b5c5c88060f38decb8a67cfdeb5097fb580cd812d842a53c159ccfc31bcb1a78"
+  },
+  {
+    "answer_variable": "balance_line",
+    "capability": "finance",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "finance",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "10a889bf992855e1e4cfcc90323c6053f706e974f706f65f9b2b897cd82132a0"
+  },
+  {
+    "answer_variable": "customer_summary",
+    "capability": "ecommerce",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "ecommerce",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "304315d6738a1156887db20310ea35db13d5a3c343f717a9b51a2f9dc7394f26"
+  },
+  {
+    "answer_variable": "safe_query_plan",
+    "capability": "sql",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "sql",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "4f7c21f3ca327f6e29580ffca732e197209074fdf9bdbc097411dd1f76baeeb3"
+  },
+  {
+    "answer_variable": "render_is_idempotent",
+    "capability": "html",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "html",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "cf735391bfddb181b7352936ac5f836b65ceff898746aa40955af15d39831876"
+  },
+  {
+    "answer_variable": "analytics_event",
+    "capability": "ecommerce",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "ecommerce",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "4e0fe53ad983f2cd8b92b884c395607601a37bf052a2fb2e0b0bdf9ff74d7794"
+  },
+  {
+    "answer_variable": "pipeline_summary",
+    "capability": "cli",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "cli",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "afb2101e3a1c4f396958f66af18e2e78131d5f2c57f87f62e16724537ca9876f"
+  },
+  {
+    "answer_variable": "scrambled_debug_line",
+    "capability": "debug",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "debug",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "97cf021a8d97488b5be8c87424cf7667f4eba96f2d0cda172363093428b1573c"
+  },
+  {
+    "answer_variable": "infra_snapshot",
+    "capability": "monitoring",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "monitoring",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "eab19a3e823c680efbd03177b3765ddffb9c08e456fd65efef12c6a322200c41"
+  },
+  {
+    "answer_variable": "part_kinds",
+    "capability": "ecommerce",
+    "family": "independently-authored",
+    "framing": "natural",
+    "operation": "ecommerce",
+    "review_status": "independently_authored",
+    "role": "consumer",
+    "task_id": "cf54d727bf7ee8f75485b4f5bdf445c13ae3b2c0852ab070c80b5ff284466cb8"
+  }
+]
