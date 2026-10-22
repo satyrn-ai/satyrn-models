@@ -19,6 +19,7 @@ datasets:
     - datasets/python3.14/sft.jsonl
     - datasets/python3.14/sft-PEP750.jsonl
     - datasets/python3.15/sft.jsonl
+    - datasets/python3.15/sft2.jsonl
   rl:
     - datasets/python3.14/rl-PEP750.jsonl
 
