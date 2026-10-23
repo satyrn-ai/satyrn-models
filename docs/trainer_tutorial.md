@@ -179,6 +179,17 @@ This example changes the list of files which will be combined into the SFT stage
 > You can generate new CPT, SFT and RL datasets with the `satyrn-dataset` command from the `corpus_builder` package,
 > as described in the [dataset generation guide](dataset_generator.md).
 
+#### Upload trained model to Hugging Face
+
+In order to perform further tests on your model or publish it, you can upload it to your account on the Hugging Face Hub.
+Set `push_to_hub=true` and when training finishes, the model will be converted to 16-bit safetensors and a 4-bit quantized
+GGUF file and pushed to the Hub:
+
+```shell
+satyrn-unsloth --config-name experiment/py3.15-qwen3.8-27b \
+  push_to_hub=true
+```
+
 ### Run the tuning in a Marimo notebook
 
 If you want to use the Molab environment, you can start training from a cell in your Marimo notebook.
@@ -232,6 +243,9 @@ command = (
 )
 run_training(command)
 ```
+
+<a href="https://molab.marimo.io/notebooks/nb_usYnC9FpKefh3QYZ8vF3DN"><img align="right" src="https://molab.marimo.io/molab-shield.svg" alt="Open in molab"></a>
+We prepared a [Molab notebook](https://molab.marimo.io/notebooks/nb_usYnC9FpKefh3QYZ8vF3DN) with the required cells, you can fork it to get started quickly.
 
 ## Interpreting tuning results
 
@@ -359,6 +373,9 @@ well. These per-PEP scores are only shown in the terminal output.
 
 > [!NOTE]
 > The terminal output is saved as a `train.log` artifact of the parent run in MLflow.
+>
+> You can give your coding agent read-only access to MLflow with the `SatyrnAI` user and ask it to compare runs,
+> analyze their metrics or review their `train.log` files for you.
 
 If you jump over to the parent run in MLflow, you will see the results of these evaluations. This is what the scores
 look like:
@@ -380,12 +397,17 @@ new Python features.
 > `python_eval_verify_stderr` shows the standard error of the Python Eval score. It's high because Python Eval only
 > has a small number of tasks. We could lower it by increasing the size of Python Eval or improving the quality of its tests. Note
 > that we don't want the evaluation to take too long.
+>
+> We trained six models with the same config and their Python Eval scores landed anywhere between 71% and 80%. If you
+> take a look at the per-PEP breakdown of scores, most PEPs scored about the same every time, but PEP 758 ranged from
+> 25% to 75% and PEP 661 from 60% to 98%. We should check the training data and eval tasks for these two PEPs to find
+> out why the model doesn't score consistently on them.
 
 You will also see that `humaneval_verify_accuracy` decreases somewhat. This is expected, as any tuning causes the
-model to forget some of its original training. Our goal is to reduce this forgetting as much as possible.
+model to forget some of its original training. Our goal is to reduce this **forgetting** as much as possible.
 
 > [!IMPORTANT]
-> We currently don't have an evaluation which would tell us how well the model behaves as an agent. A good agent should
+> We currently don't have an evaluation which would tell us how well the model behaves as an **agent**. A good agent should
 > use tool calls correctly and be able to decide when to stop calling tools and finish the task. If you have an idea
 > how we can add this to training, that would be a great contribution.
 
