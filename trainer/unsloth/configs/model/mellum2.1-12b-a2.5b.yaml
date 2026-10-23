@@ -1,0 +1,16 @@
+# Architecture: MoE, 64 experts / 8 active, 28 layers, sliding + full attention (3:1)
+# Thinking:     on by default
+#
+# Same `mellum` model_type as Mellum2-12B-A2.5B-Instruct.
+# Reasoning is read from a `reasoning_content` field on the assistant message.
+name: JetBrains/Mellum2.1-12B-A2.5B-Thinking
+enable_thinking: true
+
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
+
+peft:
+  r: 8
+  lora_dropout: 0.0
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "gate_up_proj"]
