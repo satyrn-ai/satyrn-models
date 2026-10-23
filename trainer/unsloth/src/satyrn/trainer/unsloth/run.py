@@ -168,6 +168,8 @@ def main(cfg: DictConfig) -> None:
             dtype=None,
             load_in_4bit=config.load_in_4bit,
         )
+        # Some model configs ship use_cache=false, which makes generate() recompute every token.
+        model.generation_config.use_cache = True
         # Multimodal models return a Processor; text-only training uses its tokenizer.
         tokenizer = getattr(processor, "tokenizer", processor)
 

@@ -1,0 +1,22 @@
+# Architecture: hybrid linear-attention, dense, 32 layers, 24 DeltaNet + 8 full attention
+# Thinking:     on by default
+# Multimodal:   text + vision
+#
+# Same qwen3_5 model_type as Qwen3.6-27B: hybrid linear attention.
+# Reasoning is read from a `reasoning_content` field on the assistant message.
+#
+# target_modules skips the linear-attention layers input-side projections:
+# in_proj_qkv, in_proj_z, in_proj_b, in_proj_a. Only their out_proj is adapted.
+# This matches Unsloth's Qwen3.5-27B notebook:
+# https://github.com/unslothai/notebooks/blob/main/nb/Qwen_3_5_27B_A100(80GB).ipynb
+name: ornith-ai/Ornith-1.5-9B
+enable_thinking: true
+
+template:
+  instruction_part: "<|im_start|>user\n"
+  response_part: "<|im_start|>assistant\n"
+
+peft:
+  r: 8
+  lora_dropout: 0.0
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "out_proj"]
