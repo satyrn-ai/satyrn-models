@@ -310,8 +310,9 @@ We run two evaluations during training:
 - HumanEval, which is a standard set of simple Python programming tasks
 - Python Eval, which is our own set of programming tasks requiring features added in Python 3.14 and 3.15
 
-You can follow these evaluations after every stage in the terminal output:
+You can follow these evaluations after every stage in the terminal output.
 
+**HumanEval**
 ```
 Running 1 tasks...
 ---------------------------------------------------------
@@ -334,8 +335,10 @@ accuracy  0.756
 stderr    0.034
 Log: logs/2026-10-21T17-48-19-00-00_humaneval_novo5pCanCLo9PudPNRbKJ.eval
 ---------------------------------------------------------
+```
 
-
+**Our custom Python Eval**
+```
 Running 1 tasks...
 ---------------------------------------------------------
 python_eval (32 samples): huggingface-local/huggingface-local
