@@ -278,6 +278,8 @@ def main(cfg: DictConfig) -> None:
 
                 if config.datasets.rl is not None:
                     logger.info("Starting Reinforcement Learning (RL) stage")
+                    # SFTTrainer leaves output_router_logits on for MoE models, which breaks generation in GRPO
+                    model.config.get_text_config().output_router_logits = False
                     dataset = load_dataset(config.datasets.rl)
                     dataset = dataset.map(to_chat_prompt)
 
