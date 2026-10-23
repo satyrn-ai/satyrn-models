@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -154,7 +155,10 @@ def main(cfg: DictConfig) -> None:
         print("Usage: satyrn-unsloth --config-name experiment/<name>")
         return
 
-    log_path = Path(HydraConfig.get().runtime.output_dir, "run.log")
+    output_dir = Path(HydraConfig.get().runtime.output_dir)
+    log_path = output_dir / "run.log"
+    evals_dir = output_dir / "evals"
+    os.environ["INSPECT_LOG_DIR"] = str(evals_dir)
     with tee_output(log_path) as log_file:
         unsloth_init()
         load_secrets()
@@ -319,6 +323,8 @@ def main(cfg: DictConfig) -> None:
                 # Send the Hydra job log to the tracking server
                 log_file.flush()
                 mlflow.log_text(log_path.read_text(), "train.log")
+                if evals_dir.exists():
+                    mlflow.log_artifact(shutil.make_archive(str(evals_dir), "zip", evals_dir))
 
     mlflow.end_run()
 
