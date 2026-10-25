@@ -101,7 +101,7 @@ satyrn-dataset sft -i datasets/python3.14/input/docs/PEP750.rst -o datasets/pyth
 ```
 
 Pass `--workers` to generate several conversations in parallel within each source file. Defaults to
-1; rows are written in the same order either way.
+1.
 
 Generating examples 24 at a time:
 
