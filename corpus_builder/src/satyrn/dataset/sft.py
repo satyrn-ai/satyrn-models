@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -10,19 +11,17 @@ from tqdm import tqdm
 
 from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, get_llm
-from satyrn.dataset.utils.concurrency import split_workers
 from satyrn.dataset.utils.generation import (
     PYTHON_CODE_RULES,
     SYSTEM_PROMPT,
     Idea,
     append_dataset_line,
-    collect_input_docs,
-    generate_ideas,
+    load_ideas,
     output_file_lock,
     pep_identifier,
     prepare_output_file,
 )
-from satyrn.dataset.utils.preview import print_dataset_line, print_ideas
+from satyrn.dataset.utils.preview import print_dataset_line
 from satyrn.dataset.utils.sandbox import Sandbox, get_predecessor_python_version, remove_leftover_containers
 
 logger = logging.getLogger(__name__)
@@ -337,11 +336,11 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
 @click.command("sft")
 @click.option(
     "-i",
-    "--input",
-    "input_path",
+    "--ideas-path",
+    "ideas_path",
     type=click.Path(exists=True, path_type=Path),
     required=True,
-    help="Directory of source material to draw from, or a single doc file.",
+    help="Path to the JSONL file from which the ideas should be loaded.",
 )
 @click.option(
     "-o",
@@ -354,42 +353,36 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
 @click.option("--python-version", required=True, help='Python version the dataset addresses, e.g. "3.15".')
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
 @click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of lines to generate in parallel.")
-def main(input_path: Path, output_path: Path, python_version: str, preview: bool, workers: int) -> None:
-    """Generate an SFT dataset for every doc file under input_path."""
-    model = get_llm("deepseek", "deepseek-v4-flash")
+def main(
+    ideas_path: Path,
+    output_path: Path,
+    python_version: str,
+    preview: bool,
+    workers: int,
+) -> None:
+    """Generate an SFT dataset for every loaded idea."""
+    model = get_llm("deepseek", os.environ.get("LLM_MODEL_NAME", "deepseek-v4-flash"))
     sandbox = Sandbox(python_version)
     predecessor_sandbox = Sandbox(get_predecessor_python_version(python_version))
-    file_workers, idea_workers = split_workers(workers)
 
     prepare_output_file(output_path)
-    input_docs = collect_input_docs(input_path)
+    ideas = load_ideas(ideas_path)
+    logger.info("Loaded %d ideas", len(ideas))
 
-    def process_doc(doc_path: Path) -> None:
-        """Generate and write every dataset line for one doc file."""
-        ideas = generate_ideas(model, doc_path, python_version)
-        logger.info("Generated %d ideas for %s", len(ideas), doc_path.name)
-        if preview:
-            print_ideas(ideas)
-
-        # Process each conversation idea for the current doc file
-        with ThreadPoolExecutor(max_workers=idea_workers) as executor:
-            futures = [executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox) for idea in ideas]
-            for future in as_completed(futures):
+    try:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox)
+                for idea in ideas
+            ]
+            for future in tqdm(as_completed(futures), total=len(ideas), desc="Ideas"):
                 dataset_line = future.result()
                 if dataset_line is None:
                     continue
-
                 append_dataset_line(dataset_line, output_path)
                 if preview:
                     with output_file_lock:
                         print_dataset_line(dataset_line)
-
-    try:
-        # Process each doc file
-        with ThreadPoolExecutor(max_workers=file_workers) as executor:
-            futures = [executor.submit(process_doc, doc_path) for doc_path in input_docs]
-            for future in tqdm(as_completed(futures), total=len(input_docs), desc="Doc files"):
-                future.result()
     finally:
         logger.info("Cleaning up sandbox containers...")
         removed_count = remove_leftover_containers()
