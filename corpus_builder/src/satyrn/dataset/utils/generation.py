@@ -10,8 +10,10 @@ Key exports:
 import json
 import re
 import threading
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -97,3 +99,17 @@ def append_dataset_line(dataset_line: dict, output_path: Path) -> None:
     """Append dataset_line to output_path as one JSON line."""
     with output_file_lock, output_path.open("a") as output_file:
         output_file.write(json.dumps(dataset_line) + "\n")
+
+
+def read_jsonl_file(input_path: Path) -> Iterator[dict[str, Any]]:
+    for line in input_path.open("r"):
+        yield json.loads(line)
+
+
+def load_ideas(input_path: Path) -> list[Idea]:
+    ideas: list[Idea] = []
+    for d in read_jsonl_file(input_path):
+        # We have to convert the document path from a str to a Path
+        d["doc_path"] = Path(d["doc_path"])
+        ideas.append(Idea(**d))
+    return ideas
