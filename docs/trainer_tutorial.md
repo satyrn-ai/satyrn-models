@@ -1,23 +1,19 @@
 # Fine-tuning Satyrn language models for Python 3.15
 
-## Prerequisites
+Satyrn models are local language models fine-tuned to work as agents in coding harnesses such as Pi and to write
+code using features of latest Python versions. This tutorial will show you how to train your own Satyrn model 
+and compare its evaluation scores with other runs.
 
-This tutorial assumes you will run fine-tuning inside a [Molab](https://molab.marimo.io/) notebook.
-Molab is a cloud service for running [Marimo](https://marimo.io/) notebooks, which can run on a machine with a GPU.
+You can follow these steps in a terminal of any Linux machine with an Nvidia GPU, such as a
+[RunPod](https://www.runpod.io/) VM or a [Molab notebook](#run-the-tuning-in-a-marimo-notebook).
 
-If you prefer, you can follow the same steps in a terminal of any Linux machine with an Nvidia GPU,
-such as a [RunPod](https://www.runpod.io/) VM.
-
-You will need a Molab account. Once you're signed in, create a new notebook and open its resource settings to select a GPU.
-
-<img src="images/molab_resources.png" alt="Molab notebook resources settings" width="610">
-
-### Prepare the environment
-
-If you're in a Molab notebook, open the Developer Panel at the bottom of the screen and switch to the Terminal tab.
+## Prepare the environment
 
 Run the following commands to install Git LFS (Large File Storage), which is needed to download datasets,
 and install all the Python versions used during training for model evaluation and reinforcement learning.
+
+> [!NOTE]
+> If you're in a Molab notebook, open the Developer Panel at the bottom of the screen and switch to the Terminal tab.
 
 ```shell
 apt update
@@ -49,7 +45,7 @@ uv pip install --config-file uv.toml \
 ### Prepare the secrets file
 
 The trainer reads your Hugging Face and MLflow credentials from a `.env` file.
-Copy `.env.example` from the repo into a `.env` file next to your notebook:
+Copy `.env.example` from the repo into a `.env` file (next to your notebook if using Marimo):
 
 ```shell
 cd ..
@@ -159,7 +155,8 @@ satyrn-unsloth --config-name experiment/py3.15-qwen3.8-27b \
     datasets/python3.14/sft.jsonl,\
     datasets/python3.14/sft-PEP750.jsonl,\
     datasets/python3.15/sft.jsonl,\
-    datasets/python3.15/sft2.jsonl]"
+    datasets/python3.15/sft2.jsonl,\
+    datasets/opencode-reasoning/opencode_reasoning_split1.jsonl]"
 ```
 
 This example changes the list of files which will be combined into the SFT stage dataset.
@@ -192,10 +189,20 @@ satyrn-unsloth --config-name experiment/py3.15-qwen3.8-27b \
 
 ### Run the tuning in a Marimo notebook
 
-If you want to use the Molab environment, you can start training from a cell in your Marimo notebook.
-This will require adding a few setup cells to the notebook.
+This section assumes you will run fine-tuning inside a [Molab](https://molab.marimo.io/) notebook.
+Molab is a cloud service for running [Marimo](https://marimo.io/) notebooks, which can run on a machine with a GPU.
+
+#### Prerequisites
+
+You will need a Molab account. Once you're signed in, create a new notebook and open its resource settings to select a GPU.
+
+<img src="images/molab_resources.png" alt="Molab notebook resources settings" width="610">
+
+Now open the notebook's terminal and run the commands from [Prepare the environment](#prepare-the-environment).
 
 #### Setup cells
+
+To run training from your notebook, you'll need to add a few setup cells.
 
 This first cell prepares the notebook's Python environment for the trainer.
 
@@ -209,8 +216,7 @@ sys.path.insert(0, "/marimo/satyrn-models/trainer/unsloth/src")
 # Change the working directory to the repo, dataset paths in configs are relative to it
 os.chdir("/marimo/satyrn-models")
 
-# Prepare the import path for llama.cpp's GGUF converter child process
-# PYTHONSAFEPATH=1 hides the GGUF converter's sibling `conversion` package
+# Molab sets PYTHONSAFEPATH=1, so llama.cpp's GGUF converter child process needs its directory on PYTHONPATH
 os.environ["PYTHONPATH"] = f"{os.path.expanduser('~/.unsloth/llama.cpp')}:{os.environ.get('PYTHONPATH', '')}"
 ```
 
@@ -245,7 +251,8 @@ run_training(command)
 ```
 
 <a href="https://molab.marimo.io/notebooks/nb_usYnC9FpKefh3QYZ8vF3DN"><img align="right" src="https://molab.marimo.io/molab-shield.svg" alt="Open in molab"></a>
-We prepared a [Molab notebook](https://molab.marimo.io/notebooks/nb_usYnC9FpKefh3QYZ8vF3DN) with the required cells, you can fork it to get started quickly.
+We prepared a [Molab notebook](https://molab.marimo.io/notebooks/nb_usYnC9FpKefh3QYZ8vF3DN) with the required cells.
+You can fork it to get started quickly.
 
 ## Interpreting tuning results
 
@@ -401,7 +408,7 @@ new Python features.
 > has a small number of tasks. We could lower it by increasing the size of Python Eval or improving the quality of its tests. Note
 > that we don't want the evaluation to take too long.
 >
-> We trained six models with the same config and their Python Eval scores landed anywhere between 71% and 80%. If you
+> We trained six models with the same config and their Python Eval scores landed anywhere between 70% and 80%. If you
 > take a look at the per-PEP breakdown of scores, most PEPs scored about the same every time, but PEP 758 ranged from
 > 25% to 75% and PEP 661 from 60% to 98%. We should check the training data and eval tasks for these two PEPs to find
 > out why the model doesn't score consistently on them.
@@ -432,7 +439,7 @@ Here are the best Qwen3.8-27B runs so far:
 |-------------------------|-----------|-------------|--------------|
 | **beholdsa** 🏆         | **87.8%** | **80.1%**   | **82.7%**    |
 | aeroakks                | 87.8%     | 79.4%       | 82.2%        |
-| beholdsa                | 84.8%     | 73.0%       | 77.0%        |
+| beholdsa                | 84.8%     | 73.0%       | 76.9%        |
 | postrational            | 84.1%     | 72.7%       | 76.5%        |
 | postrational            | 89.0%     | 69.6%       | 76.1%        |
 | Base model (`pre` step) | 95.7%     | 27.8%       | 50.4%        |
