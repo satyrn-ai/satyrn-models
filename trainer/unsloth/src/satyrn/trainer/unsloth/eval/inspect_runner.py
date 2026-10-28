@@ -31,7 +31,7 @@ def run_inspect_eval(
     model: Module,
     tokenizer: PreTrainedTokenizerBase,
     task: Task,
-    enable_thinking: bool = True,
+    enable_thinking: bool = False,
     max_new_tokens: int = 4096,
     batch_size: int = 8,
     limit: int | None = None,
