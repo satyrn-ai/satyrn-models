@@ -145,3 +145,42 @@ Generate across all downloaded documents with parallel workers:
 ```sh
 satyrn-dataset rl -i datasets/python3.15/input/docs -o datasets/python3.15/rl.jsonl --python-version 3.15 --workers 24
 ```
+
+## Viewing datasets
+
+`viewer` serves a JSONL dataset (CPT, SFT or RL) in the browser, one row at a time. Prompts and
+messages are rendered as Markdown with Python syntax highlighting, prompt/completion pairs are shown
+as user/assistant turns (with any `trace` shown as the assistant's thinking), and RL rows show their
+tests, reference solution and metadata. The sidebar lists every row and can be filtered by text.
+Malformed lines are skipped and reported rather than stopping the viewer from loading.
+
+### Build the frontend
+
+The viewer UI is a TypeScript app in `corpus_builder/frontend`. Its built bundle is not checked in,
+so build it once (and again after pulling frontend changes). Node.js and npm are required:
+
+```sh
+cd corpus_builder/frontend
+npm install
+npm run build
+```
+
+This writes the bundle to `corpus_builder/src/satyrn/dataset/viewer/static/`, where the
+`satyrn-dataset` package serves it from. If you skip this step, the viewer responds with a
+"Frontend not built" page.
+
+### Run the viewer
+
+```sh
+satyrn-dataset viewer datasets/python3.15/rl.jsonl
+```
+
+Then open <http://127.0.0.1:5000/>. Options:
+
+- `--port PORT`: port to listen on (default `5000`);
+- `--host HOST`: interface to bind to (default `127.0.0.1`; use `0.0.0.0` to reach it from another machine);
+- `--debug`: enable the Flask debug reloader.
+
+The dataset is read once at startup, so restart the viewer to see rows added after it started.
+
+For frontend development with hot reloading, see `corpus_builder/frontend/README.md`.
