@@ -47,15 +47,23 @@ Writes to `datasets/python3.15/input/docs/changes/`.
 
 ## Generating datasets
 
-Each subcommand generates one dataset type, writing JSONL to the `--output` file.
-`cpt` reads source material from `--input-dir` (a directory);
-`sft` and `rl` read from `--input` (a directory or a single doc file).
+Each subcommand writes JSONL to the `--output` file.
+`cpt` reads source material from `--input-dir` (a directory).
+`sft` and `rl` are generated in two stages: `ideas` first reads source material from `--input`
+(a directory or a single doc file) and writes a JSONL file of ideas, then `sft` and `rl` read
+those ideas from `--ideas-path`. The same ideas file can be reused for several `sft` or `rl` runs.
 
 ```sh
-satyrn-dataset cpt --input-dir DIR --output FILE.jsonl   # Continued Pretraining (CPT)
-satyrn-dataset sft --input PATH --output FILE.jsonl      # Supervised Fine-Tuning (SFT)
-satyrn-dataset rl  --input PATH --output FILE.jsonl      # Evaluation / Reinforcement Learning (RL)
+satyrn-dataset cpt   --input-dir DIR --output FILE.jsonl           # Continued Pretraining (CPT)
+satyrn-dataset ideas --input PATH --output IDEAS.jsonl             # Ideas for SFT and RL
+satyrn-dataset sft   --ideas-path IDEAS.jsonl --output FILE.jsonl  # Supervised Fine-Tuning (SFT)
+satyrn-dataset rl    --ideas-path IDEAS.jsonl --output FILE.jsonl  # Evaluation / Reinforcement Learning (RL)
 ```
+
+`ideas`, `sft` and `rl` use an LLM via the DeepSeek API. A `DEEPSEEK_API_KEY` is required in your
+environment (or a `.env` file - see `.env.example`). Optionally set `LLM_MODEL_NAME` to choose the
+model (default `deepseek-v4-flash`) and `DEEPSEEK_BASE_URL` to use a different DeepSeek-compatible
+endpoint (default `https://api.deepseek.com`).
 
 ### Generate Continued Pretraining (CPT) datasets
 
@@ -69,9 +77,40 @@ satyrn-dataset cpt --input-dir datasets/python3.14/input/docs --output datasets/
 satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output datasets/python3.15/cpt.jsonl
 ```
 
+### Generate ideas
+
+`ideas` asks an LLM to propose up to 50 distinct ideas for short code examples demonstrating the
+changes described in each source document. Each row of `--output` holds one idea:
+
+- `description`: what the example should demonstrate;
+- `python_version`: the target Python version; and
+- `doc_path`: the absolute path of the source document the idea came from.
+
+Because `doc_path` is absolute and `sft`/`rl` re-read the source document, keep the source documents
+in place, and generate ideas on the same machine (or with the same paths) that will run `sft`/`rl`.
+
+If the LLM repeatedly fails to return output matching the expected schema for a document, that
+document is skipped with a warning and the run continues.
+
+Pass `--preview` to print each document's ideas as they are saved, and `--workers` to process
+several source documents in parallel (defaults to 1). Docker is not needed for this step.
+
+Generate ideas for a single PEP with preview:
+
+```sh
+satyrn-dataset ideas -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/ideas.jsonl --python-version 3.14 --preview
+```
+
+Generate ideas across all downloaded documents, 8 documents at a time:
+
+```sh
+satyrn-dataset ideas -i datasets/python3.15/input/docs -o datasets/python3.15/ideas.jsonl --python-version 3.15 --workers 8
+```
+
 ### Generate Supervised Fine-Tuning (SFT) datasets
 
-`sft` uses an LLM to generate prompt-response pairs demonstrating new Python features based on documentation.
+`sft` uses an LLM to turn each idea from an [ideas file](#generate-ideas) into a prompt-response
+pair demonstrating a new Python feature, using the idea's source document as context.
 
 Each idea is verified by running in sandboxed Docker containers for the target Python version and
 its immediate predecessor. Examples are rejected if both versions produce equivalent output.
@@ -87,26 +126,23 @@ docker run --rm --runtime=runsc hello-world
 Output is written one row per conversation to `--output`, appending as it goes so partial progress
 survives an interruption.
 
-A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file - see `.env.example`).
-
 #### Usage
 
 Pass `--preview` to print each generated conversation to the terminal as it's saved, useful for
 sanity-checking output quality while a run is in progress.
 
-Generating examples from a single source file with preview:
+Generating examples from an ideas file with preview:
 
 ```sh
-satyrn-dataset sft -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/sft.jsonl --python-version 3.14 --preview
+satyrn-dataset sft -i datasets/python3.14/ideas.jsonl -o datasets/python3.14/sft.jsonl --python-version 3.14 --preview
 ```
 
-Pass `--workers` to generate several conversations in parallel within each source file. Defaults to
-1.
+Pass `--workers` to generate several conversations (one per idea) in parallel. Defaults to 1.
 
 Generating examples 24 at a time:
 
 ```sh
-satyrn-dataset sft -i datasets/python3.15/input/docs -o datasets/python3.15/sft.jsonl --python-version 3.15 --workers 24
+satyrn-dataset sft -i datasets/python3.15/ideas.jsonl -o datasets/python3.15/sft.jsonl --python-version 3.15 --workers 24
 ```
 
 ### Import NVIDIA OpenCodeReasoning
@@ -120,8 +156,8 @@ We created four deterministic, deduplicated, difficulty-balanced samples in: `op
 
 ### Generate evaluation and Reinforcement Learning datasets
 
-`rl` turns each demonstrable change in a PEP or Python documentation file into a small callable
-programming task. Each JSONL row contains:
+`rl` turns each idea from an [ideas file](#generate-ideas) into a small callable programming task,
+using the idea's source document as context. Each JSONL row contains:
 
 - `prompt`: a self-contained problem and callable signature;
 - `test_cases`: 5-12 independent checks, each with a documented input, expected output, and executable assertion;
@@ -134,16 +170,16 @@ suite are then run under the immediately preceding version, and the row is rejec
 still pass there. A candidate model response can be scored by running every test independently and
 using `passed_tests / total_tests`, producing a score between 0 and 1.
 
-Docker has the same requirements as for `sft`. Generate from a single PEP with preview:
+Docker has the same requirements as for `sft`. Generate from an ideas file with preview:
 
 ```sh
-satyrn-dataset rl -i datasets/python3.15/input/docs/PEP815.rst -o datasets/python3.15/rl.jsonl --python-version 3.15 --preview
+satyrn-dataset rl -i datasets/python3.15/ideas.jsonl -o datasets/python3.15/rl.jsonl --python-version 3.15 --preview
 ```
 
-Generate across all downloaded documents with parallel workers:
+Generate with parallel workers (one task per idea at a time):
 
 ```sh
-satyrn-dataset rl -i datasets/python3.15/input/docs -o datasets/python3.15/rl.jsonl --python-version 3.15 --workers 24
+satyrn-dataset rl -i datasets/python3.15/ideas.jsonl -o datasets/python3.15/rl.jsonl --python-version 3.15 --workers 24
 ```
 
 ## Viewing datasets
