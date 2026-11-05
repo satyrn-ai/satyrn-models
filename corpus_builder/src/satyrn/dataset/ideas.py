@@ -62,9 +62,9 @@ def main(
             ideas = generate_ideas(model, doc_path, python_version)
         except SchemaValidationError:
             # After repeated attempts, we did not get a response that satisfied the schema requirements
-            logger.warning(f"Failed to generate schema compliant output for {doc_path.name}")
+            logger.warning("Failed to generate schema compliant output for %s", doc_path.name)
         else:
-            logger.info(f"Generated {len(ideas)} ideas for {doc_path.name}")
+            logger.info("Generated %d ideas for %s", len(ideas), doc_path.name)
             for idea in ideas:
                 idea_dict = asdict(idea)
                 idea_dict["doc_path"] = str(doc_path.absolute())
