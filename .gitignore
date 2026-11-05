@@ -225,3 +225,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Dataset viewer frontend
+corpus_builder/frontend/node_modules/**
+corpus_builder/frontend/dist/
+corpus_builder/src/satyrn/dataset/viewer/static/
