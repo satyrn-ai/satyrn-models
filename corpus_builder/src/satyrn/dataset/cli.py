@@ -7,6 +7,7 @@ from rich.logging import RichHandler
 
 from satyrn.dataset import cpt, rl, sft
 from satyrn.dataset.inputs import collect_doc_changes, download_inputs
+from satyrn.dataset.viewer import app as viewer
 
 handler = RichHandler(show_time=False, show_path=False)
 logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[handler])
@@ -35,3 +36,4 @@ cli.add_command(sft.main)
 cli.add_command(rl.main)
 cli.add_command(download_inputs.main)
 cli.add_command(collect_doc_changes.main)
+cli.add_command(viewer.main)
