@@ -10,7 +10,7 @@ dependencies = [
     "python-dotenv",
     "hydra-core>=1.4.0.dev8",
     "omegaconf>=2.4.0.dev13",
-    "mlflow==3.15.1",
+    "mlflow==3.17.2",
     "nvidia-ml-py>=13.610.43",
     "psutil>=7.2.2",
     "pyrsmi>=1.1.0",
