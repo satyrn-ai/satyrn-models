@@ -366,10 +366,7 @@ def main(
 
     try:
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = [
-                executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox)
-                for idea in ideas
-            ]
+            futures = [executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox) for idea in ideas]
             for future in tqdm(as_completed(futures), total=len(ideas), desc="Ideas"):
                 dataset_line = future.result()
                 if dataset_line is None:
