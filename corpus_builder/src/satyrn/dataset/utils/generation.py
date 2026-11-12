@@ -12,9 +12,11 @@ import threading
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import click
+
+IdeaKind = Literal["sft", "rl"]
 
 SYSTEM_PROMPT = "You are an expert Python instructor writing teaching material for the newest Python release."
 
@@ -37,7 +39,7 @@ class Idea:
     doc_path: Path
     description: str
     python_version: str
-    kind: str  # "sft" or "rl"
+    kind: IdeaKind
 
 
 def pep_identifier(doc_path: Path) -> str | None:

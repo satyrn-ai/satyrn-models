@@ -15,6 +15,7 @@ from satyrn.dataset.utils.generation import (
     PYTHON_CODE_RULES,
     SYSTEM_PROMPT,
     Idea,
+    IdeaKind,
     append_dataset_line,
     prepare_output_file,
 )
@@ -58,7 +59,7 @@ def collect_input_docs(input_path: Path) -> list[Path]:
     return [input_path] if input_path.is_file() else sorted(input_path.rglob("*.rst"))
 
 
-def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: str) -> list[Idea]:
+def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: IdeaKind) -> list[Idea]:
     """Return distinct ideas of the given kind for features described in doc_path."""
     prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT}[kind]
     prompt = prompt_template.format(python_version=python_version, python_code_rules=PYTHON_CODE_RULES)
