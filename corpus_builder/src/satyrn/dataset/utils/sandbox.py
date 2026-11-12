@@ -73,9 +73,8 @@ def tag_exists_on_docker_hub(tag: str) -> bool:
         raise
 
 
-def build_sandbox_image(python_version: str) -> str:
-    """Build and return the project sandbox image for python_version if needed."""
-    image = f"{SANDBOX_LABEL_NAME}:{python_version}"
+def build_image(image: str, dockerfile: Path, python_version: str) -> str:
+    """Build and return image from dockerfile on the python_version base image if needed."""
     if subprocess.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0:
         return image
 
@@ -90,12 +89,17 @@ def build_sandbox_image(python_version: str) -> str:
             "--tag",
             image,
             "--file",
-            str(SANDBOX_DOCKERFILE),
-            str(SANDBOX_DOCKERFILE.parent),
+            str(dockerfile),
+            str(dockerfile.parent),
         ],
         check=True,
     )
     return image
+
+
+def build_sandbox_image(python_version: str) -> str:
+    """Build and return the project sandbox image for python_version if needed."""
+    return build_image(f"{SANDBOX_LABEL_NAME}:{python_version}", SANDBOX_DOCKERFILE, python_version)
 
 
 def remove_leftover_containers() -> int:
