@@ -70,6 +70,19 @@ def test_load_ideas_round_trips_idea_fields_and_path_type(tmp_path: Path) -> Non
     assert all(isinstance(idea.doc_path, Path) for idea in loaded)
 
 
+def test_load_ideas_keeps_only_the_given_kind(tmp_path: Path) -> None:
+    doc = tmp_path / "PEP750.rst"
+    rows = [
+        {"doc_path": str(doc), "description": description, "python_version": "3.15", "kind": kind}
+        for description, kind in [("first", "sft"), ("second", "agentic-sft"), ("third", "sft")]
+    ]
+    path = write_ideas_file(tmp_path / "ideas.jsonl", rows)
+
+    assert [idea.description for idea in load_ideas(path, "sft")] == ["first", "third"]
+    assert [idea.description for idea in load_ideas(path, "agentic-sft")] == ["second"]
+    assert len(load_ideas(path)) == 3
+
+
 def test_load_ideas_empty_file(tmp_path: Path) -> None:
     path = write_ideas_file(tmp_path / "ideas.jsonl", [])
 

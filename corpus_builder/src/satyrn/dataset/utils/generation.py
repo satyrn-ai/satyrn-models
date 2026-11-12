@@ -68,10 +68,11 @@ def read_jsonl_file(input_path: Path) -> Iterator[dict[str, Any]]:
         yield json.loads(line)
 
 
-def load_ideas(input_path: Path) -> list[Idea]:
+def load_ideas(input_path: Path, kind: IdeaKind | None = None) -> list[Idea]:
     ideas: list[Idea] = []
     for d in read_jsonl_file(input_path):
-        # We have to convert the document path from a str to a Path
+        if kind is not None and d.get("kind", kind) != kind:
+            continue
         d["doc_path"] = Path(d["doc_path"])
         ideas.append(Idea(**d))
     return ideas
