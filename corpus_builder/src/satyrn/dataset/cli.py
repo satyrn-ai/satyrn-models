@@ -12,6 +12,10 @@ from satyrn.dataset.viewer import app as viewer
 handler = RichHandler(show_time=False, show_path=False)
 logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[handler])
 
+werkzeug_logger = logging.getLogger("werkzeug")
+werkzeug_logger.addHandler(logging.StreamHandler())
+werkzeug_logger.propagate = False
+
 
 def start_run_log(command_name: str) -> None:
     """Write the run's log messages to results/<timestamp>-corpus-builder-<command>/run.log."""
