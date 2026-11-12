@@ -89,7 +89,7 @@ def test_build_dataset_line_includes_problem_and_source_metadata(monkeypatch: py
         test_cases=TEST_CASES,
     )
     monkeypatch.setattr("satyrn.dataset.rl.generate_problem", lambda *args: problem)
-    idea = Idea(Path("PEP815.rst"), "Use the new API", "3.15")
+    idea = Idea(Path("PEP815.rst"), "Use the new API", "3.15", "rl")
 
     row = build_dataset_line(object(), idea, object(), object())
 
