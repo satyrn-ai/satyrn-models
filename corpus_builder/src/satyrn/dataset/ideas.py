@@ -14,6 +14,7 @@ from satyrn.dataset.llm.models import Model, SchemaValidationError, get_llm
 from satyrn.dataset.utils.generation import (
     PYTHON_CODE_RULES,
     SYSTEM_PROMPT,
+    USE_CASE_RULES,
     Idea,
     IdeaKind,
     append_dataset_line,
@@ -53,6 +54,29 @@ ideas for short programming tasks in which the solver must use the described fea
 {python_code_rules}
 """
 
+# Perhaps we should use the phrase 'making it more robust' rather than 'making it more secure'?
+USE_CASE_IDEAS_PROMPT = """
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for short practical Python programming problems that could benefit from the use of the described features.
+
+- Each idea is a short description of a practical situation that can be solved with pure Python where the use
+  of the described feature improves the code by simplifying it, making it more robust, making it more secure,
+  making it more elegant or a combination of the aforementioned.
+- Propose fewer ideas if the document only covers a small change.
+- Do not repeat the same idea.
+- Propose fewer ideas when the ideas start becoming too similar to previous ideas.
+- DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
+  C API changes, shell commands and CLI invocations, or build configuration.
+
+{python_code_rules}
+"""
+
+IDEAS_PROMPTS: dict[IdeaKind, tuple[str, str]] = {
+    "sft": (SFT_IDEAS_PROMPT, PYTHON_CODE_RULES),
+    "rl": (RL_IDEAS_PROMPT, PYTHON_CODE_RULES),
+    "use_case": (USE_CASE_IDEAS_PROMPT, USE_CASE_RULES),
+}
+
 
 def collect_input_docs(input_path: Path) -> list[Path]:
     """Return one input file or every RST document below an input directory."""
@@ -61,8 +85,8 @@ def collect_input_docs(input_path: Path) -> list[Path]:
 
 def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: IdeaKind) -> list[Idea]:
     """Return distinct ideas of the given kind for features described in doc_path."""
-    prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT}[kind]
-    prompt = prompt_template.format(python_version=python_version, python_code_rules=PYTHON_CODE_RULES)
+    prompt_template, python_code_rules = IDEAS_PROMPTS[kind]
+    prompt = prompt_template.format(python_version=python_version, python_code_rules=python_code_rules)
     schema = {
         "type": "object",
         "properties": {
@@ -101,7 +125,7 @@ def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: Idea
 @click.option("--python-version", required=True, help='Python version the ideas address, e.g. "3.15".')
 @click.option(
     "--kind",
-    type=click.Choice(["sft", "rl"], case_sensitive=False),
+    type=click.Choice(list(IDEAS_PROMPTS), case_sensitive=False),
     required=True,
     help="Kind of ideas to generate.",
 )
