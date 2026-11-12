@@ -1,4 +1,4 @@
-"""Generate testable Python evaluation and Reinforcement Learning datasets."""
+"""Generate ideas for SFT and RL dataset examples."""
 
 import logging
 import os
@@ -9,18 +9,76 @@ from pathlib import Path
 import click
 from tqdm import tqdm
 
-from satyrn.dataset.llm.models import SchemaValidationError, get_llm
+from satyrn.dataset.llm.context import Context
+from satyrn.dataset.llm.models import Model, SchemaValidationError, get_llm
 from satyrn.dataset.utils.generation import (
+    PYTHON_CODE_RULES,
+    SYSTEM_PROMPT,
+    Idea,
+    IdeaKind,
     append_dataset_line,
-    collect_input_docs,
-    generate_ideas,
     prepare_output_file,
 )
 from satyrn.dataset.utils.preview import print_ideas
 
 logger = logging.getLogger(__name__)
 
-PASS_MARKER = "__SATYRN_TEST_PASSED__"
+SFT_IDEAS_PROMPT = """
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for short, self-contained code blocks that would demonstrate the described features.
+
+- Each idea is a short description of what the example would show.
+- Propose fewer ideas if the document only covers a small change.
+- Do not repeat the same idea.
+- DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
+  C API changes, shell commands and CLI invocations, or build configuration.
+
+{python_code_rules}
+"""
+
+RL_IDEAS_PROMPT = """
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for short programming tasks in which the solver must use the described features to produce a result.
+
+- Each idea is one sentence describing, in words, the behavior the solver must produce: no function
+  signature, code, dictionary keys, or attribute and method names.
+- Each idea requires the solver to create or use the feature itself. Do not propose tasks that only
+  read fields of an object handed to the solver.
+- Ideas that differ only by input case are one idea; propose one idea per distinct skill.
+- Propose fewer ideas if the document only covers a small change.
+- Do not repeat the same idea.
+- DO NOT propose ideas for parts of the document that cannot be exercised in Python code, such as
+  C API changes, shell commands and CLI invocations, or build configuration.
+
+{python_code_rules}
+"""
+
+
+def collect_input_docs(input_path: Path) -> list[Path]:
+    """Return one input file or every RST document below an input directory."""
+    return [input_path] if input_path.is_file() else sorted(input_path.rglob("*.rst"))
+
+
+def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: IdeaKind) -> list[Idea]:
+    """Return distinct ideas of the given kind for features described in doc_path."""
+    prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT}[kind]
+    prompt = prompt_template.format(python_version=python_version, python_code_rules=PYTHON_CODE_RULES)
+    schema = {
+        "type": "object",
+        "properties": {
+            "ideas": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+        },
+        "required": ["ideas"],
+    }
+    context = Context()
+    context.system_prompt = SYSTEM_PROMPT
+    context.add(doc_path.name, doc_path)
+    context.set_json_schema(schema)
+    response = model.generate(prompt, context, thinking=True)
+    return [Idea(doc_path, description, python_version, kind) for description in response["ideas"]]
 
 
 @click.command("ideas")
@@ -38,28 +96,35 @@ PASS_MARKER = "__SATYRN_TEST_PASSED__"
     "output_path",
     type=click.Path(dir_okay=False, path_type=Path),
     required=True,
-    help="JSONL file to write the generated dataset to.",
+    help="JSONL file to write the generated ideas to.",
 )
-@click.option("--python-version", required=True, help='Python version the dataset addresses, e.g. "3.15".')
+@click.option("--python-version", required=True, help='Python version the ideas address, e.g. "3.15".')
+@click.option(
+    "--kind",
+    type=click.Choice(["sft", "rl"], case_sensitive=False),
+    required=True,
+    help="Kind of ideas to generate.",
+)
 @click.option("--preview", is_flag=True, default=False, help="Print each idea after it is saved.")
-@click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of lines to generate in parallel.")
+@click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of documents to process in parallel.")
 def main(
     input_path: Path,
     output_path: Path,
     python_version: str,
+    kind: str,
     preview: bool,
     workers: int,
 ) -> None:
-    """Generate a testable evaluation and Reinforcement Learning dataset."""
+    """Generate ideas for SFT or RL dataset examples."""
     model = get_llm("deepseek", os.environ.get("LLM_MODEL_NAME", "deepseek-v4-flash"))
 
     prepare_output_file(output_path)
     input_docs = collect_input_docs(input_path)
 
     def process_doc(doc_path: Path) -> None:
-        """Generate and write every testable task for one source document."""
+        """Generate and write the ideas for one source document."""
         try:
-            ideas = generate_ideas(model, doc_path, python_version)
+            ideas = generate_ideas(model, doc_path, python_version, kind)
         except SchemaValidationError:
             # After repeated attempts, we did not get a response that satisfied the schema requirements
             logger.warning("Failed to generate schema compliant output for %s", doc_path.name)

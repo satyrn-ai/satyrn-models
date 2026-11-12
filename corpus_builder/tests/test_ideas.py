@@ -24,9 +24,11 @@ class StubModel:
     def __init__(self, response: dict | Exception) -> None:
         self.response = response
         self.calls = 0
+        self.prompts: list[str] = []
 
     def generate(self, prompt: str, context: Any, thinking: bool = False, effort: str = "medium") -> Any:
         self.calls += 1
+        self.prompts.append(prompt)
         if isinstance(self.response, Exception):
             raise self.response
         return self.response
@@ -54,16 +56,16 @@ def test_load_ideas_round_trips_idea_fields_and_path_type(tmp_path: Path) -> Non
     path = write_ideas_file(
         tmp_path / "ideas.jsonl",
         [
-            {"doc_path": str(doc), "description": "Use t-strings", "python_version": "3.15"},
-            {"doc_path": str(doc), "description": "Format a t-string", "python_version": "3.15"},
+            {"doc_path": str(doc), "description": "Use t-strings", "python_version": "3.15", "kind": "sft"},
+            {"doc_path": str(doc), "description": "Format a t-string", "python_version": "3.15", "kind": "rl"},
         ],
     )
 
     loaded = load_ideas(path)
 
     assert loaded == [
-        Idea(doc, "Use t-strings", "3.15"),
-        Idea(doc, "Format a t-string", "3.15"),
+        Idea(doc, "Use t-strings", "3.15", "sft"),
+        Idea(doc, "Format a t-string", "3.15", "rl"),
     ]
     assert all(isinstance(idea.doc_path, Path) for idea in loaded)
 
@@ -77,7 +79,8 @@ def test_load_ideas_empty_file(tmp_path: Path) -> None:
 # --- the ideas command ------------------------------------------------------
 
 
-def test_ideas_command_writes_one_line_per_idea(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("kind", ["sft", "rl"])
+def test_ideas_command_writes_one_line_per_idea(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str) -> None:
     doc = tmp_path / "PEP750.rst"
     doc.write_text("documentation", encoding="utf-8")
     output = tmp_path / "ideas.jsonl"
@@ -86,15 +89,65 @@ def test_ideas_command_writes_one_line_per_idea(tmp_path: Path, monkeypatch: pyt
 
     result = CliRunner().invoke(
         ideas.main,
-        ["-i", str(doc), "-o", str(output), "--python-version", "3.15"],
+        ["-i", str(doc), "-o", str(output), "--python-version", "3.15", "--kind", kind],
     )
 
     assert result.exit_code == 0, result.output
     rows = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
     assert rows == [
-        {"doc_path": str(doc.absolute()), "description": "first", "python_version": "3.15"},
-        {"doc_path": str(doc.absolute()), "description": "second", "python_version": "3.15"},
+        {"doc_path": str(doc.absolute()), "description": "first", "python_version": "3.15", "kind": kind},
+        {"doc_path": str(doc.absolute()), "description": "second", "python_version": "3.15", "kind": kind},
     ]
+
+
+def test_ideas_command_uses_a_different_prompt_per_kind(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    doc = tmp_path / "PEP750.rst"
+    doc.write_text("documentation", encoding="utf-8")
+    model = StubModel({"ideas": []})
+    monkeypatch.setattr(ideas, "get_llm", lambda *args, **kwargs: model)
+
+    for kind in ("sft", "rl"):
+        result = CliRunner().invoke(
+            ideas.main,
+            ["-i", str(doc), "-o", str(tmp_path / f"{kind}.jsonl"), "--python-version", "3.15", "--kind", kind],
+        )
+        assert result.exit_code == 0, result.output
+
+    sft_prompt, rl_prompt = model.prompts
+    assert "short, self-contained code blocks" in sft_prompt
+    assert "programming tasks in which the solver must use" in rl_prompt
+    assert "Python version 3.15" in sft_prompt and "Python version 3.15" in rl_prompt
+
+
+def test_ideas_command_accepts_kind_in_any_case(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    doc = tmp_path / "PEP750.rst"
+    doc.write_text("documentation", encoding="utf-8")
+    output = tmp_path / "ideas.jsonl"
+    monkeypatch.setattr(ideas, "get_llm", lambda *args, **kwargs: StubModel({"ideas": ["first"]}))
+
+    result = CliRunner().invoke(
+        ideas.main,
+        ["-i", str(doc), "-o", str(output), "--python-version", "3.15", "--kind", "RL"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(output.read_text(encoding="utf-8"))["kind"] == "rl"
+
+
+@pytest.mark.parametrize("extra_arguments", [[], ["--kind", "cpt"]])
+def test_ideas_command_requires_a_valid_kind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, extra_arguments: list[str]
+) -> None:
+    doc = tmp_path / "PEP750.rst"
+    doc.write_text("documentation", encoding="utf-8")
+    monkeypatch.setattr(ideas, "get_llm", lambda *args, **kwargs: StubModel({"ideas": []}))
+
+    result = CliRunner().invoke(
+        ideas.main,
+        ["-i", str(doc), "-o", str(tmp_path / "ideas.jsonl"), "--python-version", "3.15", *extra_arguments],
+    )
+
+    assert result.exit_code != 0
 
 
 def test_ideas_command_skips_document_on_schema_validation_error(
@@ -108,7 +161,7 @@ def test_ideas_command_skips_document_on_schema_validation_error(
 
     result = CliRunner().invoke(
         ideas.main,
-        ["-i", str(doc), "-o", str(output), "--python-version", "3.15"],
+        ["-i", str(doc), "-o", str(output), "--python-version", "3.15", "--kind", "sft"],
     )
 
     # A single unparseable document must not abort the run or create a file.
@@ -125,7 +178,7 @@ def test_ideas_command_preview_prints_ideas(tmp_path: Path, monkeypatch: pytest.
 
     result = CliRunner().invoke(
         ideas.main,
-        ["-i", str(doc), "-o", str(output), "--python-version", "3.15", "--preview"],
+        ["-i", str(doc), "-o", str(output), "--python-version", "3.15", "--kind", "sft", "--preview"],
     )
 
     assert result.exit_code == 0, result.output
@@ -140,7 +193,7 @@ def test_ideas_command_rejects_non_jsonl_output(tmp_path: Path, monkeypatch: pyt
 
     result = CliRunner().invoke(
         ideas.main,
-        ["-i", str(doc), "-o", str(tmp_path / "ideas.txt"), "--python-version", "3.15"],
+        ["-i", str(doc), "-o", str(tmp_path / "ideas.txt"), "--python-version", "3.15", "--kind", "sft"],
     )
 
     assert result.exit_code != 0
@@ -163,7 +216,7 @@ def test_ideas_command_uses_llm_model_name_environment_override(
 
     result = CliRunner().invoke(
         ideas.main,
-        ["-i", str(doc), "-o", str(tmp_path / "ideas.jsonl"), "--python-version", "3.15"],
+        ["-i", str(doc), "-o", str(tmp_path / "ideas.jsonl"), "--python-version", "3.15", "--kind", "sft"],
     )
 
     assert result.exit_code == 0, result.output
@@ -179,11 +232,11 @@ def test_ideas_command_generates_from_every_rst_in_directory(tmp_path: Path, mon
     output = tmp_path / "ideas.jsonl"
     model = StubModel({"ideas": ["an idea"]})
     monkeypatch.setattr(ideas, "get_llm", lambda *args, **kwargs: model)
-    monkeypatch.setattr(ideas, "generate_ideas", lambda m, doc, version: [Idea(doc, "an idea", version)])
+    monkeypatch.setattr(ideas, "generate_ideas", lambda m, doc, version, kind: [Idea(doc, "an idea", version, kind)])
 
     result = CliRunner().invoke(
         ideas.main,
-        ["-i", str(docs), "-o", str(output), "--python-version", "3.15"],
+        ["-i", str(docs), "-o", str(output), "--python-version", "3.15", "--kind", "sft"],
     )
 
     assert result.exit_code == 0, result.output

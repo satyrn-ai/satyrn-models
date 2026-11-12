@@ -51,13 +51,16 @@ Each subcommand writes JSONL to the `--output` file.
 `cpt` reads source material from `--input-dir` (a directory).
 `sft` and `rl` are generated in two stages: `ideas` first reads source material from `--input`
 (a directory or a single doc file) and writes a JSONL file of ideas, then `sft` and `rl` read
-those ideas from `--ideas-path`. The same ideas file can be reused for several `sft` or `rl` runs.
+those ideas from `--ideas-path`. An ideas file can be reused for several runs of its command.
 
 ```sh
-satyrn-dataset cpt   --input-dir DIR --output FILE.jsonl           # Continued Pretraining (CPT)
-satyrn-dataset ideas --input PATH --output IDEAS.jsonl             # Ideas for SFT and RL
-satyrn-dataset sft   --ideas-path IDEAS.jsonl --output FILE.jsonl  # Supervised Fine-Tuning (SFT)
-satyrn-dataset rl    --ideas-path IDEAS.jsonl --output FILE.jsonl  # Evaluation / Reinforcement Learning (RL)
+satyrn-dataset cpt   --input-dir DIR --output FILE.jsonl                    # Continued Pretraining (CPT)
+
+satyrn-dataset ideas --kind sft --input PATH --output SFT-IDEAS.jsonl       # Ideas for SFT
+satyrn-dataset sft   --ideas-path SFT-IDEAS.jsonl --output FILE.jsonl       # Supervised Fine-Tuning (SFT)
+
+satyrn-dataset ideas --kind rl --input PATH --output RL-IDEAS.jsonl         # Ideas for RL
+satyrn-dataset rl    --ideas-path RL-IDEAS.jsonl --output FILE.jsonl        # Evaluation / Reinforcement Learning (RL)
 ```
 
 `ideas`, `sft` and `rl` use an LLM via the DeepSeek API. A `DEEPSEEK_API_KEY` is required in your
@@ -79,11 +82,12 @@ satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output datasets/
 
 ### Generate ideas
 
-`ideas` asks an LLM to propose up to 50 distinct ideas for short code examples demonstrating the
-changes described in each source document. Each row of `--output` holds one idea:
+`ideas` asks an LLM to propose up to 50 distinct ideas for each source document: short code examples
+with `--kind sft`, programming tasks with `--kind rl`. Each row of `--output` holds one idea:
 
-- `description`: what the example should demonstrate;
-- `python_version`: the target Python version; and
+- `description`: what the example or task should demonstrate;
+- `python_version`: the target Python version;
+- `kind`: `sft` or `rl`; and
 - `doc_path`: the absolute path of the source document the idea came from.
 
 Because `doc_path` is absolute and `sft`/`rl` re-read the source document, keep the source documents
@@ -98,13 +102,14 @@ several source documents in parallel (defaults to 1). Docker is not needed for t
 Generate ideas for a single PEP with preview:
 
 ```sh
-satyrn-dataset ideas -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/ideas.jsonl --python-version 3.14 --preview
+satyrn-dataset ideas -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/ideas-sft.jsonl --python-version 3.14 --kind sft --preview
 ```
 
 Generate ideas across all downloaded documents, 8 documents at a time:
 
 ```sh
-satyrn-dataset ideas -i datasets/python3.15/input/docs -o datasets/python3.15/ideas.jsonl --python-version 3.15 --workers 8
+satyrn-dataset ideas -i datasets/python3.15/input/docs -o datasets/python3.15/ideas-sft.jsonl --python-version 3.15 --kind sft --workers 8
+satyrn-dataset ideas -i datasets/python3.15/input/docs -o datasets/python3.15/ideas-rl.jsonl --python-version 3.15 --kind rl --workers 8
 ```
 
 ### Generate Supervised Fine-Tuning (SFT) datasets
@@ -134,7 +139,7 @@ sanity-checking output quality while a run is in progress.
 Generating examples from an ideas file with preview:
 
 ```sh
-satyrn-dataset sft -i datasets/python3.14/ideas.jsonl -o datasets/python3.14/sft.jsonl --python-version 3.14 --preview
+satyrn-dataset sft -i datasets/python3.14/ideas-sft.jsonl -o datasets/python3.14/sft.jsonl --python-version 3.14 --preview
 ```
 
 Pass `--workers` to generate several conversations (one per idea) in parallel. Defaults to 1.
@@ -142,7 +147,7 @@ Pass `--workers` to generate several conversations (one per idea) in parallel. D
 Generating examples 24 at a time:
 
 ```sh
-satyrn-dataset sft -i datasets/python3.15/ideas.jsonl -o datasets/python3.15/sft.jsonl --python-version 3.15 --workers 24
+satyrn-dataset sft -i datasets/python3.15/ideas-sft.jsonl -o datasets/python3.15/sft.jsonl --python-version 3.15 --workers 24
 ```
 
 ### Import NVIDIA OpenCodeReasoning
@@ -173,13 +178,13 @@ using `passed_tests / total_tests`, producing a score between 0 and 1.
 Docker has the same requirements as for `sft`. Generate from an ideas file with preview:
 
 ```sh
-satyrn-dataset rl -i datasets/python3.15/ideas.jsonl -o datasets/python3.15/rl.jsonl --python-version 3.15 --preview
+satyrn-dataset rl -i datasets/python3.15/ideas-rl.jsonl -o datasets/python3.15/rl.jsonl --python-version 3.15 --preview
 ```
 
 Generate with parallel workers (one task per idea at a time):
 
 ```sh
-satyrn-dataset rl -i datasets/python3.15/ideas.jsonl -o datasets/python3.15/rl.jsonl --python-version 3.15 --workers 24
+satyrn-dataset rl -i datasets/python3.15/ideas-rl.jsonl -o datasets/python3.15/rl.jsonl --python-version 3.15 --workers 24
 ```
 
 ## Viewing datasets

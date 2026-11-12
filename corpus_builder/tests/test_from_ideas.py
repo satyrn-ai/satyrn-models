@@ -30,6 +30,7 @@ def ideas_file(tmp_path: Path) -> Path:
                         "doc_path": str(tmp_path / "PEP750.rst"),
                         "description": description,
                         "python_version": "3.15",
+                        "kind": "sft",
                     }
                 )
                 + "\n"
