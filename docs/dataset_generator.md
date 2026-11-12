@@ -83,11 +83,12 @@ satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output datasets/
 ### Generate ideas
 
 `ideas` asks an LLM to propose up to 50 distinct ideas for each source document: short code examples
-with `--kind sft`, programming tasks with `--kind rl`. Each row of `--output` holds one idea:
+with `--kind sft`, programming tasks with `--kind rl`, and practical problems that would benefit from
+the described feature with `--kind use_case`. Each row of `--output` holds one idea:
 
 - `description`: what the example or task should demonstrate;
 - `python_version`: the target Python version;
-- `kind`: `sft` or `rl`; and
+- `kind`: `sft`, `rl` or `use_case`; and
 - `doc_path`: the absolute path of the source document the idea came from.
 
 Because `doc_path` is absolute and `sft`/`rl` re-read the source document, keep the source documents
