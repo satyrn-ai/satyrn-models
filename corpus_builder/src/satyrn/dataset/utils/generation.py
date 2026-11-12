@@ -16,7 +16,7 @@ from typing import Any, Literal
 
 import click
 
-IdeaKind = Literal["sft", "rl"]
+IdeaKind = Literal["sft", "rl", "agentic-sft"]
 
 SYSTEM_PROMPT = "You are an expert Python instructor writing teaching material for the newest Python release."
 

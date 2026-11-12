@@ -79,7 +79,7 @@ def test_load_ideas_empty_file(tmp_path: Path) -> None:
 # --- the ideas command ------------------------------------------------------
 
 
-@pytest.mark.parametrize("kind", ["sft", "rl"])
+@pytest.mark.parametrize("kind", ["sft", "rl", "agentic-sft"])
 def test_ideas_command_writes_one_line_per_idea(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str) -> None:
     doc = tmp_path / "PEP750.rst"
     doc.write_text("documentation", encoding="utf-8")
@@ -106,17 +106,18 @@ def test_ideas_command_uses_a_different_prompt_per_kind(tmp_path: Path, monkeypa
     model = StubModel({"ideas": []})
     monkeypatch.setattr(ideas, "get_llm", lambda *args, **kwargs: model)
 
-    for kind in ("sft", "rl"):
+    for kind in ("sft", "rl", "agentic-sft"):
         result = CliRunner().invoke(
             ideas.main,
             ["-i", str(doc), "-o", str(tmp_path / f"{kind}.jsonl"), "--python-version", "3.15", "--kind", kind],
         )
         assert result.exit_code == 0, result.output
 
-    sft_prompt, rl_prompt = model.prompts
+    sft_prompt, rl_prompt, agentic_sft_prompt = model.prompts
     assert "short, self-contained code blocks" in sft_prompt
     assert "programming tasks in which the solver must use" in rl_prompt
-    assert "Python version 3.15" in sft_prompt and "Python version 3.15" in rl_prompt
+    assert "an agent edits, refactors or creates a single Python file" in agentic_sft_prompt
+    assert all("Python version 3.15" in prompt for prompt in model.prompts)
 
 
 def test_ideas_command_accepts_kind_in_any_case(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

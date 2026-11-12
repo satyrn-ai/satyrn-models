@@ -1,4 +1,4 @@
-"""Generate ideas for SFT and RL dataset examples."""
+"""Generate ideas for dataset examples."""
 
 import logging
 import os
@@ -53,6 +53,30 @@ ideas for short programming tasks in which the solver must use the described fea
 {python_code_rules}
 """
 
+AGENTIC_SFT_IDEAS_PROMPT = """
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for coding tasks in which an agent edits, refactors or creates a single Python file so that it
+uses the described features.
+
+- Each idea describes the starting point: the file before the change, written without the described
+  features, or no file if the task creates a new one. Name the function or behaviour the file
+  provides.
+- Each idea describes the end state: the file after the change, using the described features.
+- The end state is importable code with defined behaviour: functions or classes, with no demo calls
+  or asserts.
+- Do not specify imports, private helper names or implementation choices.
+- Define the behaviour precisely enough for unit tests to assert on its return values or exceptions.
+- The end state uses only the standard library.
+- At least half of the ideas edit or refactor an existing file, so the solver has to read the
+  existing code. The rest create a new file. A refactor does not change the file's behaviour.
+- Each task needs non-trivial logic.
+- Each idea is one task with one outcome. Do not offer alternatives within an idea.
+- Propose one idea per distinct skill.
+- Propose fewer ideas if the document only covers a small change.
+
+{python_code_rules}
+"""
+
 
 def collect_input_docs(input_path: Path) -> list[Path]:
     """Return one input file or every RST document below an input directory."""
@@ -61,7 +85,7 @@ def collect_input_docs(input_path: Path) -> list[Path]:
 
 def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: IdeaKind) -> list[Idea]:
     """Return distinct ideas of the given kind for features described in doc_path."""
-    prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT}[kind]
+    prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT, "agentic-sft": AGENTIC_SFT_IDEAS_PROMPT}[kind]
     prompt = prompt_template.format(python_version=python_version, python_code_rules=PYTHON_CODE_RULES)
     schema = {
         "type": "object",
@@ -101,7 +125,7 @@ def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: Idea
 @click.option("--python-version", required=True, help='Python version the ideas address, e.g. "3.15".')
 @click.option(
     "--kind",
-    type=click.Choice(["sft", "rl"], case_sensitive=False),
+    type=click.Choice(["sft", "rl", "agentic-sft"], case_sensitive=False),
     required=True,
     help="Kind of ideas to generate.",
 )
@@ -115,7 +139,7 @@ def main(
     preview: bool,
     workers: int,
 ) -> None:
-    """Generate ideas for SFT or RL dataset examples."""
+    """Generate ideas for dataset examples."""
     model = get_llm("deepseek", os.environ.get("LLM_MODEL_NAME", "deepseek-v4-flash"))
 
     prepare_output_file(output_path)
