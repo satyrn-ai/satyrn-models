@@ -5,6 +5,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from pathlib import Path
+from typing import get_args
 
 import click
 from tqdm import tqdm
@@ -125,7 +126,7 @@ def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: Idea
 @click.option("--python-version", required=True, help='Python version the ideas address, e.g. "3.15".')
 @click.option(
     "--kind",
-    type=click.Choice(["sft", "rl", "agentic-sft"], case_sensitive=False),
+    type=click.Choice(get_args(IdeaKind), case_sensitive=False),
     required=True,
     help="Kind of ideas to generate.",
 )
