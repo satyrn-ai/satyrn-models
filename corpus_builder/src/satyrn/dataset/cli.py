@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 from rich.logging import RichHandler
 
-from satyrn.dataset import cpt, ideas, rl, sft
+from satyrn.dataset import agentic_sft, cpt, ideas, rl, sft
 from satyrn.dataset.inputs import collect_doc_changes, download_inputs
 from satyrn.dataset.viewer import app as viewer
 
@@ -31,13 +31,14 @@ def start_run_log(command_name: str) -> None:
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """Satyrn dataset generation tools."""
-    if ctx.invoked_subcommand in ("sft", "rl"):
+    if ctx.invoked_subcommand in ("sft", "rl", "agentic-sft"):
         start_run_log(ctx.invoked_subcommand)
 
 
 cli.add_command(cpt.main)
 cli.add_command(sft.main)
 cli.add_command(rl.main)
+cli.add_command(agentic_sft.main)
 cli.add_command(ideas.main)
 cli.add_command(download_inputs.main)
 cli.add_command(collect_doc_changes.main)
