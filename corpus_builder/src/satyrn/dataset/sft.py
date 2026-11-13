@@ -313,11 +313,8 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
         code_block = generate_code_block(model, idea, sandbox, predecessor_sandbox)
         conversation = generate_conversation(model, idea, code_block)
         judge_conversation(model, idea, code_block, conversation)
-    except ValueError as error:
-        logger.warning("Skipping idea: %s", error)
-        return None
     except Exception as error:
-        logger.error("Skipping idea: %s", error)
+        logger.warning("Skipping idea: %s", error)
         return None
 
     return {

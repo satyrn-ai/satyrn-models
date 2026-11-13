@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, get_llm
-from satyrn.dataset.pi_harness.harness import File
+from satyrn.dataset.pi_harness.harness import File, PiHarness, build_pi_image
 from satyrn.dataset.utils.generation import (
     PYTHON_CODE_RULES,
     SYSTEM_PROMPT,
@@ -20,6 +20,7 @@ from satyrn.dataset.utils.generation import (
     append_dataset_line,
     load_ideas,
     output_file_lock,
+    pep_identifier,
     prepare_output_file,
 )
 from satyrn.dataset.utils.preview import print_dataset_line
@@ -47,17 +48,17 @@ def run_tests(code: str, tests: str, sandbox: Sandbox) -> tuple[bool, str]:
     return output.rstrip().splitlines()[-1:] == [PASS_MARKER], output
 
 
-def verify_task(task: Task, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> str | None:
-    """Return why the tests do not pass on the solution in sandbox and fail in predecessor_sandbox, or None."""
-    passed, output = run_tests(task.solution.content, task.tests, sandbox)
+def verify_code(code: str, tests: str, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> str | None:
+    """Return why the tests do not pass on code in sandbox and fail in predecessor_sandbox, or None."""
+    passed, output = run_tests(code, tests, sandbox)
     if not passed:
-        return f"The tests failed on `solution` under Python {sandbox.python_version}:\n{output}"
+        return f"The tests failed under Python {sandbox.python_version}:\n{output}"
 
-    passed, _ = run_tests(task.solution.content, task.tests, predecessor_sandbox)
+    passed, _ = run_tests(code, tests, predecessor_sandbox)
     if passed:
         return (
-            f"The tests also passed on `solution` under Python {predecessor_sandbox.python_version}, "
-            f"so `solution` does not depend on Python {sandbox.python_version}."
+            f"The tests also passed under Python {predecessor_sandbox.python_version}, "
+            f"so the code does not depend on Python {sandbox.python_version}."
         )
     return None
 
@@ -115,7 +116,7 @@ how to do that or how to test it.
         initial = File(response["file_name"], response["initial"]) if response["initial"] else None
         solution = File(response["file_name"], response["solution"])
         task = Task(response["prompt"], initial, solution, response["tests"])
-        rejection = verify_task(task, sandbox, predecessor_sandbox)
+        rejection = verify_code(solution.content, task.tests, sandbox, predecessor_sandbox)
         if rejection is None:
             logger.debug(
                 "Attempt %d/%d: task verified on Python %s, fails on %s: %s",
@@ -140,18 +141,75 @@ Fix the task and give it again.
     raise ValueError(f"Could not generate a verified task for idea: {idea.description}")
 
 
-def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> dict | None:
+def run_agent(agent_model: str, idea: Idea, task: Task) -> tuple[dict, str | None]:
+    """Prime Pi with idea's source document and run task. Return the session payload and the agent's file."""
+    workspace = [task.initial] if task.initial else []
+    pi = PiHarness(agent_model, workspace)
+    try:
+        priming_prompt = (
+            "Here is a new Python feature. Read it; you will use it in the next problem. Reply only 'ready'."
+        )
+        priming_message = f"{priming_prompt}\n\n{idea.doc_path.read_text()}"
+        pi.agent_run(priming_message)
+        logger.debug("Running agent on %s", task.solution.name)
+        pi.agent_run(task.prompt)
+        logger.debug("Agent finished on %s", task.solution.name)
+        payload = json.loads(pi.render_session())
+        agent_file = pi.workspace_dir / task.solution.name
+        agent_code = agent_file.read_text() if agent_file.exists() else None
+        return payload, agent_code
+    finally:
+        pi.stop()
+
+
+def extract_session(messages: list[dict], task_prompt: str) -> tuple[list[dict], list[dict]]:
+    """Return the system and task messages, and the agent's turns, without the priming and render messages."""
+    task_index = next(
+        index
+        for index, message in enumerate(messages)
+        if message["role"] == "user" and message["content"][0]["text"] == task_prompt
+    )
+    task_message = {"role": "user", "content": task_prompt}
+    return [messages[0], task_message], messages[task_index + 1 : -1]
+
+
+def build_dataset_line(
+    model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox, agent_model: str
+) -> dict | None:
     """Return a dataset line for idea, or None if it was rejected."""
     try:
         task = generate_task(model, idea, sandbox, predecessor_sandbox)
-    except ValueError as error:
+
+        payload, agent_code = run_agent(agent_model, idea, task)
+        if agent_code is None:
+            raise ValueError(f"The agent did not write {task.solution.name}")
+
+        rejection = verify_code(agent_code, task.tests, sandbox, predecessor_sandbox)
+        if rejection is not None:
+            raise ValueError(f"The agent's {task.solution.name} did not verify. {rejection}")
+
+        if os.environ["DEEPSEEK_API_KEY"] in json.dumps(payload):
+            raise ValueError("The agent session contains the API key")
+
+        prompt, completion = extract_session(payload["messages"], task.prompt)
+
+    except Exception as error:
         logger.warning("Skipping idea: %s", error)
         return None
-    except Exception as error:
-        logger.error("Skipping idea: %s", error)
-        return None
 
-    return {"idea": idea.description, "task": asdict(task)}
+    return {
+        "prompt": prompt,
+        "completion": completion,
+        "tools": payload["tools"],
+        "filename": idea.doc_path.name,
+        "pep": pep_identifier(idea.doc_path),
+        "python_version": idea.python_version,
+        "idea": idea.description,
+        "task_file": task.solution.name,
+        "initial": task.initial.content if task.initial else "",
+        "solution": task.solution.content,
+        "tests": task.tests,
+    }
 
 
 @click.command("agentic-sft")
@@ -172,12 +230,14 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
     help="JSONL file to write the generated dataset to.",
 )
 @click.option("--python-version", required=True, help='Python version the dataset addresses, e.g. "3.15".')
+@click.option("--agent-model", default="deepseek/deepseek-flash", show_default=True, help="Pi model of the agent.")
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
 @click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of lines to generate in parallel.")
 def main(
     ideas_path: Path,
     output_path: Path,
     python_version: str,
+    agent_model: str,
     preview: bool,
     workers: int,
 ) -> None:
@@ -185,6 +245,7 @@ def main(
     model = get_llm("deepseek", os.environ.get("LLM_MODEL_NAME", "deepseek-v4-flash"))
     sandbox = Sandbox(python_version)
     predecessor_sandbox = Sandbox(get_predecessor_python_version(python_version))
+    build_pi_image()
 
     prepare_output_file(output_path)
     ideas = load_ideas(ideas_path, "agentic-sft")
@@ -192,7 +253,10 @@ def main(
 
     try:
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = [executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox) for idea in ideas]
+            futures = [
+                executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox, agent_model)
+                for idea in ideas
+            ]
             for future in tqdm(as_completed(futures), total=len(ideas), desc="Ideas"):
                 dataset_line = future.result()
                 if dataset_line is None:

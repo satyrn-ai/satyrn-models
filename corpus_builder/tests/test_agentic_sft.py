@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from satyrn.dataset.agentic_sft import PASS_MARKER, Task, generate_task, verify_task
+from satyrn.dataset.agentic_sft import PASS_MARKER, Task, extract_session, generate_task, verify_code
 from satyrn.dataset.pi_harness.harness import File
 from satyrn.dataset.utils.generation import Idea
 
@@ -56,33 +56,55 @@ def idea(tmp_path: Path) -> Idea:
     return Idea(doc_path, "Make render.py safe with a t-string", "3.14", "agentic-sft")
 
 
-def test_verify_task_accepts_tests_that_pass_only_on_the_target() -> None:
+def test_verify_code_accepts_tests_that_pass_only_on_the_target() -> None:
     sandbox = StubSandbox("3.14", f"some output\n{PASS_MARKER}\n")
     predecessor_sandbox = StubSandbox("3.13", "SyntaxError")
 
-    assert verify_task(TASK, sandbox, predecessor_sandbox) is None
+    assert verify_code(TASK.solution.content, TASK.tests, sandbox, predecessor_sandbox) is None
     assert sandbox.programs[0].startswith(RESPONSE["solution"].rstrip())
     assert RESPONSE["tests"] in sandbox.programs[0]
     assert predecessor_sandbox.programs == sandbox.programs
 
 
-def test_verify_task_rejects_tests_that_fail_on_the_target() -> None:
+def test_verify_code_rejects_tests_that_fail_on_the_target() -> None:
     sandbox = StubSandbox("3.14", f"{PASS_MARKER}\nAssertionError")
     predecessor_sandbox = StubSandbox("3.13")
 
-    rejection = verify_task(TASK, sandbox, predecessor_sandbox)
+    rejection = verify_code(TASK.solution.content, TASK.tests, sandbox, predecessor_sandbox)
 
     assert rejection is not None
-    assert "failed on `solution` under Python 3.14" in rejection
+    assert "The tests failed under Python 3.14" in rejection
     assert "AssertionError" in rejection
     assert predecessor_sandbox.programs == []
 
 
-def test_verify_task_rejects_tests_that_also_pass_on_the_predecessor() -> None:
-    rejection = verify_task(TASK, StubSandbox("3.14", PASS_MARKER), StubSandbox("3.13", PASS_MARKER))
+def test_verify_code_rejects_tests_that_also_pass_on_the_predecessor() -> None:
+    sandbox = StubSandbox("3.14", PASS_MARKER)
+    predecessor_sandbox = StubSandbox("3.13", PASS_MARKER)
+
+    rejection = verify_code(TASK.solution.content, TASK.tests, sandbox, predecessor_sandbox)
 
     assert rejection is not None
-    assert "also passed on `solution` under Python 3.13" in rejection
+    assert "The tests also passed under Python 3.13" in rejection
+
+
+def test_extract_session_drops_priming_and_render_messages() -> None:
+    system_message = {"role": "system", "content": "system prompt"}
+    priming_message = {"role": "user", "content": [{"type": "text", "text": "Read this document"}]}
+    ready_message = {"role": "assistant", "content": "ready"}
+    task_message = {"role": "user", "content": [{"type": "text", "text": "Fix render.py"}]}
+    agent_turns = [
+        {"role": "assistant", "content": None, "tool_calls": [{"id": "call_1"}]},
+        {"role": "tool", "tool_call_id": "call_1", "content": "done"},
+        {"role": "assistant", "content": "Finished"},
+    ]
+    render_message = {"role": "user", "content": [{"type": "text", "text": "[RENDER SESSION AND ABORT]"}]}
+    messages = [system_message, priming_message, ready_message, task_message, *agent_turns, render_message]
+
+    prompt, completion = extract_session(messages, "Fix render.py")
+
+    assert prompt == [system_message, {"role": "user", "content": "Fix render.py"}]
+    assert completion == agent_turns
 
 
 def test_generate_task_returns_the_first_verified_task(idea: Idea) -> None:
@@ -111,7 +133,7 @@ def test_generate_task_retries_with_the_previous_task_and_the_rejection(idea: Id
     task = generate_task(model, idea, sandbox, predecessor_sandbox)
 
     assert task.tests == corrected_response["tests"]
-    assert "also passed on `solution` under Python 3.13" in model.prompts[1]
+    assert "The tests also passed under Python 3.13" in model.prompts[1]
     assert RESPONSE["tests"] in model.prompts[1]
 
 
