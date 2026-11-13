@@ -106,6 +106,7 @@ body {
 }
 
 .item-link {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -138,6 +139,15 @@ body {
 .item-link-meta {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.item-link-line {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 /* ---- Content ---- */
