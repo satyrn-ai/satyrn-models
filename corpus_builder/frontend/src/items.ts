@@ -13,7 +13,7 @@ export function humanizeKey(key: string): string {
 }
 
 export function isCodeKey(key: string): boolean {
-  return /(^|_)(code|solution|source|program)$/i.test(key) || key.endsWith("_code");
+  return /(^|_)(code|solution|source|program|tests)$/i.test(key) || key.endsWith("_code");
 }
 
 export function itemTitle(item: DatasetItem, index: number): string {
