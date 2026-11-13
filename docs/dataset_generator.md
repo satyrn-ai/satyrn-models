@@ -48,10 +48,13 @@ Writes to `datasets/python3.15/input/docs/changes/`.
 ## Generating datasets
 
 Each subcommand writes JSONL to the `--output` file.
-`cpt` reads source material from `--input-dir` (a directory).
-`sft` and `rl` are generated in two stages: `ideas` first reads source material from `--input`
-(a directory or a single doc file) and writes a JSONL file of ideas, then `sft` and `rl` read
-those ideas from `--ideas-path`. An ideas file can be reused for several runs of its command.
+`cpt` reads source material from `--input-dir`, the directory that
+[Collecting input material](#collecting-input-material) writes to.
+
+`sft`, `rl` and `agentic-sft` datasets are generated in two stages. `ideas` reads source material from
+`--input` (a directory or a single doc file) and writes a JSONL file of ideas. The dataset generating
+command then reads those ideas from `--ideas-path`. An ideas file can be reused for several runs of
+its command, but ideas of a specific `kind` are best suited for a particular generator command.
 
 ```sh
 satyrn-dataset cpt   --input-dir DIR --output FILE.jsonl                    # Continued Pretraining (CPT)
@@ -61,12 +64,15 @@ satyrn-dataset sft   --ideas-path SFT-IDEAS.jsonl --output FILE.jsonl       # Su
 
 satyrn-dataset ideas --kind rl --input PATH --output RL-IDEAS.jsonl         # Ideas for RL
 satyrn-dataset rl    --ideas-path RL-IDEAS.jsonl --output FILE.jsonl        # Evaluation / Reinforcement Learning (RL)
+
+satyrn-dataset ideas --kind agentic-sft --input PATH --output AGENTIC-IDEAS.jsonl   # Ideas for agentic SFT
+satyrn-dataset agentic-sft --ideas-path AGENTIC-IDEAS.jsonl --output FILE.jsonl     # Agentic multi-turn SFT
 ```
 
-`ideas`, `sft` and `rl` use an LLM via the DeepSeek API. A `DEEPSEEK_API_KEY` is required in your
-environment (or a `.env` file - see `.env.example`). Optionally set `LLM_MODEL_NAME` to choose the
-model (default `deepseek-v4-flash`) and `DEEPSEEK_BASE_URL` to use a different DeepSeek-compatible
-endpoint (default `https://api.deepseek.com`).
+> [!NOTE]
+> All generators currently use an LLM via the DeepSeek API. A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file - see `.env.example`).
+>
+> Optionally set `LLM_MODEL_NAME` to choose the model (default `deepseek-v4-flash`) and `DEEPSEEK_BASE_URL` to use a different DeepSeek-compatible endpoint (default `https://api.deepseek.com`).
 
 ### Generate Continued Pretraining (CPT) datasets
 
@@ -82,22 +88,21 @@ satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output datasets/
 
 ### Generate ideas
 
-`ideas` asks an LLM to propose up to 50 distinct ideas for each source document: short code examples
-with `--kind sft`, programming tasks with `--kind rl`. Each row of `--output` holds one idea:
+`ideas` asks an LLM to propose up to 50 distinct ideas for each source document, shaped by `--kind`.
+Each row of `--output` holds one idea:
 
 - `description`: what the example or task should demonstrate;
 - `python_version`: the target Python version;
-- `kind`: `sft` or `rl`; and
+- `kind`: `sft`, `rl` or `agentic-sft`
 - `doc_path`: the absolute path of the source document the idea came from.
 
-Because `doc_path` is absolute and `sft`/`rl` re-read the source document, keep the source documents
-in place, and generate ideas on the same machine (or with the same paths) that will run `sft`/`rl`.
-
-If the LLM repeatedly fails to return output matching the expected schema for a document, that
-document is skipped with a warning and the run continues.
+> [!IMPORTANT]
+> Because `doc_path` is absolute and the dataset generating command re-reads the source document,
+> keep the source documents in place, and generate ideas on the same machine (or with the same
+> paths) that will run it.
 
 Pass `--preview` to print each document's ideas as they are saved, and `--workers` to process
-several source documents in parallel (defaults to 1). Docker is not needed for this step.
+several source documents in parallel (defaults to 1).
 
 Generate ideas for a single PEP with preview:
 
@@ -150,14 +155,22 @@ Generating examples 24 at a time:
 satyrn-dataset sft -i datasets/python3.15/ideas-sft.jsonl -o datasets/python3.15/sft.jsonl --python-version 3.15 --workers 24
 ```
 
-### Import NVIDIA OpenCodeReasoning
+### Generate Agentic SFT datasets
 
-`opencode-reasoning` streams every config and split from
-[`nvidia/OpenCodeReasoning`](https://huggingface.co/datasets/nvidia/OpenCodeReasoning) and writes one
-Satyrn SFT JSONL file per split. It maps `input` to the user prompt, separates a leading `<think>`
-block into `trace`, and stores the remaining answer as the assistant completion.
+`agentic-sft` records a coding agent working on a task over several tool-calling turns. For each
+idea, an LLM writes a task: an initial code file, a user prompt, an expected solution and tests.
 
-We created four deterministic, deduplicated, difficulty-balanced samples in: `opencode_reasoning_split1.jsonl` through `opencode_reasoning_split4.jsonl`, with 2,000 rows per file.
+An agent then runs inside Pi in a Docker container, completing the task.
+The generated solution is verified using the task's tests.
+
+This agentic session, with all issued tool calls, is recorded as a single dataset entry.
+
+Choose the Pi model with `--agent-model`: `deepseek/deepseek-flash` (default) or
+`deepseek/deepseek-v4-pro`.
+
+```sh
+satyrn-dataset agentic-sft -i datasets/python3.14/ideas-agentic-sft.jsonl -o datasets/python3.14/agentic-sft.jsonl --python-version 3.14 --preview
+```
 
 ### Generate evaluation and Reinforcement Learning datasets
 
@@ -189,11 +202,8 @@ satyrn-dataset rl -i datasets/python3.15/ideas-rl.jsonl -o datasets/python3.15/r
 
 ## Viewing datasets
 
-`viewer` serves a JSONL dataset (CPT, SFT or RL) in the browser, one row at a time. Prompts and
-messages are rendered as Markdown with Python syntax highlighting, prompt/completion pairs are shown
-as user/assistant turns (with any `trace` shown as the assistant's thinking), and RL rows show their
-tests, reference solution and metadata. The sidebar lists every row and can be filtered by text.
-Malformed lines are skipped and reported rather than stopping the viewer from loading.
+`viewer` lets you read a dataset in the browser as chat sessions between a user and an LLM agent,
+including tool calls. Use it to review the datasets you generate.
 
 ### Build the frontend
 

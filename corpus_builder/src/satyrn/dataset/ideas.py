@@ -1,14 +1,16 @@
-"""Generate ideas for SFT and RL dataset examples."""
+"""Generate ideas for dataset examples."""
 
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from pathlib import Path
+from typing import get_args
 
 import click
 from tqdm import tqdm
 
+from satyrn.dataset.agentic_sft import MIN_INITIAL_FILE_LENGTH
 from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, SchemaValidationError, get_llm
 from satyrn.dataset.utils.generation import (
@@ -53,6 +55,36 @@ ideas for short programming tasks in which the solver must use the described fea
 {python_code_rules}
 """
 
+AGENTIC_SFT_IDEAS_PROMPT = """
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for coding tasks in which an agent edits, refactors or creates a single Python file so that it
+uses the described features.
+
+- Each idea describes the starting point: the file before the change, written without the described
+  features, or no file if the task creates a new one. Name the function or behaviour the file
+  provides. The file is a realistic module of at least {min_initial_file_length} lines, and the change
+  touches only part of it.
+- Each idea describes the end state: the file after the change, using the described features.
+- The end state is importable code with defined behaviour: functions or classes, with no demo calls
+  or asserts.
+- Do not specify imports, private helper names or implementation choices.
+- Define the behaviour precisely enough for unit tests to assert on its return values or exceptions.
+  Every described behaviour can be triggered through the public interface with valid inputs. If the
+  behaviour depends on an exact output format, state that format.
+- Each idea says why a user would want the change. A change that only rewrites the syntax, with no
+  benefit to the user, is not a task.
+- The end state uses only the standard library.
+- At least half of the ideas edit or refactor an existing file, so the solver has to read the
+  existing code. The rest create a new file. A refactor does not change the file's behaviour.
+- Each task needs non-trivial logic that the solver writes, not only a call to an existing API.
+- Each idea is one task with one outcome. Do not offer alternatives within an idea.
+- Propose one idea per distinct skill, covering different parts of the document, not only its main
+  use case. Write each idea as plain prose, without labels or headings.
+- Propose fewer ideas if the document only covers a small change.
+
+{python_code_rules}
+"""
+
 
 def collect_input_docs(input_path: Path) -> list[Path]:
     """Return one input file or every RST document below an input directory."""
@@ -61,8 +93,12 @@ def collect_input_docs(input_path: Path) -> list[Path]:
 
 def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: IdeaKind) -> list[Idea]:
     """Return distinct ideas of the given kind for features described in doc_path."""
-    prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT}[kind]
-    prompt = prompt_template.format(python_version=python_version, python_code_rules=PYTHON_CODE_RULES)
+    prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT, "agentic-sft": AGENTIC_SFT_IDEAS_PROMPT}[kind]
+    prompt = prompt_template.format(
+        python_version=python_version,
+        python_code_rules=PYTHON_CODE_RULES,
+        min_initial_file_length=MIN_INITIAL_FILE_LENGTH,
+    )
     schema = {
         "type": "object",
         "properties": {
@@ -101,7 +137,7 @@ def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: Idea
 @click.option("--python-version", required=True, help='Python version the ideas address, e.g. "3.15".')
 @click.option(
     "--kind",
-    type=click.Choice(["sft", "rl"], case_sensitive=False),
+    type=click.Choice(get_args(IdeaKind), case_sensitive=False),
     required=True,
     help="Kind of ideas to generate.",
 )
@@ -115,7 +151,7 @@ def main(
     preview: bool,
     workers: int,
 ) -> None:
-    """Generate ideas for SFT or RL dataset examples."""
+    """Generate ideas for dataset examples."""
     model = get_llm("deepseek", os.environ.get("LLM_MODEL_NAME", "deepseek-v4-flash"))
 
     prepare_output_file(output_path)

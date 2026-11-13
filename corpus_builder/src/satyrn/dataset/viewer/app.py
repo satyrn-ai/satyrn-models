@@ -1,7 +1,7 @@
 """Flask application that renders a generated JSONL dataset in the browser.
 
-The backend is intentionally thin: it loads the JSONL file once and exposes the
-raw rows over a small JSON API.  All presentation logic (markdown rendering,
+The backend is intentionally thin: it loads the JSONL file on every request and
+exposes the raw rows over a small JSON API.  All presentation logic (markdown rendering,
 Python syntax highlighting, layout) lives in the TypeScript frontend so that the
 dataset schema can evolve without touching the server.
 """
@@ -67,13 +67,16 @@ def load_dataset(path: Path) -> Dataset:
     return Dataset(path=path.resolve(), items=items, errors=errors)
 
 
-def create_app(dataset: Dataset) -> Flask:
-    """Create the Flask application serving a loaded dataset and the built UI."""
+def create_app(dataset_path: Path) -> Flask:
+    """Create the Flask application serving the dataset file and the built UI."""
     app = Flask(__name__, static_folder=str(STATIC_DIRECTORY), static_url_path="")
 
     @app.get("/api/dataset")
     def get_dataset() -> Any:
         """Return the dataset metadata and every row."""
+        dataset = load_dataset(dataset_path)
+        if dataset.errors:
+            logger.warning("Skipped %d malformed line(s)", len(dataset.errors))
         return jsonify(
             {
                 "source": dataset.source_name,
@@ -113,12 +116,7 @@ def create_app(dataset: Dataset) -> Flask:
 @click.option("--debug", is_flag=True, default=False, help="Enable the Flask debug reloader.")
 def main(dataset_path: Path, host: str, port: int, debug: bool) -> None:
     """Serve DATASET_PATH (a JSONL file) through the web viewer."""
-    dataset = load_dataset(dataset_path)
-    logger.info("Loaded %d dataset items from %s", len(dataset.items), dataset.path)
-    if dataset.errors:
-        logger.warning("Skipped %d malformed line(s)", len(dataset.errors))
-
-    app = create_app(dataset)
+    app = create_app(dataset_path)
     app.run(host=host, port=port, debug=debug)
 
 

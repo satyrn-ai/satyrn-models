@@ -4,14 +4,20 @@ from rich.markdown import Markdown
 console = Console()
 
 
-def print_messages(messages: list[dict[str, str]]) -> None:
+def print_messages(messages: list[dict]) -> None:
     """Print messages in a conversation."""
-    role_colors = {"user": "cyan", "assistant": "green", "system": "yellow"}
+    role_colors = {"user": "cyan", "assistant": "green", "system": "yellow", "tool": "magenta"}
 
     for msg in messages:
         color = role_colors.get(msg["role"], "white")
         console.rule(f"[bold {color}]{msg['role']}[/bold {color}]")
-        console.print(Markdown(msg["content"]))
+        content = msg.get("content")
+        if msg["role"] == "tool":
+            console.print(content, markup=False, highlight=False)
+        elif isinstance(content, str):
+            console.print(Markdown(content))
+        if msg.get("tool_calls"):
+            console.print_json(data=msg["tool_calls"])
         console.print()
 
 
