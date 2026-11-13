@@ -10,6 +10,7 @@ from typing import get_args
 import click
 from tqdm import tqdm
 
+from satyrn.dataset.agentic_sft import MIN_INITIAL_FILE_LENGTH
 from satyrn.dataset.llm.context import Context
 from satyrn.dataset.llm.models import Model, SchemaValidationError, get_llm
 from satyrn.dataset.utils.generation import (
@@ -61,12 +62,17 @@ uses the described features.
 
 - Each idea describes the starting point: the file before the change, written without the described
   features, or no file if the task creates a new one. Name the function or behaviour the file
-  provides.
+  provides. The file is a realistic module of at least {min_initial_file_length} lines, and the change
+  touches only part of it.
 - Each idea describes the end state: the file after the change, using the described features.
 - The end state is importable code with defined behaviour: functions or classes, with no demo calls
   or asserts.
 - Do not specify imports, private helper names or implementation choices.
 - Define the behaviour precisely enough for unit tests to assert on its return values or exceptions.
+  Every described behaviour can be triggered through the public interface with valid inputs. If the
+  behaviour depends on an exact output format, state that format.
+- Each idea says why a user would want the change. A change that only rewrites the syntax, with no
+  benefit to the user, is not a task.
 - The end state uses only the standard library.
 - At least half of the ideas edit or refactor an existing file, so the solver has to read the
   existing code. The rest create a new file. A refactor does not change the file's behaviour.
@@ -87,7 +93,11 @@ def collect_input_docs(input_path: Path) -> list[Path]:
 def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: IdeaKind) -> list[Idea]:
     """Return distinct ideas of the given kind for features described in doc_path."""
     prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT, "agentic-sft": AGENTIC_SFT_IDEAS_PROMPT}[kind]
-    prompt = prompt_template.format(python_version=python_version, python_code_rules=PYTHON_CODE_RULES)
+    prompt = prompt_template.format(
+        python_version=python_version,
+        python_code_rules=PYTHON_CODE_RULES,
+        min_initial_file_length=MIN_INITIAL_FILE_LENGTH,
+    )
     schema = {
         "type": "object",
         "properties": {
