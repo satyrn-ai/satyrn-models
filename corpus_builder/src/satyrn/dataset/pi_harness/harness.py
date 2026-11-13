@@ -13,7 +13,7 @@ from uuid import uuid4
 from satyrn.dataset.utils.sandbox import (
     SANDBOX_LABEL_NAME,
     SANDBOX_RUN_IDENTIFIER,
-    build_image,
+    build_docker_image,
     docker_available,
     gvisor_available,
 )
@@ -25,7 +25,7 @@ PI_EXTENSION = Path(__file__).with_name("render-payload.ts")
 
 def build_pi_image() -> str:
     """Build and return the Pi image if needed."""
-    return build_image(PI_IMAGE, PI_DOCKERFILE, "3.15")
+    return build_docker_image(PI_IMAGE, PI_DOCKERFILE, "3.15")
 
 
 def check_prerequisites() -> None:
