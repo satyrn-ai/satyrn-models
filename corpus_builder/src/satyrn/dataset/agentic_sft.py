@@ -171,14 +171,18 @@ def run_agent(agent_model: str, idea: Idea, task: Task) -> tuple[dict, str | Non
 
 
 def extract_session(messages: list[dict], task_prompt: str) -> tuple[list[dict], list[dict]]:
-    """Return the system and task messages, and the agent's turns, without the priming and render messages."""
+    """Return the system and task messages, and the agent's turns with parsed tool-call arguments."""
     task_index = next(
         index
         for index, message in enumerate(messages)
         if message["role"] == "user" and message["content"][0]["text"] == task_prompt
     )
     task_message = {"role": "user", "content": task_prompt}
-    return [messages[0], task_message], messages[task_index + 1 : -1]
+    agent_turns = messages[task_index + 1 : -1]
+    for message in agent_turns:
+        for tool_call in message.get("tool_calls") or []:
+            tool_call["function"]["arguments"] = json.loads(tool_call["function"]["arguments"])
+    return [messages[0], task_message], agent_turns
 
 
 def build_dataset_line(

@@ -93,8 +93,9 @@ def test_extract_session_drops_priming_and_render_messages() -> None:
     priming_message = {"role": "user", "content": [{"type": "text", "text": "Read this document"}]}
     ready_message = {"role": "assistant", "content": "ready"}
     task_message = {"role": "user", "content": [{"type": "text", "text": "Fix render.py"}]}
+    tool_call = {"id": "call_1", "function": {"name": "bash", "arguments": '{"command": "ls"}'}}
     agent_turns = [
-        {"role": "assistant", "content": None, "tool_calls": [{"id": "call_1"}]},
+        {"role": "assistant", "content": None, "tool_calls": [tool_call]},
         {"role": "tool", "tool_call_id": "call_1", "content": "done"},
         {"role": "assistant", "content": "Finished"},
     ]
@@ -103,8 +104,13 @@ def test_extract_session_drops_priming_and_render_messages() -> None:
 
     prompt, completion = extract_session(messages, "Fix render.py")
 
+    parsed_tool_call = {"id": "call_1", "function": {"name": "bash", "arguments": {"command": "ls"}}}
     assert prompt == [system_message, {"role": "user", "content": "Fix render.py"}]
-    assert completion == agent_turns
+    assert completion == [
+        {"role": "assistant", "content": None, "tool_calls": [parsed_tool_call]},
+        {"role": "tool", "tool_call_id": "call_1", "content": "done"},
+        {"role": "assistant", "content": "Finished"},
+    ]
 
 
 def test_generate_task_returns_the_first_verified_task(idea: Idea) -> None:
