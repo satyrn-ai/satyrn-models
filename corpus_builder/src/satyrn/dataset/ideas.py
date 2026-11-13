@@ -76,9 +76,10 @@ uses the described features.
 - The end state uses only the standard library.
 - At least half of the ideas edit or refactor an existing file, so the solver has to read the
   existing code. The rest create a new file. A refactor does not change the file's behaviour.
-- Each task needs non-trivial logic.
+- Each task needs non-trivial logic that the solver writes, not only a call to an existing API.
 - Each idea is one task with one outcome. Do not offer alternatives within an idea.
-- Propose one idea per distinct skill.
+- Propose one idea per distinct skill, covering different parts of the document, not only its main
+  use case. Write each idea as plain prose, without labels or headings.
 - Propose fewer ideas if the document only covers a small change.
 
 {python_code_rules}

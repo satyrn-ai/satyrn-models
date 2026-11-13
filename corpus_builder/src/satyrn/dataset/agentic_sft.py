@@ -27,7 +27,6 @@ from satyrn.dataset.utils.preview import print_dataset_line
 from satyrn.dataset.utils.sandbox import Sandbox, get_predecessor_python_version, remove_leftover_containers
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 PASS_MARKER = "__SATYRN_TEST_PASSED__"
 MIN_INITIAL_FILE_LENGTH = 20
@@ -79,9 +78,9 @@ a coding assistant working in a workspace with at most one Python file, as descr
 - In `solution`, give the file's complete content once the task is done.
 - In `tests`, write plain `assert` statements that pass when appended to `solution` and fail on the
   preceding Python feature release. They check return values or raised exceptions.
-- The tests use only names the `prompt` mentions and import everything else they use themselves. Each
-  behaviour they check can be triggered through the public interface, and building a test input does
-  not itself raise the exception being checked.
+- The tests use only names the `prompt` mentions and standard library modules they import themselves.
+  They never import the file under test. Each behaviour they check can be triggered through the public
+  interface, and building a test input does not itself raise the exception being checked.
 - The tests are deterministic, use only the standard library and finish quickly.
 - In `prompt`, write the request a user sends to the assistant. Name the file and the signatures of
   the functions to change or create, and follow the rules for `prompt` below.
@@ -92,11 +91,11 @@ When writing `prompt`, you are the user of the coding assistant. You want the as
 `initial` into `solution`, or to create `solution` when `initial` is empty, but you do not tell it
 how to do that or how to test it.
 
-- `prompt` sounds natural, like something a user would ask for. It says what the user wants and why,
-  in a few sentences, and states the observable behaviour the tests check in plain language, no more.
+- `prompt` sounds natural, like something a user would ask for: a short instruction, a question or a
+  problem report. In its own words, it says what the user wants, why, and the behaviour the tests
+  check, without listing rules like a specification.
 - The user may know nothing about the new Python features. The assistant also receives the attached
-  document and has to work them out from it. `prompt` names a new feature only if a signature
-  requires it.
+  document and has to work them out from it.
 - `prompt` does not repeat code that the assistant can read in `initial`.
 - The user does not describe implementation steps and does not mention tests, which do not exist for
   the user.
