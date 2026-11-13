@@ -75,6 +75,8 @@ def create_app(dataset_path: Path) -> Flask:
     def get_dataset() -> Any:
         """Return the dataset metadata and every row."""
         dataset = load_dataset(dataset_path)
+        if dataset.errors:
+            logger.warning("Skipped %d malformed line(s)", len(dataset.errors))
         return jsonify(
             {
                 "source": dataset.source_name,

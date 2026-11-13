@@ -267,7 +267,6 @@ def main(cfg: DictConfig) -> None:
                     logger.info("Starting Supervised Fine-Tuning (SFT) stage")
                     rows = read_rows(config.datasets.sft)
                     dataset = render_conversations_into_text_field(rows, tokenizer, config.model.enable_thinking)
-                    logger.info("Rendered text of the first row:\n%s", dataset[0]["text"])
 
                     trainer = build_trainer("sft", model, tokenizer, dataset, config)
                     trainer = train_on_responses_only(
