@@ -1,6 +1,6 @@
 /** Helpers for labelling dataset rows and their fields. */
 
-import { collectMessages } from "./conversations";
+import { collectMessages, messageRole } from "./conversations";
 import type { DatasetItem } from "./types";
 
 /** Keys handled explicitly by the renderer rather than the generic fallback. */
@@ -27,6 +27,7 @@ export function itemTitle(item: DatasetItem, index: number): string {
     return idea;
   }
   const prompt = collectMessages(item)
+    .filter((message) => messageRole(message) !== "system")
     .map((message) => (typeof message.content === "string" ? message.content : ""))
     .find((content) => content.length > 0);
   const cleaned = prompt?.replace(/[#*`]/g, "").trim() ?? "";
