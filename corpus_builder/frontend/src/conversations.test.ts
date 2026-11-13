@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectMessages, messageContent, messageRoleLabel } from "./conversations";
+import { collectMessages, messageContent, messageRoleLabel, messageToolCalls } from "./conversations";
 import type { DatasetItem } from "./types";
 
 describe("collectMessages", () => {
@@ -46,5 +46,36 @@ describe("collectMessages", () => {
 
   it("returns no messages for rows without a conversation", () => {
     expect(collectMessages({ text: "A pretraining document." })).toEqual([]);
+  });
+});
+
+describe("messageToolCalls", () => {
+  it("parses the JSON arguments of each tool call", () => {
+    const message = {
+      role: "assistant",
+      content: null,
+      tool_calls: [
+        { id: "call_1", type: "function", function: { name: "bash", arguments: '{"command":"ls"}' } },
+        { id: "call_2", type: "function", function: { name: "write", arguments: '{"path":"a.py","content":"x = 1"}' } },
+      ],
+    };
+
+    expect(messageToolCalls(message)).toEqual([
+      { name: "bash", arguments: { command: "ls" } },
+      { name: "write", arguments: { path: "a.py", content: "x = 1" } },
+    ]);
+  });
+
+  it("keeps arguments that are not a JSON object as text", () => {
+    const message = {
+      role: "assistant",
+      tool_calls: [{ function: { name: "bash", arguments: "not json" } }],
+    };
+
+    expect(messageToolCalls(message)).toEqual([{ name: "bash", arguments: { arguments: "not json" } }]);
+  });
+
+  it("returns no tool calls for a message without them", () => {
+    expect(messageToolCalls({ role: "assistant", content: "Done" })).toEqual([]);
   });
 });

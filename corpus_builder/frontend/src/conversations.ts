@@ -56,3 +56,28 @@ export function messageRoleLabel(message: Message): string {
 export function messageContent(message: Message): string | null {
   return typeof message.content === "string" ? message.content : null;
 }
+
+export interface ToolCall {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+function parseToolArguments(text: unknown): Record<string, unknown> {
+  if (typeof text !== "string") return {};
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return isRecord(parsed) ? parsed : { arguments: text };
+  } catch {
+    return { arguments: text };
+  }
+}
+
+/** Return the tool calls of an OpenAI-style assistant message, with their JSON arguments parsed. */
+export function messageToolCalls(message: Message): ToolCall[] {
+  if (!Array.isArray(message.tool_calls)) return [];
+  return message.tool_calls.filter(isRecord).map((call) => {
+    const toolFunction = isRecord(call.function) ? call.function : {};
+    const name = typeof toolFunction.name === "string" ? toolFunction.name : "";
+    return { name, arguments: parseToolArguments(toolFunction.arguments) };
+  });
+}
