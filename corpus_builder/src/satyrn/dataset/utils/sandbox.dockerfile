@@ -10,7 +10,7 @@ RUN apt-get update \
 
 RUN printf '%s\n' \
         '#!/bin/sh' \
-        'Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp &' \
+        'Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp 2>/dev/null &' \
         'DISPLAY=:99 exec "$@"' \
         > /usr/local/bin/run-with-xvfb \
     && chmod 755 /usr/local/bin/run-with-xvfb
