@@ -69,10 +69,16 @@ satyrn-dataset ideas --kind agentic-sft --input PATH --output AGENTIC-IDEAS.json
 satyrn-dataset agentic-sft --ideas-path AGENTIC-IDEAS.jsonl --output FILE.jsonl     # Agentic multi-turn SFT
 ```
 
+Pass `--limit` to a dataset generating command to process only the first N ideas.
+
 > [!NOTE]
 > All generators currently use an LLM via the DeepSeek API. A `DEEPSEEK_API_KEY` is required in your environment (or a `.env` file - see `.env.example`).
 >
 > Optionally set `LLM_MODEL_NAME` to choose the model (default `deepseek-v4-flash`) and `DEEPSEEK_BASE_URL` to use a different DeepSeek-compatible endpoint (default `https://api.deepseek.com`).
+
+> [!NOTE]
+> Each dataset generation run logs the ideas it has processed, including failed ones, in a `.progress.jsonl` file next to `--output`.
+> Running the same command again resumes automatically, skipping the logged ideas.
 
 ### Generate Continued Pretraining (CPT) datasets
 

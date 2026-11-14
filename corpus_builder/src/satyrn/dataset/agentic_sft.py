@@ -100,6 +100,7 @@ how to do that or how to test it.
 - `prompt` does not repeat code that the assistant can read in `initial`.
 - The user does not describe implementation steps and does not mention tests, which do not exist for
   the user.
+- The user never mentions graders, reviewers or hidden checks.
 
 {PYTHON_CODE_RULES}
     """
@@ -247,6 +248,7 @@ def build_dataset_line(
 @click.option("--agent-model", default="deepseek/deepseek-flash", show_default=True, help="Pi model of the agent.")
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
 @click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of lines to generate in parallel.")
+@click.option("--limit", type=click.IntRange(min=1), default=None, help="Generate only the first N ideas.")
 def main(
     ideas_path: Path,
     output_path: Path,
@@ -254,6 +256,7 @@ def main(
     agent_model: str,
     preview: bool,
     workers: int,
+    limit: int | None,
 ) -> None:
     """Generate an agentic multi-turn SFT dataset for every loaded idea."""
     model = get_llm("deepseek", os.environ.get("LLM_MODEL_NAME", "deepseek-v4-flash"))
@@ -262,7 +265,7 @@ def main(
     build_pi_image()
 
     prepare_output_file(output_path)
-    ideas = load_ideas(ideas_path, output_path, "agentic-sft")
+    ideas = load_ideas(ideas_path, output_path, "agentic-sft")[:limit]
     logger.info("Loaded %d ideas", len(ideas))
 
     try:
