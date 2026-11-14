@@ -15,7 +15,7 @@ from click.testing import CliRunner
 
 from satyrn.dataset import ideas
 from satyrn.dataset.llm.models import SchemaValidationError
-from satyrn.dataset.utils.generation import Idea, load_ideas, read_jsonl_file
+from satyrn.dataset.utils.generation import Idea, append_progress, load_ideas, read_jsonl_file
 
 
 class StubModel:
@@ -61,7 +61,7 @@ def test_load_ideas_round_trips_idea_fields_and_path_type(tmp_path: Path) -> Non
         ],
     )
 
-    loaded = load_ideas(path)
+    loaded = load_ideas(path, tmp_path / "output.jsonl")
 
     assert loaded == [
         Idea(doc, "Use t-strings", "3.15", "sft"),
@@ -77,16 +77,37 @@ def test_load_ideas_keeps_only_the_given_kind(tmp_path: Path) -> None:
         for description, kind in [("first", "sft"), ("second", "agentic-sft"), ("third", "sft")]
     ]
     path = write_ideas_file(tmp_path / "ideas.jsonl", rows)
+    output_path = tmp_path / "output.jsonl"
 
-    assert [idea.description for idea in load_ideas(path, "sft")] == ["first", "third"]
-    assert [idea.description for idea in load_ideas(path, "agentic-sft")] == ["second"]
-    assert len(load_ideas(path)) == 3
+    assert [idea.description for idea in load_ideas(path, output_path, "sft")] == ["first", "third"]
+    assert [idea.description for idea in load_ideas(path, output_path, "agentic-sft")] == ["second"]
+    assert len(load_ideas(path, output_path)) == 3
 
 
 def test_load_ideas_empty_file(tmp_path: Path) -> None:
     path = write_ideas_file(tmp_path / "ideas.jsonl", [])
 
-    assert load_ideas(path) == []
+    assert load_ideas(path, tmp_path / "output.jsonl") == []
+
+
+def test_load_ideas_skips_logged_ideas_and_numbers_the_lines(tmp_path: Path) -> None:
+    doc = tmp_path / "PEP750.rst"
+    rows = [
+        {"doc_path": str(doc), "description": description, "python_version": "3.15", "kind": "sft"}
+        for description in ["first", "second", "third"]
+    ]
+    ideas_path = write_ideas_file(tmp_path / "ideas.jsonl", rows)
+    output_path = tmp_path / "output.jsonl"
+    everything = load_ideas(ideas_path, output_path)
+    for idea, dataset_line in [(everything[0], {"text": "row"}), (everything[1], None)]:
+        append_progress(idea, dataset_line, output_path)
+
+    remaining = load_ideas(ideas_path, output_path)
+    retried = load_ideas(ideas_path, output_path, retry_failed=True)
+
+    assert [idea.description for idea in remaining] == ["third"]
+    assert [idea.id.line for idea in remaining] == [3]
+    assert [idea.description for idea in retried] == ["second", "third"]
 
 
 # --- the ideas command ------------------------------------------------------

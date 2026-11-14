@@ -168,6 +168,7 @@ def main(
             logger.info("Generated %d ideas for %s", len(ideas), doc_path.name)
             for idea in ideas:
                 idea_dict = asdict(idea)
+                idea_dict.pop("id")
                 idea_dict["doc_path"] = str(doc_path.absolute())
                 append_dataset_line(idea_dict, output_path)
             if preview:

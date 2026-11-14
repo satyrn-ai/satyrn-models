@@ -18,6 +18,7 @@ from satyrn.dataset.utils.generation import (
     SYSTEM_PROMPT,
     Idea,
     append_dataset_line,
+    append_progress,
     load_ideas,
     output_file_lock,
     pep_identifier,
@@ -261,17 +262,19 @@ def main(
     build_pi_image()
 
     prepare_output_file(output_path)
-    ideas = load_ideas(ideas_path, "agentic-sft")
+    ideas = load_ideas(ideas_path, output_path, "agentic-sft")
     logger.info("Loaded %d ideas", len(ideas))
 
     try:
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = [
-                executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox, agent_model)
+            futures = {
+                executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox, agent_model): idea
                 for idea in ideas
-            ]
+            }
             for future in tqdm(as_completed(futures), total=len(ideas), desc="Ideas"):
+                idea = futures[future]
                 dataset_line = future.result()
+                append_progress(idea, dataset_line, output_path)
                 if dataset_line is None:
                     continue
                 append_dataset_line(dataset_line, output_path)

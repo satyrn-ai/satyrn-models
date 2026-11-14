@@ -3,6 +3,8 @@
 outputs/
 unsloth_compiled_cache/
 
+# Dataset generation progress logs
+*.progress.jsonl
 
 # Python .gitignore
 # Byte-compiled / optimized / DLL files
