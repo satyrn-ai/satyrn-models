@@ -1,10 +1,4 @@
-"""Shared building blocks for generated Python datasets.
-
-Key exports:
-    - Idea - A proposed example based on one source document.
-    - prepare_output_file() - Validate and prepare a JSONL output path.
-    - append_dataset_line() - Safely append one JSON object to a JSONL file.
-"""
+"""Shared building blocks for generated Python datasets."""
 
 import hashlib
 import json

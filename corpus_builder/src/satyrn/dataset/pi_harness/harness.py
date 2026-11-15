@@ -18,14 +18,15 @@ from satyrn.dataset.utils.sandbox import (
     gvisor_available,
 )
 
-PI_IMAGE = "satyrn-pi-harness"
+PI_PYTHON_VERSION = "3.15"
+PI_IMAGE = f"satyrn-pi-harness:{PI_PYTHON_VERSION}"
 PI_DOCKERFILE = Path(__file__).with_name("Dockerfile")
 PI_EXTENSION = Path(__file__).with_name("render-payload.ts")
 
 
 def build_pi_image() -> str:
     """Build and return the Pi image if needed."""
-    return build_docker_image(PI_IMAGE, PI_DOCKERFILE, "3.15")
+    return build_docker_image(PI_IMAGE, PI_DOCKERFILE, PI_PYTHON_VERSION)
 
 
 def check_prerequisites() -> None:
@@ -64,7 +65,7 @@ class PiHarness:
             file_path = self.workspace_dir / file.name
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text(file.content)
-        self.container_name = f"{PI_IMAGE}-{uuid4().hex}"
+        self.container_name = f"satyrn-pi-harness-{uuid4().hex}"
         self.start()
 
     def start(self) -> None:

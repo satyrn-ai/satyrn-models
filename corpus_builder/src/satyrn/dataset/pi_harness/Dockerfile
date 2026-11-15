@@ -4,7 +4,7 @@ FROM node:24-trixie-slim AS pi
 RUN npm install --global --prefix /opt/pi --ignore-scripts @earendil-works/pi-coding-agent@1.5.2
 
 FROM python:${PYTHON_IMAGE_TAG}
-RUN python3 -m compileall -q /usr/local/lib/python3.15
+RUN python3 -c "import compileall, sysconfig; compileall.compile_dir(sysconfig.get_path('stdlib'), quiet=1)"
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ripgrep \
     && rm -rf /var/lib/apt/lists/*

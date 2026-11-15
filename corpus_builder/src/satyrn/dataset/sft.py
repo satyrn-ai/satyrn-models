@@ -315,7 +315,7 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
         conversation = generate_conversation(model, idea, code_block)
         judge_conversation(model, idea, code_block, conversation)
     except Exception as error:
-        logger.warning("Skipping idea: %s", error)
+        logger.error("Skipping idea: %s", error)
         return None
 
     return {
