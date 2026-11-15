@@ -74,6 +74,8 @@ uses the described features.
 - Each idea says why a user would want the change. A change that only rewrites the syntax, with no
   benefit to the user, is not a task.
 - The end state uses only the standard library.
+- The file stands alone: it imports nothing from the project, so no sibling modules, packages or
+  relative imports.
 - At least half of the ideas edit or refactor an existing file, so the solver has to read the
   existing code. The rest create a new file. A refactor does not change the file's behaviour.
 - Each task needs non-trivial logic that the solver writes, not only a call to an existing API.

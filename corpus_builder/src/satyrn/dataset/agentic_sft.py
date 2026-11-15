@@ -3,6 +3,8 @@
 import json
 import logging
 import os
+import random
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,6 +53,12 @@ def run_tests(code: str, tests: str, sandbox: Sandbox) -> tuple[bool, str]:
 
 def verify_code(code: str, tests: str, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> str | None:
     """Return why the tests do not pass on code in sandbox and fail in predecessor_sandbox, or None."""
+    version_check = re.compile(
+        r"\b(version_info|hexversion|python_version_tuple\(\))(\[[^\]]*\]|\.(major|minor|micro))?\s*(<=|>=|<|>|==|!=)"
+    )
+    if version_check.search(code) or version_check.search(tests):
+        return "Do not check the Python version at runtime. The code must use the feature directly."
+
     passed, output = run_tests(code, tests, sandbox)
     if not passed:
         return f"The tests failed under Python {sandbox.python_version}:\n{output}"
@@ -73,6 +81,8 @@ a coding assistant working in a workspace with at most one Python file, as descr
 {idea.description}
 
 - In `file_name`, give the name of the Python file.
+- The file stands alone: it imports nothing from the project, so no sibling modules, packages or
+  relative imports.
 - In `initial`, give the file's content before the task, or an empty string if the task creates it.
   It is a realistic module of at least {MIN_INITIAL_FILE_LENGTH} lines, and its other code relates to
   the module's purpose.
@@ -208,7 +218,7 @@ def build_dataset_line(
         prompt, completion = extract_session(payload["messages"], task.prompt)
 
     except Exception as error:
-        logger.warning("Skipping idea: %s", error)
+        logger.warning("Skipping idea %s: %s", idea.id.hash, error)
         return None
 
     return {
@@ -265,7 +275,9 @@ def main(
     build_pi_image()
 
     prepare_output_file(output_path)
-    ideas = load_ideas(ideas_path, output_path, "agentic-sft")[:limit]
+    ideas = load_ideas(ideas_path, output_path, "agentic-sft")
+    random.shuffle(ideas)
+    ideas = ideas[:limit]
     logger.info("Loaded %d ideas", len(ideas))
 
     try:

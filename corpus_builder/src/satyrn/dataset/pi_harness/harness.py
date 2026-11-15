@@ -60,7 +60,9 @@ class PiHarness:
         self.workspace_dir.mkdir()
         self.payload_dir.mkdir()
         for file in workspace:
-            (self.workspace_dir / file.name).write_text(file.content)
+            file_path = self.workspace_dir / file.name
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(file.content)
         self.container_name = f"{PI_IMAGE}-{uuid4().hex}"
         self.start()
 

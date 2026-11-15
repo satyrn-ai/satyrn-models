@@ -88,6 +88,36 @@ def test_verify_code_rejects_tests_that_also_pass_on_the_predecessor() -> None:
     assert "The tests also passed under Python 3.13" in rejection
 
 
+@pytest.mark.parametrize(
+    "check",
+    [
+        "sys.version_info < (3, 15)",
+        "_sys.version_info >= (3, 15)",
+        "sys.version_info[:2] >= (3, 15)",
+        "sys.version_info.minor == 15",
+        "sys.hexversion >= 0x030F0000",
+        "platform.python_version_tuple() < ('3', '15')",
+    ],
+)
+def test_verify_code_rejects_a_python_version_comparison(check: str) -> None:
+    sandbox = StubSandbox("3.15")
+    predecessor_sandbox = StubSandbox("3.14")
+
+    rejection = verify_code(f"if {check}:\n    raise RuntimeError\n", TASK.tests, sandbox, predecessor_sandbox)
+
+    assert rejection is not None
+    assert "Do not check the Python version" in rejection
+    assert sandbox.programs == predecessor_sandbox.programs == []
+
+
+def test_verify_code_allows_reading_the_python_version() -> None:
+    code = "import platform\n\ndef version():\n    return platform.python_version()\n"
+    sandbox = StubSandbox("3.15", PASS_MARKER)
+    predecessor_sandbox = StubSandbox("3.14", "AssertionError")
+
+    assert verify_code(code, TASK.tests, sandbox, predecessor_sandbox) is None
+
+
 def test_extract_session_drops_priming_and_render_messages() -> None:
     system_message = {"role": "system", "content": "system prompt"}
     priming_message = {"role": "user", "content": [{"type": "text", "text": "Read this document"}]}
