@@ -1,3 +1,4 @@
 # unsloth caps datasets <4.4.0; inspect-evals needs >=4.8.5. datasets 5.x runs fine with both.
 # unsloth pins trl==0.24.0, which has trl#6105; 1.7.0 is the tested version.
-override-dependencies = ["datasets>=4.8.5", "trl==1.7.0"]
+# xformers requires mslk, which is built per torch release; 1.1.1 is the build for torch 2.11.
+override-dependencies = ["datasets>=4.8.5", "trl==1.7.0", "mslk==1.1.1"]
