@@ -50,13 +50,13 @@ describe("collectMessages", () => {
 });
 
 describe("messageToolCalls", () => {
-  it("parses the JSON arguments of each tool call", () => {
+  it("returns the name and arguments of each tool call", () => {
     const message = {
       role: "assistant",
       content: null,
       tool_calls: [
-        { id: "call_1", type: "function", function: { name: "bash", arguments: '{"command":"ls"}' } },
-        { id: "call_2", type: "function", function: { name: "write", arguments: '{"path":"a.py","content":"x = 1"}' } },
+        { id: "call_1", type: "function", function: { name: "bash", arguments: { command: "ls" } } },
+        { id: "call_2", type: "function", function: { name: "write", arguments: { path: "a.py", content: "x = 1" } } },
       ],
     };
 
@@ -64,15 +64,6 @@ describe("messageToolCalls", () => {
       { name: "bash", arguments: { command: "ls" } },
       { name: "write", arguments: { path: "a.py", content: "x = 1" } },
     ]);
-  });
-
-  it("keeps arguments that are not a JSON object as text", () => {
-    const message = {
-      role: "assistant",
-      tool_calls: [{ function: { name: "bash", arguments: "not json" } }],
-    };
-
-    expect(messageToolCalls(message)).toEqual([{ name: "bash", arguments: { arguments: "not json" } }]);
   });
 
   it("returns no tool calls for a message without them", () => {
