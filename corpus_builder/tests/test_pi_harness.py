@@ -108,6 +108,14 @@ def test_send_command_raises_when_the_stream_ends_without_the_reply(start_harnes
         pi.send_command({"type": "prompt", "message": "hello"}, "agent_settled")
 
 
+def test_send_command_raises_when_the_turns_exceed_the_session_limit(start_harness: StartHarness) -> None:
+    turn_end = json.dumps({"type": "turn_end", "message": "x" * PiHarness.MAX_SESSION_CHARACTERS}) + "\n"
+    pi, _ = start_harness([turn_end, '{"type": "agent_settled"}\n'])
+
+    with pytest.raises(RuntimeError, match="session exceeded"):
+        pi.send_command({"type": "prompt", "message": "hello"}, "agent_settled")
+
+
 def test_agent_run_sends_the_message_and_accepts_a_stopped_run(start_harness: StartHarness) -> None:
     pi, _ = start_harness(finished_run("stop"))
 

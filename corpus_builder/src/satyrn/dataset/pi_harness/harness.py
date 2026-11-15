@@ -49,6 +49,7 @@ class PiHarness:
 
     RENDER_TRIGGER_PROMPT = "[RENDER SESSION AND ABORT]"
     COMMAND_TIMEOUT_SECONDS = 300
+    MAX_SESSION_CHARACTERS = 100_000
 
     def __init__(self, model: str, workspace: list[File]) -> None:
         check_prerequisites()
@@ -96,10 +97,18 @@ class PiHarness:
         self.process.stdin.flush()
         watchdog = threading.Timer(self.COMMAND_TIMEOUT_SECONDS, self.stop)
         watchdog.start()
+        session_characters = 0
         try:
             for stdout_line in self.process.stdout:
-                if stdout_line.startswith("{") and (record := json.loads(stdout_line))["type"] == reply_type:
+                if not stdout_line.startswith("{"):
+                    continue
+                record = json.loads(stdout_line)
+                if record["type"] == reply_type:
                     return record
+                if record["type"] == "turn_end":
+                    session_characters += len(stdout_line)
+                    if session_characters > self.MAX_SESSION_CHARACTERS:
+                        raise RuntimeError(f"The session exceeded {self.MAX_SESSION_CHARACTERS} characters")
         finally:
             watchdog.cancel()
         raise RuntimeError(f"Pi exited or timed out before sending {reply_type}")
