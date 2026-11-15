@@ -56,3 +56,19 @@ export function messageRoleLabel(message: Message): string {
 export function messageContent(message: Message): string | null {
   return typeof message.content === "string" ? message.content : null;
 }
+
+export interface ToolCall {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+/** Return the tool calls of an OpenAI-style assistant message. */
+export function messageToolCalls(message: Message): ToolCall[] {
+  if (!Array.isArray(message.tool_calls)) return [];
+  return message.tool_calls.filter(isRecord).map((call) => {
+    const toolFunction = isRecord(call.function) ? call.function : {};
+    const name = typeof toolFunction.name === "string" ? toolFunction.name : "";
+    const toolArguments = isRecord(toolFunction.arguments) ? toolFunction.arguments : {};
+    return { name, arguments: toolArguments };
+  });
+}

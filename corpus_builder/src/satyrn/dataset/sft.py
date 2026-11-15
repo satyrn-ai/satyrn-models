@@ -16,6 +16,7 @@ from satyrn.dataset.utils.generation import (
     SYSTEM_PROMPT,
     Idea,
     append_dataset_line,
+    append_progress,
     load_ideas,
     output_file_lock,
     pep_identifier,
@@ -353,12 +354,14 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
 @click.option("--python-version", required=True, help='Python version the dataset addresses, e.g. "3.15".')
 @click.option("--preview", is_flag=True, default=False, help="Print each dataset line after it is saved.")
 @click.option("--workers", type=click.IntRange(min=1), default=1, help="Number of lines to generate in parallel.")
+@click.option("--limit", type=click.IntRange(min=1), default=None, help="Generate only the first N ideas.")
 def main(
     ideas_path: Path,
     output_path: Path,
     python_version: str,
     preview: bool,
     workers: int,
+    limit: int | None,
 ) -> None:
     """Generate an SFT dataset for every loaded idea."""
     model = get_llm("deepseek", os.environ.get("LLM_MODEL_NAME", "deepseek-v4-flash"))
@@ -366,14 +369,18 @@ def main(
     predecessor_sandbox = Sandbox(get_predecessor_python_version(python_version))
 
     prepare_output_file(output_path)
-    ideas = load_ideas(ideas_path)
+    ideas = load_ideas(ideas_path, output_path)[:limit]
     logger.info("Loaded %d ideas", len(ideas))
 
     try:
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = [executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox) for idea in ideas]
+            futures = {
+                executor.submit(build_dataset_line, model, idea, sandbox, predecessor_sandbox): idea for idea in ideas
+            }
             for future in tqdm(as_completed(futures), total=len(ideas), desc="Ideas"):
+                idea = futures[future]
                 dataset_line = future.result()
+                append_progress(idea, dataset_line, output_path)
                 if dataset_line is None:
                     continue
                 append_dataset_line(dataset_line, output_path)

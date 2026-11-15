@@ -51,7 +51,7 @@ def test_load_dataset_missing_file_raises(tmp_path: Path) -> None:
 
 def test_dataset_endpoint_returns_loaded_rows(tmp_path: Path) -> None:
     path = write_jsonl(tmp_path / "dataset.jsonl", [{"prompt": "hello"}])
-    app = create_app(load_dataset(path))
+    app = create_app(path)
     client = app.test_client()
 
     response = client.get("/api/dataset")

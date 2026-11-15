@@ -49,6 +49,7 @@ export function Sidebar({ dataset, selected, onSelect }: SidebarProps) {
           >
             <span className="item-link-title">{itemTitle(item, index)}</span>
             <span className="item-link-meta">{itemSubtitle(item)}</span>
+            <span className="item-link-line">#{item._viewer?.line}</span>
           </button>
         ))}
       </nav>

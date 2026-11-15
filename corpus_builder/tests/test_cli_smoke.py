@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 from satyrn.dataset.cli import cli
 
-EXPECTED_COMMANDS = ["collect-doc-changes", "cpt", "download-inputs", "ideas", "rl", "sft", "viewer"]
+EXPECTED_COMMANDS = ["agentic-sft", "collect-doc-changes", "cpt", "download-inputs", "ideas", "rl", "sft", "viewer"]
 
 
 @pytest.fixture

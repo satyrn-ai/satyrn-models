@@ -15,7 +15,7 @@ from click.testing import CliRunner
 
 from satyrn.dataset import ideas
 from satyrn.dataset.llm.models import SchemaValidationError
-from satyrn.dataset.utils.generation import Idea, load_ideas, read_jsonl_file
+from satyrn.dataset.utils.generation import Idea, append_progress, load_ideas, read_jsonl_file
 
 
 class StubModel:
@@ -61,7 +61,7 @@ def test_load_ideas_round_trips_idea_fields_and_path_type(tmp_path: Path) -> Non
         ],
     )
 
-    loaded = load_ideas(path)
+    loaded = load_ideas(path, tmp_path / "output.jsonl")
 
     assert loaded == [
         Idea(doc, "Use t-strings", "3.15", "sft"),
@@ -70,16 +70,50 @@ def test_load_ideas_round_trips_idea_fields_and_path_type(tmp_path: Path) -> Non
     assert all(isinstance(idea.doc_path, Path) for idea in loaded)
 
 
+def test_load_ideas_keeps_only_the_given_kind(tmp_path: Path) -> None:
+    doc = tmp_path / "PEP750.rst"
+    rows = [
+        {"doc_path": str(doc), "description": description, "python_version": "3.15", "kind": kind}
+        for description, kind in [("first", "sft"), ("second", "agentic-sft"), ("third", "sft")]
+    ]
+    path = write_ideas_file(tmp_path / "ideas.jsonl", rows)
+    output_path = tmp_path / "output.jsonl"
+
+    assert [idea.description for idea in load_ideas(path, output_path, "sft")] == ["first", "third"]
+    assert [idea.description for idea in load_ideas(path, output_path, "agentic-sft")] == ["second"]
+    assert len(load_ideas(path, output_path)) == 3
+
+
 def test_load_ideas_empty_file(tmp_path: Path) -> None:
     path = write_ideas_file(tmp_path / "ideas.jsonl", [])
 
-    assert load_ideas(path) == []
+    assert load_ideas(path, tmp_path / "output.jsonl") == []
+
+
+def test_load_ideas_skips_logged_ideas_and_numbers_the_lines(tmp_path: Path) -> None:
+    doc = tmp_path / "PEP750.rst"
+    rows = [
+        {"doc_path": str(doc), "description": description, "python_version": "3.15", "kind": "sft"}
+        for description in ["first", "second", "third"]
+    ]
+    ideas_path = write_ideas_file(tmp_path / "ideas.jsonl", rows)
+    output_path = tmp_path / "output.jsonl"
+    everything = load_ideas(ideas_path, output_path)
+    for idea, dataset_line in [(everything[0], {"text": "row"}), (everything[1], None)]:
+        append_progress(idea, dataset_line, output_path)
+
+    remaining = load_ideas(ideas_path, output_path)
+    retried = load_ideas(ideas_path, output_path, retry_failed=True)
+
+    assert [idea.description for idea in remaining] == ["third"]
+    assert [idea.id.line for idea in remaining] == [3]
+    assert [idea.description for idea in retried] == ["second", "third"]
 
 
 # --- the ideas command ------------------------------------------------------
 
 
-@pytest.mark.parametrize("kind", ["sft", "rl"])
+@pytest.mark.parametrize("kind", ["sft", "rl", "agentic-sft"])
 def test_ideas_command_writes_one_line_per_idea(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str) -> None:
     doc = tmp_path / "PEP750.rst"
     doc.write_text("documentation", encoding="utf-8")
@@ -106,17 +140,18 @@ def test_ideas_command_uses_a_different_prompt_per_kind(tmp_path: Path, monkeypa
     model = StubModel({"ideas": []})
     monkeypatch.setattr(ideas, "get_llm", lambda *args, **kwargs: model)
 
-    for kind in ("sft", "rl"):
+    for kind in ("sft", "rl", "agentic-sft"):
         result = CliRunner().invoke(
             ideas.main,
             ["-i", str(doc), "-o", str(tmp_path / f"{kind}.jsonl"), "--python-version", "3.15", "--kind", kind],
         )
         assert result.exit_code == 0, result.output
 
-    sft_prompt, rl_prompt = model.prompts
+    sft_prompt, rl_prompt, agentic_sft_prompt = model.prompts
     assert "short, self-contained code blocks" in sft_prompt
     assert "programming tasks in which the solver must use" in rl_prompt
-    assert "Python version 3.15" in sft_prompt and "Python version 3.15" in rl_prompt
+    assert "an agent edits, refactors or creates a single Python file" in agentic_sft_prompt
+    assert all("Python version 3.15" in prompt for prompt in model.prompts)
 
 
 def test_ideas_command_accepts_kind_in_any_case(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
