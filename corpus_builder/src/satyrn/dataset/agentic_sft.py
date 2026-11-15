@@ -217,8 +217,11 @@ def build_dataset_line(
 
         prompt, completion = extract_session(payload["messages"], task.prompt)
 
-    except Exception as error:
+    except ValueError as error:
         logger.warning("Skipping idea %s: %s", idea.id.hash, error)
+        return None
+    except Exception as error:
+        logger.error("Skipping idea %s: %s", idea.id.hash, error)
         return None
 
     return {

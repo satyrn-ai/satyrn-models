@@ -109,7 +109,7 @@ class PiHarness:
                 if record["type"] == "turn_end":
                     session_characters += len(stdout_line)
                     if session_characters > self.MAX_SESSION_CHARACTERS:
-                        raise RuntimeError(f"The session exceeded {self.MAX_SESSION_CHARACTERS} characters")
+                        raise ValueError(f"The session exceeded {self.MAX_SESSION_CHARACTERS} characters")
         finally:
             watchdog.cancel()
         raise RuntimeError(f"Pi exited or timed out before sending {reply_type}")

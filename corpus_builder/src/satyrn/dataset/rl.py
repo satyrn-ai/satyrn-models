@@ -309,6 +309,9 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
     """Return one verified evaluation/RL row for idea, or None when generation fails."""
     try:
         problem = generate_problem(model, idea, sandbox, predecessor_sandbox)
+    except ValueError as error:
+        logger.warning("Skipping idea: %s", error)
+        return None
     except Exception as error:
         logger.error("Skipping idea: %s", error)
         return None

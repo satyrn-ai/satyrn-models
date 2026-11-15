@@ -112,7 +112,7 @@ def test_send_command_raises_when_the_turns_exceed_the_session_limit(start_harne
     turn_end = json.dumps({"type": "turn_end", "message": "x" * PiHarness.MAX_SESSION_CHARACTERS}) + "\n"
     pi, _ = start_harness([turn_end, '{"type": "agent_settled"}\n'])
 
-    with pytest.raises(RuntimeError, match="session exceeded"):
+    with pytest.raises(ValueError, match="session exceeded"):
         pi.send_command({"type": "prompt", "message": "hello"}, "agent_settled")
 
 
