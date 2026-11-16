@@ -22,6 +22,8 @@ dependencies = [
     "inspect-ai==0.3.290",
     "inspect-evals==0.29.0",
     "agent-client-protocol==1.0.0",
+    # pyspark, preinstalled on Molab, does not support pandas 3 yet
+    "pandas<3",
 ]
 
 [project.optional-dependencies]
