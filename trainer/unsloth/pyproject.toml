@@ -2,21 +2,24 @@
 name = "satyrn-unsloth"
 version = "0.1.0"
 description = "Satyrn Unsloth Trainer"
-requires-python = ">=3.13.9,<3.14"
+requires-python = ">=3.13.9,<3.15"
 dependencies = [
-    "unsloth==2026.8.18",
-    "unsloth-zoo==2026.8.12",
+    "unsloth==2026.11.5",
+    "unsloth-zoo==2026.11.5",
+    "torch==2.14.0",
+    "torchvision==0.29.0",
+    "datasets==4.8.5",
     "pydantic",
     "python-dotenv",
-    "hydra-core>=1.4.0.dev8",
-    "omegaconf>=2.4.0.dev13",
-    "mlflow==3.15.1",
+    "hydra-core>=1.4.0rc3",
+    "omegaconf>=2.4.1rc1",
+    "mlflow==3.18.0",
     "nvidia-ml-py>=13.610.43",
     "psutil>=7.2.2",
     "pyrsmi>=1.1.0",
     "inspect-ai==0.3.290",
     "inspect-evals==0.29.0",
-    "agent-client-protocol==0.12.1",
+    "agent-client-protocol==1.0.0",
 ]
 
 [project.optional-dependencies]
