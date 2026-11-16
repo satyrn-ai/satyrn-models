@@ -8,7 +8,8 @@ dependencies = [
     "unsloth-zoo==2026.11.5",
     "torch==2.14.0",
     "torchvision==0.29.0",
-    "xformers==0.0.35; sys_platform != 'darwin'",
+    # xformers, which unsloth installs, needs an mslk built for this torch version
+    "mslk==1.4.0; sys_platform != 'darwin'",
     "datasets==4.8.5",
     "pydantic",
     "python-dotenv",
@@ -35,3 +36,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/satyrn"]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+mslk = { index = "pytorch-cu130" }
