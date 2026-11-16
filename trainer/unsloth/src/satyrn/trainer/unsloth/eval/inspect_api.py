@@ -9,7 +9,11 @@ from inspect_ai._util.registry import RegistryInfo, set_registry_info
 from inspect_ai.model._model import ModelAPI
 from inspect_ai.model._providers.hf import HuggingFaceAPI
 
+from satyrn.trainer.unsloth.rl.code_tester import strip_thinking
+
 if TYPE_CHECKING:
+    from inspect_ai.model import ChatMessage, GenerateConfig, ModelOutput
+    from inspect_ai.tool import ToolChoice, ToolInfo
     from torch.nn import Module
     from transformers import PreTrainedTokenizerBase
 
@@ -40,3 +44,11 @@ class InMemoryHuggingFaceAPI(HuggingFaceAPI):
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "left"
+
+    async def generate(
+        self, input: list[ChatMessage], tools: list[ToolInfo], tool_choice: ToolChoice, config: GenerateConfig
+    ) -> ModelOutput:
+        """Generate as `HuggingFaceAPI` does, with the thinking removed from the completion scorers read."""
+        output = await super().generate(input, tools, tool_choice, config)
+        output.completion = strip_thinking(output.completion)
+        return output
