@@ -14,8 +14,16 @@ class TestCase:
     test_code: str
 
 
+def strip_thinking(completion: str) -> str:
+    """Return the completion after its last `</think>`, or "" if a `<think>` never closes."""
+    if "</think>" in completion:
+        return completion.rpartition("</think>")[2]
+    return "" if "<think>" in completion else completion
+
+
 def find_code(completion: str) -> str:
-    """Return the first fenced code block, or the whole completion when unfenced."""
+    """Return the first fenced code block after any thinking, or the whole answer when unfenced."""
+    completion = strip_thinking(completion)
     match = re.search(r"```(?:python)?\n(.*?)```", completion, re.DOTALL)
     return match.group(1) if match else completion
 
