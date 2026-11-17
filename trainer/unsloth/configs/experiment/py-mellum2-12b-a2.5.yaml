@@ -26,7 +26,7 @@ cpt:
   prepack_dataset: true
 
 sft:
-  seq_len: 1280
+  seq_len: 4096
   batch_size: 32
   eval_batch_size: 8
   num_train_epochs: 5
