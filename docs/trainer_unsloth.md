@@ -20,7 +20,7 @@ With Unsloth 2026.11.5, Mellum2.1 needs `UNSLOTH_BLOCK_MOE=outside`. Without it,
 the first CPT step on an A100 80 GB and an RTX PRO 6000 96 GB, with this error:
 
 ```
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.12 GiB. GPU 0 has a total capacity of 94.97 GiB of which 443.56 MiB is free. Process 1 has 94.52 GiB memory in use. Of the allocated memory 93.63 GiB is allocated by PyTorch, and 142.51 MiB is reserved by PyTorch but unallocated.
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.12 GiB. GPU 0 has a total capacity of ...
 ```
 
 If you see this error with Mellum or another MoE model, set the flag before training:
