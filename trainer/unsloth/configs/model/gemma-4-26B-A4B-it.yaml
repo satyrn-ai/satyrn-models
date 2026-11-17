@@ -2,7 +2,8 @@
 # Thinking:     opt-in, gemma-4-thinking template
 # Multimodal:   text + vision
 # VRAM:         ~49GB peak at max_seq_length 8192, on an A100-80GB
-# transformers: 5.5.0
+#
+# If training with Unsloth 2026.11.5 runs out of GPU memory, set UNSLOTH_BLOCK_MOE=outside
 #
 # Reference Unsloth notebook:
 # https://github.com/unslothai/notebooks/blob/main/nb/Gemma4_(26B_A4B)-Text.ipynb
