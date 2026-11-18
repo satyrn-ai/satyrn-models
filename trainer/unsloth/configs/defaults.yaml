@@ -70,6 +70,8 @@ rl:
   num_train_epochs: 3
   learning_rate: 5e-6
   beta: 0.0 # KL penalty weight; values above 0 keep the policy closer to the reference model
+  use_vllm: false
+  vllm_memory_share: 0.65
 
 hydra:
   run:

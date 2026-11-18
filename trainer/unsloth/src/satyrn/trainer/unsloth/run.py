@@ -155,6 +155,24 @@ def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentCo
     model.push_to_hub_gguf(hub_model_id, processor, quantization_method="q4_k_m")
 
 
+def load_model(config: ExperimentConfig) -> tuple[Module, ProcessorMixin]:
+    """Load the base model and processor, enabling vLLM when configured for RL."""
+    loader_kwargs = {}
+    if config.rl.use_vllm and config.datasets.rl is not None:
+        loader_kwargs["fast_inference"] = True
+        loader_kwargs["gpu_memory_utilization"] = config.rl.vllm_memory_share
+
+    logger.info("Downloading model %s", config.model.name)
+    model_and_processor = FastVisionModel.from_pretrained(
+        model_name=config.model.name,
+        max_seq_length=config.max_seq_length,
+        dtype=None,
+        load_in_4bit=config.load_in_4bit,
+        **loader_kwargs,
+    )
+    return model_and_processor
+
+
 @hydra.main(config_path=CONFIG_DIR)
 def main(cfg: DictConfig) -> None:
     if not cfg:
@@ -171,13 +189,7 @@ def main(cfg: DictConfig) -> None:
         log_config(cfg)
         config = validate_config(cfg)
 
-        logger.info("Downloading model %s", config.model.name)
-        model, processor = FastVisionModel.from_pretrained(
-            model_name=config.model.name,
-            max_seq_length=config.max_seq_length,
-            dtype=None,
-            load_in_4bit=config.load_in_4bit,
-        )
+        model, processor = load_model(config)
         # Some model configs ship use_cache=false, which makes generate() recompute every token.
         model.generation_config.use_cache = True
         # Multimodal models return a Processor; text-only training uses its tokenizer.
@@ -306,6 +318,7 @@ def main(cfg: DictConfig) -> None:
                         report_to="mlflow",
                         bf16=torch.cuda.is_bf16_supported(),
                         fp16=not torch.cuda.is_bf16_supported(),
+                        use_vllm=config.rl.use_vllm,
                         disable_tqdm=True,  # ProgressCallback breaks in marimo notebooks
                     )
                     trainer = GRPOTrainer(

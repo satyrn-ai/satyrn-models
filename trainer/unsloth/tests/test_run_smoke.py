@@ -53,3 +53,16 @@ def test_model_config_validates(model_name: str) -> None:
     config = validate_config(cfg)
     assert config.model.name
     assert config.model.peft.r > 0
+
+
+def test_rl_vllm_config_validates() -> None:
+    """rl.use_vllm and rl.vllm_memory_share validate with defaults and overrides."""
+    with initialize_config_dir(config_dir=CONFIG_DIR):
+        cfg = compose(
+            config_name="experiment/py3.15",
+            overrides=["rl.use_vllm=true", "rl.vllm_memory_share=0.5"],
+        )
+
+    config = validate_config(cfg)
+    assert config.rl.use_vllm is True
+    assert config.rl.vllm_memory_share == 0.5

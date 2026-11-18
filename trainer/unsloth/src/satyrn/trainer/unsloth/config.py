@@ -131,6 +131,8 @@ class RlStageConfig(BaseModel):
     num_train_epochs: int
     learning_rate: float
     beta: float
+    use_vllm: bool
+    vllm_memory_share: float
 
 
 def validate_config(cfg: DictConfig) -> ExperimentConfig:

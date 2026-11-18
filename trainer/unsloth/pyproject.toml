@@ -24,6 +24,7 @@ dependencies = [
     "agent-client-protocol==1.0.0",
     # pyspark, preinstalled on Molab, does not support pandas 3 yet
     "pandas<3",
+    "vllm==0.33.0",
 ]
 
 [project.optional-dependencies]
@@ -44,5 +45,11 @@ name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
+[[tool.uv.index]]
+name = "vllm-cu130"
+url = "https://wheels.vllm.ai/0.33.0/cu130"
+explicit = true
+
 [tool.uv.sources]
 mslk = { index = "pytorch-cu130" }
+vllm = { index = "vllm-cu130" }
