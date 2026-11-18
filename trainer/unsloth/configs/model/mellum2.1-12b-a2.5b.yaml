@@ -3,6 +3,7 @@
 #
 # Same `mellum` model_type as Mellum2-12B-A2.5B-Instruct.
 # Reasoning is read from a `reasoning_content` field on the assistant message.
+# Unsloth 2026.11.5 needs UNSLOTH_BLOCK_MOE=outside, without it training runs out of GPU memory
 name: JetBrains/Mellum2.1-12B-A2.5B-Thinking
 enable_thinking: true
 

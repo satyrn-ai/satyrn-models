@@ -5,7 +5,8 @@ Use the `satyrn-unsloth` package to fine-tune models with Unsloth.
 ## Install
 
 Prerequisites:
-- make sure you have a Python version matching `>=3.13.9,<3.14`
+- make sure you have a Python version matching `>=3.13.9,<3.15`
+- make sure you have an Nvidia driver for CUDA 13, CUDA 12.8 is not supported
 
 Install the `satyrn-unsloth` command into your environment from the `trainer/unsloth` package.
 
@@ -13,36 +14,19 @@ Install the `satyrn-unsloth` command into your environment from the `trainer/uns
 uv pip install -e ./trainer/unsloth
 ```
 
-Unsloth installs `trl==0.24.0` which has a known bug [trl#6105](https://github.com/huggingface/trl/issues/6105).
-We need to upgrade `trl`:
+### MoE models
 
-```sh
-uv pip install "trl==1.7.0"
+With Unsloth 2026.11.5, Mellum2.1 needs `UNSLOTH_BLOCK_MOE=outside`. Without it, training runs out of GPU memory at
+the first CPT step on an A100 80 GB and an RTX PRO 6000 96 GB, with this error:
+
+```
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.12 GiB. GPU 0 has a total capacity of ...
 ```
 
-### Transformers version
-
-**Note:** Different `transformers` versions are required for different models.
-
-For Mellum 2 we need `transformers>=5.10.1`. Tested on `5.15.0`, install it using:
+If you see this error with Mellum or another MoE model, set the flag before training:
 
 ```sh
-uv pip install "transformers==5.15.0" "torch==2.11.0" "torchvision==0.26.0"
-```
-
-Gemma 4 does not work with `transformers==5.15.0`, stick with the Unsloth-shipped version:
-
-```sh
-uv pip install "transformers==5.5.0" "torch==2.11.0" "torchvision==0.26.0"
-```
-
-### CUDA build
-
-PyPI `torch==2.11.0` is a CUDA 13 build (`+cu130`). If using older 570-series Nvidia drivers and CUDA 12.8, you will need a build from `pytorch.org` instead:
-
-```sh
-uv pip install "torch==2.11.0" "torchvision==0.26.0" \
-  --extra-index-url https://download.pytorch.org/whl/cu128
+export UNSLOTH_BLOCK_MOE=outside
 ```
 
 ## Run a fine-tuning experiment

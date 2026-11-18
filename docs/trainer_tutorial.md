@@ -33,14 +33,8 @@ Then install our Unsloth trainer, which provides the `satyrn-unsloth` command.
 ```shell
 git clone -b main https://github.com/satyrn-ai/satyrn-models.git
 cd satyrn-models
-uv pip install --config-file uv.toml \
-  --extra-index-url https://download.pytorch.org/whl/cu130 \
-  --index-strategy unsafe-best-match \
-  -e trainer/unsloth/
+uv pip install -e trainer/unsloth/
 ```
-
-> [!NOTE]
-> `--index-strategy unsafe-best-match` lets uv pick each package's best version from `pytorch.org` or `pypi.org`.
 
 ### Prepare the secrets file
 

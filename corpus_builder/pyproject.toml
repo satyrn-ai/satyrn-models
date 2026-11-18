@@ -10,13 +10,13 @@ dependencies = [
     "openai",
     "python-dotenv",
     "rich",
-    "sphinx>=8.2,<9", # Keep in sync with `cpython/Doc/requirements.txt`
+    "sphinx~=9.1.1", # Keep in sync with `cpython/Doc/requirements.txt`
     "sphinx-markdown-builder",
     "tqdm",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=9,<10", "ruff==0.16.2"]
+dev = ["pytest>=9,<10", "ruff==0.17.5"]
 
 [project.scripts]
 satyrn-dataset = "satyrn.dataset.cli:cli"

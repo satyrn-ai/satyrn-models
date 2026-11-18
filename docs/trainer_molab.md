@@ -46,10 +46,7 @@ run("git lfs install")
 run("rm -rf satyrn-models")
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 run(f"git clone https://${GITHUB_TOKEN}@github.com/satyrn-ai/satyrn-models.git")
-run(f"cd satyrn-models && uv pip install --prerelease=allow --config-file uv.toml \
-      --extra-index-url https://download.pytorch.org/whl/cu130 \
-      --index-strategy unsafe-best-match \
-      -e trainer/unsloth/")
+run("cd satyrn-models && uv pip install -e trainer/unsloth/")
 run("uv python install 3.13 3.14 3.15")
 run("hf download unsloth/Qwen3.8-27B")
 ```

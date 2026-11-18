@@ -298,6 +298,8 @@ def main(cfg: DictConfig) -> None:
                         num_train_epochs=config.rl.num_train_epochs,
                         learning_rate=config.rl.learning_rate,
                         beta=config.rl.beta,
+                        loss_type="bnpo",
+                        top_k=None,  # use the model's generation config top_k, else the transformers default
                         logging_steps=config.logging_steps,
                         max_steps=config.max_steps,
                         optim=config.optim,

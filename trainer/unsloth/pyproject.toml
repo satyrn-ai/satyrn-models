@@ -2,25 +2,32 @@
 name = "satyrn-unsloth"
 version = "0.1.0"
 description = "Satyrn Unsloth Trainer"
-requires-python = ">=3.13.9,<3.14"
+requires-python = ">=3.13.9,<3.15"
 dependencies = [
-    "unsloth==2026.8.18",
-    "unsloth-zoo==2026.8.12",
+    "unsloth==2026.11.5",
+    "unsloth-zoo==2026.11.5",
+    "torch==2.14.0",
+    "torchvision==0.29.0",
+    # xformers, which unsloth installs, needs an mslk built for this torch version
+    "mslk==1.4.0; sys_platform != 'darwin'",
+    "datasets==4.8.5",
     "pydantic",
     "python-dotenv",
-    "hydra-core>=1.4.0.dev8",
-    "omegaconf>=2.4.0.dev13",
-    "mlflow==3.15.1",
+    "hydra-core>=1.4.0rc3",
+    "omegaconf>=2.4.1rc1",
+    "mlflow==3.18.0",
     "nvidia-ml-py>=13.610.43",
     "psutil>=7.2.2",
     "pyrsmi>=1.1.0",
     "inspect-ai==0.3.290",
     "inspect-evals==0.29.0",
-    "agent-client-protocol==0.12.1",
+    "agent-client-protocol==1.0.0",
+    # pyspark, preinstalled on Molab, does not support pandas 3 yet
+    "pandas<3",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=9,<10", "ruff==0.16.2"]
+dev = ["pytest>=9,<10", "ruff==0.17.5"]
 
 [project.scripts]
 satyrn-unsloth = "satyrn.trainer.unsloth.run:main"
@@ -31,3 +38,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/satyrn"]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+mslk = { index = "pytorch-cu130" }

@@ -1,7 +1,6 @@
 # Architecture: MoE, 64 experts / 8 active, 28 layers, sliding + full attention (3:1)
-# transformers: 5.15.0
 #
-# model_type is `mellum` is available in transformers>=5.10.1
+# If training with Unsloth 2026.11.5 runs out of GPU memory, set UNSLOTH_BLOCK_MOE=outside
 #
 # Reference Unsloth notebook (Qwen3-30B-A3B-Instruct-2507, nearest qwen3_moe architecture):
 # https://github.com/unslothai/notebooks/blob/main/nb/Qwen3_MoE.ipynb
