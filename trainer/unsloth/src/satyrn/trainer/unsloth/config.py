@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import operator
 from pathlib import Path
 from typing import Literal
@@ -103,7 +104,7 @@ class CptStageConfig(BaseModel):
     seq_len: int
     batch_size: int
     eval_batch_size: int
-    eval_steps: int
+    eval_steps: int | None
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
@@ -115,7 +116,7 @@ class SftStageConfig(BaseModel):
     seq_len: int
     batch_size: int
     eval_batch_size: int
-    eval_steps: int
+    eval_steps: int | None
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
@@ -139,3 +140,22 @@ def validate_config(cfg: DictConfig) -> ExperimentConfig:
 
 def log_config(cfg: DictConfig) -> None:
     logger.info("Config:\n%s", OmegaConf.to_yaml(cfg, resolve=True))
+
+
+def calculate_eval_steps(
+    train_row_count: int,
+    stage: CptStageConfig | SftStageConfig,
+    max_steps: int,
+    max_eval_count: int = 12,
+) -> int:
+    """Return the smallest multiple-of-5 eval interval with at most max_eval_count evals."""
+    if max_steps > 0:
+        total_steps = max_steps
+    else:
+        batches_per_epoch = math.ceil(train_row_count / stage.batch_size)
+        steps_per_epoch = max(1, math.ceil(batches_per_epoch / stage.gradient_accumulation_steps))
+        total_steps = steps_per_epoch * stage.num_train_epochs
+
+    min_eval_steps = (total_steps // (max_eval_count + 1)) + 1
+    eval_steps = max(5, math.ceil(min_eval_steps / 5) * 5)
+    return eval_steps
