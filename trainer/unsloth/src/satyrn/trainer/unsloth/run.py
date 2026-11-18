@@ -96,7 +96,6 @@ def build_trainer(
     cfg: ExperimentConfig,
     packing: bool = False,
     packing_strategy: str = "bfd",  # best-fit, decreasing document size order; truncates over max_length
-    train_sampling_strategy: str = "random",
 ) -> SFTTrainer:
     """Split the dataset and build the trainer for one stage."""
     stage = getattr(cfg, name)
@@ -117,7 +116,6 @@ def build_trainer(
         max_steps=cfg.max_steps,
         learning_rate=stage.learning_rate,
         shuffle_dataset=True,
-        train_sampling_strategy=train_sampling_strategy,
         bf16=torch.cuda.is_bf16_supported(),
         fp16=not torch.cuda.is_bf16_supported(),
         optim=cfg.optim,
@@ -270,9 +268,7 @@ def main(cfg: DictConfig) -> None:
                     rows = read_rows(config.datasets.sft)
                     dataset = render_conversations_into_text_field(rows, tokenizer, config.model.enable_thinking)
 
-                    trainer = build_trainer(
-                        "sft", model, tokenizer, dataset, config, train_sampling_strategy="group_by_length"
-                    )
+                    trainer = build_trainer("sft", model, tokenizer, dataset, config)
                     trainer = train_on_responses_only(
                         trainer,
                         instruction_part=config.model.template.instruction_part,
