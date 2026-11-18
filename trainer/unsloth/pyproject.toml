@@ -10,7 +10,7 @@ dependencies = [
     "torchvision==0.29.0",
     # xformers, which unsloth installs, needs an mslk built for this torch version
     "mslk==1.4.0; sys_platform != 'darwin'",
-    "datasets==4.8.5",
+    "datasets==5.0.1",
     "pydantic",
     "python-dotenv",
     "hydra-core>=1.4.0rc3",
