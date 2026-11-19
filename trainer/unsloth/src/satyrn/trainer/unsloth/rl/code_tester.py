@@ -14,11 +14,22 @@ class TestCase:
     test_code: str
 
 
+def split_thinking(completion: str) -> tuple[str, str]:
+    """Return `(thinking, answer)` split at the last `</think>`, with empty answer if `<think>` never closes."""
+    if "</think>" in completion:
+        raw_thinking, _, answer = completion.rpartition("</think>")
+        thinking = raw_thinking.replace("<think>", "", 1).strip()
+        return thinking, answer
+    if "<think>" in completion:
+        thinking = completion.split("<think>", 1)[1].strip()
+        return thinking, ""
+    return "", completion
+
+
 def strip_thinking(completion: str) -> str:
     """Return the completion after its last `</think>`, or "" if a `<think>` never closes."""
-    if "</think>" in completion:
-        return completion.rpartition("</think>")[2]
-    return "" if "<think>" in completion else completion
+    _, answer = split_thinking(completion)
+    return answer
 
 
 def find_code(completion: str) -> str:
