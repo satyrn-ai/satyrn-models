@@ -13,10 +13,12 @@ If a query fails authentication, check whether `MLFLOW_READONLY_PASSWORD` is emp
 
 All queries print JSON. A training job is a parent run; its stages (`cpt`, `sft`, `rl`) are child runs with the tag `mlflow.parentRunId`. Stage settings are params of the child run, not of the parent.
 
-List experiments (`experiment_id` and `name`):
+List experiments (`experiment_id` and `name`) or runs in an experiment:
 
 ```bash
-curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" "https://mlflow.satyrn.ai/api/2.0/mlflow/experiments/search?max_results=50"
+source .env
+curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" -H 'Content-Type: application/json' -d '{"max_results": 50}' https://mlflow.satyrn.ai/api/2.0/mlflow/experiments/search
+curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" -H 'Content-Type: application/json' -d '{"experiment_ids": ["EXPERIMENT_ID"], "max_results": 20}' https://mlflow.satyrn.ai/api/2.0/mlflow/runs/search
 ```
 
 ### Did two runs use the same dataset files and number of rows?
@@ -61,7 +63,6 @@ After building the link, check that the latest values on the chart match the val
 `RUN_ID` is the full run UUID:
 
 ```bash
-source .env
 curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" \
   -o train.log "https://mlflow.satyrn.ai/get-artifact?path=train.log&run_uuid=$RUN_ID"
 ```
