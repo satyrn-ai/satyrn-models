@@ -5,19 +5,9 @@ description: Query the MLflow REST API read-only, download run artifacts such as
 
 # MLflow web access (read-only REST API & artifacts)
 
-All queries use `https://mlflow.satyrn.ai` with `source .env` first (`MLFLOW_READONLY_USERNAME` / `MLFLOW_READONLY_PASSWORD`). No SSH tunnel needed.
+All queries use `https://mlflow.satyrn.ai` with `source .env` first (`MLFLOW_READONLY_USERNAME` / `MLFLOW_READONLY_PASSWORD`).
 
-If a query fails authentication, check whether `MLFLOW_READONLY_PASSWORD` is empty. If it is, ask the user for the read-only `SatyrnAI` credentials naturally in context (for example: "`MLFLOW_READONLY_PASSWORD` is not set in `.env`. Please provide the password for the read-only `SatyrnAI` MLflow account (you can request it on the [Satyrn Discord](https://discord.gg/WeBCemTj5)).").
-
-## Download a run artifact
-
-`RUN_ID` is the full run UUID:
-
-```bash
-source .env
-curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" \
-  -o train.log "https://mlflow.satyrn.ai/get-artifact?path=train.log&run_uuid=$RUN_ID"
-```
+If a query fails authentication, check whether `MLFLOW_READONLY_PASSWORD` is empty. If it is, ask the user for the read-only `SatyrnAI` credentials (for example: "`MLFLOW_READONLY_PASSWORD` is not set in `.env`. Please provide the password for the read-only `SatyrnAI` MLflow account (you can request it on the [Satyrn Discord](https://discord.gg/WeBCemTj5)).").
 
 ## Example questions
 
@@ -33,7 +23,7 @@ curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" -H 'Content-T
   https://mlflow.satyrn.ai/api/2.0/mlflow/runs/search
 ```
 
-Compare `dataset_path` and `dataset_train_rows`. `seed`, `data_seed` and `train_sampling_strategy` are in the same list.
+Compare `dataset_path` and `dataset_train_rows`.
 
 Runs without these params have the file names in `train.log` on the parent run. Search it for `datasets/.*\.jsonl`.
 
@@ -48,10 +38,6 @@ curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" \
 
 Use `humaneval_verify_accuracy` for HumanEval. Sort the points by `timestamp`. The first is before training, then one follows each stage that ran. Match them to stages by comparing with the stage runs' `end_time`.
 
-The older runs use the 32-question PythonEval, newer ones the 80-question one. The run name (`pe32`, `pe80`) tells which, otherwise the start date (before 2026-11-16 is 32).
-
-For several runs side by side use the `mlflow-run-report` skill.
-
 ### How do the curves of a metric compare between runs?
 
 Give the user a link to a chart with the runs on it. Do not describe curves in words. Build the link for any metric of any runs you want to talk about:
@@ -64,11 +50,25 @@ Training metrics (`reward`, `loss`, `eval_loss`, `completions/clipped_ratio`) ar
 
 After building the link, check that the latest values on the chart match the values you quote.
 
+## Download a run artifact
+
+`RUN_ID` is the full run UUID:
+
+```bash
+source .env
+curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" \
+  -o train.log "https://mlflow.satyrn.ai/get-artifact?path=train.log&run_uuid=$RUN_ID"
+```
+
+### Inspecting `evals.zip`
+
+`evals.zip` (on the parent run) contains one `.eval` archive per benchmark (`humaneval`, `python-eval`). Unzip it and load each `.eval` with `inspect_ai.log.read_eval_log(path)` (Python's `zipfile` fails on zstd compression). On each `sample` in `log.samples`:
+- `sample.scores`: score (`value`), extracted code (`answer`), and failure output (`explanation`).
+- `sample.output.choices[0].message.content`: `list` of `ContentReasoning`/`ContentText` or `str`; `sample.output.usage.output_tokens` has token counts.
+
 ## Reference docs
 
-For endpoints, parameters, or `filter` syntax beyond the examples above, download the [MLflow REST API reference](https://mlflow.org/docs/latest/api_reference/rest-api.html) once to a temporary or scratch file rather than reading the full ~19k-line HTML into context.
-
-One way to extract only the section you need (any equivalent approach works):
+For endpoints, parameters, or `filter` syntax beyond the examples above, download the [MLflow REST API reference](https://mlflow.org/docs/latest/api_reference/rest-api.html) once to a temporary or scratch file and extract only the section you need (any equivalent approach works):
 
 ```bash
 # List available endpoints
