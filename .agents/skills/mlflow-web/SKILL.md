@@ -13,6 +13,12 @@ If a query fails authentication, check whether `MLFLOW_READONLY_PASSWORD` is emp
 
 All queries print JSON. A training job is a parent run; its stages (`cpt`, `sft`, `rl`) are child runs with the tag `mlflow.parentRunId`. Stage settings are params of the child run, not of the parent.
 
+List experiments (`experiment_id` and `name`):
+
+```bash
+curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" "https://mlflow.satyrn.ai/api/2.0/mlflow/experiments/search?max_results=50"
+```
+
 ### Did two runs use the same dataset files and number of rows?
 
 List the stage runs of each parent, then read `data.params` of the stage you care about:
