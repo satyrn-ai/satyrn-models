@@ -11,12 +11,14 @@ mlflow:
 
 pre_model_eval: false
 
+model:
+  peft:
+    r: 64
+
 datasets:
   sft:
-    - datasets/python3.14/sft.jsonl
-    - datasets/python3.14/sft-PEP750.jsonl
-    - datasets/python3.15/sft.jsonl
-    - datasets/python3.15/sft2.jsonl
+    - datasets/python3.14/sft3.jsonl
+    - datasets/python3.15/sft3.jsonl
     - datasets/python3.14/sft-agentic.jsonl
     - datasets/python3.15/sft-agentic.jsonl
 
