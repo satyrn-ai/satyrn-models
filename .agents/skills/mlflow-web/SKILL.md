@@ -63,3 +63,17 @@ https://mlflow.satyrn.ai/#/metric?runs=[%22RUN_ID_1%22,%22RUN_ID_2%22]&metric=%2
 Training metrics (`reward`, `loss`, `eval_loss`, `completions/clipped_ratio`) are logged on the stage runs, not on the parent run. Use the full run IDs of the stage runs, found with the `runs/search` query above. `METRIC` appears twice, once in `metric` and once in `plot_metric_keys`.
 
 After building the link, check that the latest values on the chart match the values you quote.
+
+## Reference docs
+
+For endpoints, parameters, or `filter` syntax beyond the examples above, download the [MLflow REST API reference](https://mlflow.org/docs/latest/api_reference/rest-api.html) once to a temporary or scratch file rather than reading the full ~19k-line HTML into context.
+
+One way to extract only the section you need (any equivalent approach works):
+
+```bash
+# List available endpoints
+grep -o '2\.0/mlflow/[a-z0-9/_-]*' <file> | sort -u
+
+# Extract one endpoint section (stops at the next endpoint's <h2>)
+awk '/2\.0\/mlflow\/runs\/search/{found=1} found && /<h2>/{exit} found' <file> | sed 's/<[^>]*>//g' | grep -v '^[[:space:]]*$'
+```
