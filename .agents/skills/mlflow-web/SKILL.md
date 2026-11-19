@@ -3,7 +3,7 @@ name: mlflow-web
 description: Query the MLflow REST API read-only, download run artifacts such as train.log and evals.zip with curl, and build MLflow chart links.
 ---
 
-# MLflow web access (read-only REST API & artifacts)
+# Satyrn MLflow runs, metrics, and artifacts (read-only REST API)
 
 All queries use `https://mlflow.satyrn.ai` with `source .env` first (`MLFLOW_READONLY_USERNAME` / `MLFLOW_READONLY_PASSWORD`).
 
