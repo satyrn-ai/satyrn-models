@@ -48,7 +48,7 @@ cpt:
   seq_len: 4096
   batch_size: 8
   eval_batch_size: 4
-  eval_steps: 3
+  eval_steps: null
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 1e-4
@@ -57,7 +57,7 @@ sft:
   seq_len: 2048
   batch_size: 8
   eval_batch_size: 4
-  eval_steps: 3
+  eval_steps: null
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 2e-4
