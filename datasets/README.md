@@ -11,5 +11,6 @@ This table records the methodology used to generate each dataset: model and prom
 | `python3.15/sft2.jsonl` | 1902 | 1.7M   | deepseek-v4-flash |                                                                                                                                             |
 | `python3.14/sft-agentic.jsonl` | 696 | 1.8M | deepseek-v4-flash, deepseek-v4-pro | Using code from [PR #79](https://github.com/satyrn-ai/satyrn-models/pull/79). Tasks written by deepseek-v4-flash and solved by deepseek-v4-pro in the Pi coding agent. C API topics skipped. Rows over 16k tokens or 20 tool calls were removed. |
 | `python3.15/sft-agentic.jsonl` | 873 | 2.0M | deepseek-v4-flash, deepseek-v4-pro | As above. |
+| `Nemotron-SFT-Agentic-v2/sft-search-programming.jsonl` | 112 | 510k | - | Programming/CS subset of Nemotron-SFT-Agentic-v2 search trajectories; see [its README](Nemotron-SFT-Agentic-v2/README.md). |
 
 [^1]: Tokens the model learns from, counted with the Qwen3.8 tokenizer. They exclude the prompts and tool results.
