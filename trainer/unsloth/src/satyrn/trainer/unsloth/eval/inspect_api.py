@@ -6,10 +6,11 @@ from copy import copy
 from typing import TYPE_CHECKING
 
 from inspect_ai._util.registry import RegistryInfo, set_registry_info
+from inspect_ai.model import ContentReasoning, ContentText
 from inspect_ai.model._model import ModelAPI
 from inspect_ai.model._providers.hf import HuggingFaceAPI
 
-from satyrn.trainer.unsloth.rl.code_tester import strip_thinking
+from satyrn.trainer.unsloth.rl.code_tester import split_thinking
 
 if TYPE_CHECKING:
     from inspect_ai.model import ChatMessage, GenerateConfig, ModelOutput
@@ -48,7 +49,11 @@ class InMemoryHuggingFaceAPI(HuggingFaceAPI):
     async def generate(
         self, input: list[ChatMessage], tools: list[ToolInfo], tool_choice: ToolChoice, config: GenerateConfig
     ) -> ModelOutput:
-        """Generate as `HuggingFaceAPI` does, with the thinking removed from the completion scorers read."""
+        """Generate as `HuggingFaceAPI` does, stripping thinking from `completion` while keeping it on the message."""
         output = await super().generate(input, tools, tool_choice, config)
-        output.completion = strip_thinking(output.completion)
+        thinking, answer = split_thinking(output.completion)
+        output.completion = answer
+        if thinking and output.choices:
+            content = [ContentReasoning(reasoning=thinking), ContentText(text=answer)]
+            output.choices[0].message.content = content
         return output
