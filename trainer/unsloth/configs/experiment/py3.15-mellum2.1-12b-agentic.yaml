@@ -1,0 +1,32 @@
+# @package _global_
+defaults:
+  - /defaults
+  - /model: mellum2.1-12b-a2.5b
+  - _self_
+
+run_name: py3.15-Mellum2.1-12B-A2.5B-Thinking-agentic
+
+mlflow:
+  experiment_name: Mellum2.1-12B-A2.5B-Thinking
+
+pre_model_eval: false
+
+model:
+  peft:
+    r: 64
+
+datasets:
+  sft:
+    - datasets/python3.14/sft3.jsonl
+    - datasets/python3.15/sft3.jsonl
+    - datasets/python3.14/sft-agentic.jsonl
+    - datasets/python3.15/sft-agentic.jsonl
+
+sft:
+  seq_len: 18432
+  batch_size: 6
+  eval_batch_size: 1
+  eval_steps: null
+  gradient_accumulation_steps: 4
+  num_train_epochs: 2
+  learning_rate: 1e-4

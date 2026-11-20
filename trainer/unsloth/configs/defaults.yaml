@@ -4,6 +4,7 @@ max_seq_length: ${max:${cpt.seq_len},${sft.seq_len}} # ceiling for the model loa
 optim: paged_adamw_8bit
 logging_steps: 2
 eval_ratio: 0.1
+rng_seed: 3407 # LoRA initialization and data order
 max_steps: -1 # positive values cut a run short, overriding num_train_epochs
 pre_model_eval: true # run the full eval suite on the untrained model before any stage
 push_to_hub: false # upload the trained model to Hugging Face
@@ -48,7 +49,7 @@ cpt:
   seq_len: 4096
   batch_size: 8
   eval_batch_size: 4
-  eval_steps: 3
+  eval_steps: null
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 1e-4
@@ -57,7 +58,7 @@ sft:
   seq_len: 2048
   batch_size: 8
   eval_batch_size: 4
-  eval_steps: 3
+  eval_steps: null
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 2e-4
