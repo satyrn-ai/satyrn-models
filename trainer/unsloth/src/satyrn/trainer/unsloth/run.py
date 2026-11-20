@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import json
 import logging
 import os
@@ -147,6 +148,13 @@ def build_trainer(
     return trainer
 
 
+def free_memory(trainer: Trainer) -> None:
+    """Release trainer, accelerator, and cached CUDA memory."""
+    trainer.accelerator.free_memory()
+    gc.collect()
+    torch.cuda.empty_cache()
+
+
 def log_dataset_params(dataset_path: str | list[str], trainer: Trainer) -> None:
     """Record the stage's dataset path and training row count on the active MLflow run."""
     mlflow.log_params({"dataset_path": dataset_path, "dataset_train_rows": len(trainer.train_dataset)})
@@ -272,6 +280,9 @@ def main(cfg: DictConfig) -> None:
                         log_dataset_params(config.datasets.cpt, trainer)
                         trainer.train()
 
+                    free_memory(trainer)
+                    del trainer
+
                     logger.info("Model evaluation after Continuous Pre-Training (CPT)")
                     evaluate_model("cpt", model, tokenizer)
 
@@ -290,6 +301,9 @@ def main(cfg: DictConfig) -> None:
                     with mlflow.start_run(run_name="sft", nested=True):
                         log_dataset_params(config.datasets.sft, trainer)
                         trainer.train()
+
+                    free_memory(trainer)
+                    del trainer
 
                     logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
                     evaluate_model("sft", model, tokenizer)
@@ -319,6 +333,7 @@ def main(cfg: DictConfig) -> None:
                         bf16=torch.cuda.is_bf16_supported(),
                         fp16=not torch.cuda.is_bf16_supported(),
                         disable_tqdm=True,  # ProgressCallback breaks in marimo notebooks
+                        torch_empty_cache_steps=5,
                     )
                     trainer = GRPOTrainer(
                         model=model,
@@ -331,6 +346,9 @@ def main(cfg: DictConfig) -> None:
                     with mlflow.start_run(run_name="rl", nested=True):
                         log_dataset_params(config.datasets.rl, trainer)
                         trainer.train()
+
+                    free_memory(trainer)
+                    del trainer
 
                     logger.info("Model evaluation after Reinforcement Learning (RL)")
                     evaluate_model("rl", model, tokenizer)
