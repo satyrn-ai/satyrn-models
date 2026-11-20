@@ -7,6 +7,7 @@ import os
 from typing import TYPE_CHECKING
 
 import mlflow
+from mlflow.tracing import provider
 
 from satyrn.trainer.unsloth.config import StageName
 
@@ -20,6 +21,10 @@ logger = logging.getLogger(__name__)
 # OpenTelemetry uses for trace IDs. Without this setting, every stage produces the same IDs and
 # overwrites the previous stage's eval traces in MLflow.
 os.environ.setdefault("MLFLOW_TRACE_USE_ISOLATED_RANDOM_ID_GENERATOR", "true")
+
+# Replace MLflow's finalizer, which raises an AttributeError at interpreter shutdown.
+if hasattr(provider, "_IsolatedRandomIdGenerator"):
+    provider._IsolatedRandomIdGenerator.__del__ = lambda self: None
 
 QUESTIONS = [
     "What is the latest Python version?",
