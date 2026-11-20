@@ -268,7 +268,8 @@ def main(cfg: DictConfig) -> None:
                         packing_strategy="bfd_split",  # best-fit, decreasing doc size order; splits over max_length
                     )
 
-                    with mlflow.start_run(run_name="cpt", nested=True):
+                    with mlflow.start_run(run_name=f"cpt-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "cpt")
                         log_dataset_params(config.datasets.cpt, trainer)
                         trainer.train()
 
@@ -287,7 +288,8 @@ def main(cfg: DictConfig) -> None:
                         response_part=config.model.template.response_part,
                     )
 
-                    with mlflow.start_run(run_name="sft", nested=True):
+                    with mlflow.start_run(run_name=f"sft-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "sft")
                         log_dataset_params(config.datasets.sft, trainer)
                         trainer.train()
 
@@ -328,7 +330,8 @@ def main(cfg: DictConfig) -> None:
                         train_dataset=dataset,
                     )
 
-                    with mlflow.start_run(run_name="rl", nested=True):
+                    with mlflow.start_run(run_name=f"rl-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "rl")
                         log_dataset_params(config.datasets.rl, trainer)
                         trainer.train()
 
