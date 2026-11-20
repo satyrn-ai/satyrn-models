@@ -16,7 +16,14 @@ from hydra.core.hydra_config import HydraConfig
 from inspect_evals.humaneval import humaneval
 from omegaconf import DictConfig
 
-from satyrn.trainer.unsloth.config import ExperimentConfig, StageName, basename, log_config, validate_config
+from satyrn.trainer.unsloth.config import (
+    ExperimentConfig,
+    StageName,
+    basename,
+    calculate_eval_steps,
+    log_config,
+    validate_config,
+)
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
 from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
@@ -102,6 +109,11 @@ def build_trainer(
     split = dataset.train_test_split(test_size=cfg.eval_ratio, seed=42)
     train_dataset, eval_dataset = split["train"], split["test"]
 
+    eval_steps = stage.eval_steps
+    if eval_steps is None:
+        eval_steps = calculate_eval_steps(len(train_dataset), stage, cfg.max_steps)
+        logger.info("Resolved %s eval_steps=%d", name, eval_steps)
+
     training_args = SFTConfig(
         output_dir=f"outputs/{name}",
         per_device_train_batch_size=stage.batch_size,
@@ -109,7 +121,7 @@ def build_trainer(
         gradient_accumulation_steps=stage.gradient_accumulation_steps,
         logging_steps=cfg.logging_steps,
         eval_strategy="steps",
-        eval_steps=stage.eval_steps,
+        eval_steps=eval_steps,
         report_to="mlflow",
         max_length=stage.seq_len,
         num_train_epochs=stage.num_train_epochs,
@@ -256,7 +268,8 @@ def main(cfg: DictConfig) -> None:
                         packing_strategy="bfd_split",  # best-fit, decreasing doc size order; splits over max_length
                     )
 
-                    with mlflow.start_run(run_name="cpt", nested=True):
+                    with mlflow.start_run(run_name=f"cpt-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "cpt")
                         log_dataset_params(config.datasets.cpt, trainer)
                         trainer.train()
 
@@ -275,7 +288,8 @@ def main(cfg: DictConfig) -> None:
                         response_part=config.model.template.response_part,
                     )
 
-                    with mlflow.start_run(run_name="sft", nested=True):
+                    with mlflow.start_run(run_name=f"sft-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "sft")
                         log_dataset_params(config.datasets.sft, trainer)
                         trainer.train()
 
@@ -316,7 +330,8 @@ def main(cfg: DictConfig) -> None:
                         train_dataset=dataset,
                     )
 
-                    with mlflow.start_run(run_name="rl", nested=True):
+                    with mlflow.start_run(run_name=f"rl-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "rl")
                         log_dataset_params(config.datasets.rl, trainer)
                         trainer.train()
 
