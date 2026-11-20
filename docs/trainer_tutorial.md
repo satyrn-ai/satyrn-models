@@ -174,7 +174,8 @@ This example changes the list of files which will be combined into the SFT stage
 
 In order to perform further tests on your model or publish it, you can upload it to your account on the Hugging Face Hub.
 Set `push_to_hub=true` and when training finishes, the model will be converted to 16-bit safetensors and a 4-bit quantized
-GGUF file and pushed to the Hub:
+GGUF file and pushed to the Hub: the safetensors to the repository, and the GGUF to a second repository with the `-GGUF`
+suffix:
 
 ```shell
 satyrn-unsloth --config-name experiment/py3.15-qwen3.8-27b \
