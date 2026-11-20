@@ -6,14 +6,18 @@ import json
 import logging
 import os
 import shutil
+from importlib.metadata import distributions
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import hydra
 import mlflow
 from datasets import Dataset
+from git import Repo
 from hydra.core.hydra_config import HydraConfig
 from inspect_evals.humaneval import humaneval
+from mlflow.utils.git_utils import get_git_branch, get_git_commit
+from mlflow.utils.mlflow_tags import MLFLOW_GIT_BRANCH, MLFLOW_GIT_COMMIT, MLFLOW_GIT_DIRTY
 from omegaconf import DictConfig
 
 from satyrn.trainer.unsloth.config import (
@@ -153,6 +157,19 @@ def log_dataset_params(dataset_path: str | list[str], trainer: Trainer) -> None:
     mlflow.log_params({"dataset_path": dataset_path, "dataset_train_rows": len(trainer.train_dataset)})
 
 
+def log_code_version() -> None:
+    """Log the git state of the code and attach the installed packages to the run."""
+    code_dir = str(Path(__file__).parent)
+    branch, commit = get_git_branch(code_dir), get_git_commit(code_dir)
+    dirty = Repo(code_dir, search_parent_directories=True).is_dirty()
+
+    logger.info("Git branch %s, commit %s, uncommitted changes: %s", branch, commit, dirty)
+    mlflow.set_tags({MLFLOW_GIT_BRANCH: branch, MLFLOW_GIT_COMMIT: commit, MLFLOW_GIT_DIRTY: str(dirty)})
+
+    packages = sorted(f"{package.metadata['Name']}=={package.version}" for package in distributions())
+    mlflow.log_text("\n".join(packages), "pip-freeze.txt")
+
+
 def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Run every eval against the model as it stands after stage_name."""
     run_eval_qa(stage_name, model, tokenizer)
@@ -243,6 +260,7 @@ def main(cfg: DictConfig) -> None:
                         "params_train_pct": trainable_percentage,
                     }
                 )
+                log_code_version()
 
                 if config.pre_model_eval:
                     logger.info("Model evaluation before training")
