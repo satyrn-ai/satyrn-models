@@ -134,6 +134,7 @@ def build_trainer(
         packing=packing,
         packing_strategy=packing_strategy,
         dataset_text_field="text",
+        seed=cfg.rng_seed,
     )
 
     trainer = SFTTrainer(
@@ -208,6 +209,7 @@ def main(cfg: DictConfig) -> None:
             finetune_audio_layers=config.model.peft.finetune_audio_layers,
             bias="none",
             use_gradient_checkpointing="unsloth",
+            random_state=config.rng_seed,
         )
         # logger.info("PEFT model %s", model)
         trainable_params, all_params = model.get_nb_trainable_parameters()
@@ -319,6 +321,7 @@ def main(cfg: DictConfig) -> None:
                         bf16=torch.cuda.is_bf16_supported(),
                         fp16=not torch.cuda.is_bf16_supported(),
                         disable_tqdm=True,  # ProgressCallback breaks in marimo notebooks
+                        seed=config.rng_seed,
                     )
                     trainer = GRPOTrainer(
                         model=model,

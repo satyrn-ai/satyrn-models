@@ -43,6 +43,7 @@ class ExperimentConfig(BaseModel):
     max_steps: int
     optim: str
     pre_model_eval: bool
+    rng_seed: int
     run_name: str
 
     push_to_hub: bool
