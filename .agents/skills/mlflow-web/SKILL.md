@@ -44,7 +44,7 @@ curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" \
   "https://mlflow.satyrn.ai/api/2.0/mlflow/metrics/get-history?run_id=PARENT_RUN_ID&metric_key=python_eval_verify_accuracy"
 ```
 
-Use `humaneval_verify_accuracy` for HumanEval. Sort the points by `timestamp`. The first is before training, then one follows each stage that ran. Match them to stages by comparing with the stage runs' `end_time`.
+Use `humaneval_verify_accuracy` for HumanEval. Sort the points by `timestamp`. Each point is one eval: one before training (only if the run evaluated the base model), then one after each stage that ran. Match them to stages by comparing with the stage runs' `end_time`.
 
 ### How do the curves of a metric compare between runs?
 
@@ -69,9 +69,9 @@ curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" \
 
 ### Inspecting `evals.zip`
 
-`evals.zip` (on the parent run) contains one `.eval` archive per benchmark (`humaneval`, `python-eval`). Unzip it and load each `.eval` with `inspect_ai.log.read_eval_log(path)` (Python's `zipfile` fails on zstd compression). On each `sample` in `log.samples`:
+`evals.zip` (on the parent run) contains one `.eval` archive per benchmark (`humaneval`, `python-eval`) for each eval, in order of the timestamp in the file name. Unzip it and load each `.eval` with `inspect_ai.log.read_eval_log(path)` (Python's `zipfile` fails on zstd compression). On each `sample` in `log.samples`:
 - `sample.scores`: score (`value`), extracted code (`answer`), and failure output (`explanation`).
-- `sample.output.choices[0].message.content`: `list` of `ContentReasoning`/`ContentText` or `str`; `sample.output.usage.output_tokens` has token counts.
+- `sample.output.choices[0].message.content`: `list` of `ContentReasoning`/`ContentText` or `str`; `sample.output.usage.output_tokens` is a count for the whole batch, not for the sample.
 
 ## Reference docs
 
