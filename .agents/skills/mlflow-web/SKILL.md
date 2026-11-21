@@ -70,8 +70,14 @@ curl -fsS -u "$MLFLOW_READONLY_USERNAME:$MLFLOW_READONLY_PASSWORD" \
 ### Inspecting `evals.zip`
 
 `evals.zip` (on the parent run) contains one `.eval` archive per benchmark (`humaneval`, `python-eval`) for each eval, in order of the timestamp in the file name. Unzip it and load each `.eval` with `inspect_ai.log.read_eval_log(path)` (Python's `zipfile` fails on zstd compression). On each `sample` in `log.samples`:
-- `sample.scores`: score (`value`), extracted code (`answer`), and failure output (`explanation`).
+- `sample.scores`: score (`value`), extracted code (`answer`), and failure output (`explanation`). HumanEval values are letters: `C` correct, `I` incorrect, `P` partial, `N` no answer. PythonEval values are 0 to 1.
 - `sample.output.choices[0].message.content`: `list` of `ContentReasoning`/`ContentText` or `str`; `sample.output.usage.output_tokens` is a count for the whole batch, not for the sample.
+
+Always give the user the command to view the logs you downloaded:
+
+```bash
+inspect view --log-dir UNZIPPED_DIR
+```
 
 ## Reference docs
 
