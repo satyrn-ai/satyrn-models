@@ -138,6 +138,7 @@ def build_trainer(
         packing=packing,
         packing_strategy=packing_strategy,
         dataset_text_field="text",
+        seed=cfg.rng_seed,
     )
 
     trainer = SFTTrainer(
@@ -225,6 +226,7 @@ def main(cfg: DictConfig) -> None:
             finetune_audio_layers=config.model.peft.finetune_audio_layers,
             bias="none",
             use_gradient_checkpointing="unsloth",
+            random_state=config.rng_seed,
         )
         # logger.info("PEFT model %s", model)
         trainable_params, all_params = model.get_nb_trainable_parameters()
@@ -286,7 +288,8 @@ def main(cfg: DictConfig) -> None:
                         packing_strategy="bfd_split",  # best-fit, decreasing doc size order; splits over max_length
                     )
 
-                    with mlflow.start_run(run_name="cpt", nested=True):
+                    with mlflow.start_run(run_name=f"cpt-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "cpt")
                         log_dataset_params(config.datasets.cpt, trainer)
                         trainer.train()
 
@@ -305,7 +308,8 @@ def main(cfg: DictConfig) -> None:
                         response_part=config.model.template.response_part,
                     )
 
-                    with mlflow.start_run(run_name="sft", nested=True):
+                    with mlflow.start_run(run_name=f"sft-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "sft")
                         log_dataset_params(config.datasets.sft, trainer)
                         trainer.train()
 
@@ -337,6 +341,7 @@ def main(cfg: DictConfig) -> None:
                         bf16=torch.cuda.is_bf16_supported(),
                         fp16=not torch.cuda.is_bf16_supported(),
                         disable_tqdm=True,  # ProgressCallback breaks in marimo notebooks
+                        seed=config.rng_seed,
                     )
                     trainer = GRPOTrainer(
                         model=model,
@@ -346,7 +351,8 @@ def main(cfg: DictConfig) -> None:
                         train_dataset=dataset,
                     )
 
-                    with mlflow.start_run(run_name="rl", nested=True):
+                    with mlflow.start_run(run_name=f"rl-{config.run_name}", nested=True):
+                        mlflow.set_tag("stage", "rl")
                         log_dataset_params(config.datasets.rl, trainer)
                         trainer.train()
 
