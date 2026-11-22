@@ -72,12 +72,14 @@ def test_download_code_sources_prunes_unwanted_files_and_keeps_git(
     (upstream_dir / "docs" / "en").mkdir(parents=True)
     (upstream_dir / "docs" / "zh").mkdir(parents=True)
 
-    (upstream_dir / "README.md").write_text("# Pydantic\n", encoding="utf-8")
+    (upstream_dir / "README.md").write_text("# Pydantic\n\n" + ("Validation.\n" * 20), encoding="utf-8")
+    reexports = "# Copyright\n" + ("from .main import BaseModel\n" * 10)
+    (upstream_dir / "pydantic" / "__init__.py").write_text(reexports, encoding="utf-8")
     (upstream_dir / "pydantic" / "main.py").write_text("class BaseModel:\n    pass\n", encoding="utf-8")
     (upstream_dir / "pydantic" / "_internal" / "gen.py").write_text("internal = 1\n", encoding="utf-8")
     (upstream_dir / "pydantic" / "tests" / "test_main.py").write_text("assert True\n", encoding="utf-8")
     (upstream_dir / "pydantic" / "blob.py").write_text("x = '" + ("a" * 5000) + "'\n", encoding="utf-8")
-    (upstream_dir / "docs" / "en" / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    (upstream_dir / "docs" / "en" / "guide.md").write_text("# Guide\n\n" + ("Guide text.\n" * 20), encoding="utf-8")
     (upstream_dir / "docs" / "en" / "legacy.rst").write_text("RST\n", encoding="utf-8")
     (upstream_dir / "docs" / "zh" / "guide.md").write_text("# ZH\n", encoding="utf-8")
     upstream.index.add(upstream.untracked_files)
@@ -96,7 +98,7 @@ def test_download_code_sources_prunes_unwanted_files_and_keeps_git(
     download_inputs.download_code_sources("web", entries, tmp_path)
 
     cloned_dir = tmp_path / "inputs" / "repos" / "web" / "pydantic" / "pydantic"
-    kept_files = sorted(path.relative_to(cloned_dir).as_posix() for path in cpt.iter_repository_files(cloned_dir))
+    kept_files = sorted(path.relative_to(cloned_dir).as_posix() for path in cpt.walk_repository_files(cloned_dir))
     assert kept_files == ["README.md", "docs/en/guide.md", "pydantic/main.py"]
     assert (cloned_dir / ".git").is_dir()
 
@@ -121,11 +123,7 @@ def test_cpt_cli_writes_section_jsonl_without_manifest(tmp_path: Path) -> None:
         {
             "filename": "github/pallets/flask/@3.1.3/src/flask/app.py",
             "text": (
-                "### Project: flask\n"
-                "### Version: 3.1.3\n"
-                "### Filename: github/pallets/flask/@3.1.3/src/flask/app.py\n\n"
-                "class Flask:\n"
-                "    pass\n\n"
+                "### Project: flask\n### Version: 3.1.3\n### Filename: src/flask/app.py\n\nclass Flask:\n    pass\n\n"
             ),
         }
     ]

@@ -114,13 +114,20 @@ def walk_source_files(repository_directory: Path, include_path: Path, excludes: 
 
 
 def is_source_file(file_path: Path, max_line_chars: int = 4096) -> bool:
-    """Return True if file_path is usable source text, excluding non-UTF-8, empty, and >4096-char-line files."""
+    """Return True if file_path is usable source text, excluding non-UTF-8, empty, short, and >4096-char-line files."""
     try:
         content = file_path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return False
-    if not content.strip():
+    stripped = content.strip()
+    if not stripped:
         return False
+    if len(stripped) < 200 or file_path.name == "__init__.py":
+        has_definition = file_path.suffix in {".py", ".pyi"} and re.search(
+            r"^[ \t]*(?:async[ \t]+)?(?:def|class)\s", content, re.MULTILINE
+        )
+        if not has_definition:
+            return False
     usable = all(len(line) <= max_line_chars for line in content.splitlines())
     return usable
 

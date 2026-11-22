@@ -14,9 +14,6 @@ web:
     include: [hc, templates/docs]
   - repo: https://github.com/sqlalchemy/sqlalchemy@rel_2_1_9
     include: [examples, lib/sqlalchemy/orm, lib/sqlalchemy/ext]
-  - repo: https://github.com/ansible/awx@f323b9ae61e5ae4237355bd4b584d52ac55cfdd6
-    include: [awx/main/models, awx/api, awx/main/tasks, awx/main/management]
-    exclude: [templates]
   - repo: https://github.com/django/django@6.1.3
     include:
       - django/contrib
@@ -50,23 +47,20 @@ misc:
   - repo: https://github.com/pytest-dev/pytest@9.2.0
     include: [src/_pytest, doc/en]
   - repo: https://github.com/python/cpython@v3.15.2
-    include: [Lib]
-    exclude:
-      - encodings
-      - idlelib
-      - pydoc_data
-      - tkinter
-      - turtledemo
-      - email
-      - xml
-      - importlib
-      - _pyrepl
-      - profiling
-      - html
-      - turtle.py
-      - locale.py
-      - pickletools.py
-      - _pydecimal.py
-      - _opcode_metadata.py
-      - stringprep.py
-      - token.py
+    include:
+      - Lib/annotationlib.py
+      - Lib/asyncio
+      - Lib/collections
+      - Lib/compression/zstd
+      - Lib/concurrent/futures
+      - Lib/concurrent/interpreters
+      - Lib/contextlib.py
+      - Lib/dataclasses.py
+      - Lib/functools.py
+      - Lib/graphlib.py
+      - Lib/pathlib
+      - Lib/statistics.py
+      - Lib/string/templatelib.py
+      - Lib/tomllib
+      - Lib/zipfile
+      - Lib/zoneinfo

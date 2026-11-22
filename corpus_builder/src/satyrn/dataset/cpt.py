@@ -45,7 +45,7 @@ def find_repositories(input_dir: Path) -> list[Path]:
     return repositories
 
 
-def iter_repository_files(repository_directory: Path) -> Iterator[Path]:
+def walk_repository_files(repository_directory: Path) -> Iterator[Path]:
     """Yield non-.git files under repository_directory in sorted order."""
     for root_path, directory_names, file_names in os.walk(repository_directory):
         directory_names[:] = sorted(name for name in directory_names if name != ".git")
@@ -62,11 +62,11 @@ def build_repo_rows(repositories: list[Path]) -> list[dict[str, str]]:
         github_repo = GitHubRepo.from_url(git_repo.remotes.origin.url)
         version = git_repo.git.describe("--tags", "--always")
 
-        for file_path in iter_repository_files(repository_directory):
+        for file_path in walk_repository_files(repository_directory):
             content = file_path.read_text(encoding="utf-8")
             relative_path = file_path.relative_to(repository_directory).as_posix()
             filename = f"github/{github_repo.owner}/{github_repo.name}/@{version}/{relative_path}"
-            header = f"### Project: {github_repo.name}\n### Version: {version}\n### Filename: {filename}\n\n"
+            header = f"### Project: {github_repo.name}\n### Version: {version}\n### Filename: {relative_path}\n\n"
             rows.append({"filename": filename, "text": f"{header}{content}\n"})
     return rows
 

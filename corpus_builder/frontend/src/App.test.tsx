@@ -75,4 +75,32 @@ describe("App", () => {
 
     expect(await screen.findByText(/Failed to load dataset: .*500/)).toBeTruthy();
   });
+
+  it("renders CPT text fields by filename extension", async () => {
+    const cptDataset: DatasetResponse = {
+      source: "cpt.jsonl",
+      path: "/data/cpt.jsonl",
+      count: 3,
+      errors: [],
+      items: [
+        { filename: "repo/app.py", text: "def hello():\n    pass", _viewer: { index: 0, line: 1 } },
+        { filename: "repo/README.md", text: "# Title\n\nBody", _viewer: { index: 1, line: 2 } },
+        { filename: "docs/PEP750.rst", text: "# Raw", _viewer: { index: 2, line: 3 } },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(cptDataset), { status: 200 })),
+    );
+
+    const { container } = render(<App />);
+    await screen.findByRole("heading", { level: 2, name: "repo/app.py" });
+    expect(container.querySelector("code.language-python .hljs-keyword")?.textContent).toBe("def");
+
+    fireEvent.click(screen.getByRole("button", { name: /repo\/README\.md/ }));
+    expect(container.querySelector(".markdown h1")?.textContent).toBe("Title");
+
+    fireEvent.click(screen.getByRole("button", { name: /docs\/PEP750\.rst/ }));
+    expect(container.querySelector("code.language-text")?.textContent).toBe("# Raw");
+  });
 });
