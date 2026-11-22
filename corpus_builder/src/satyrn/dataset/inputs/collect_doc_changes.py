@@ -15,6 +15,7 @@ from sphinx.application import ENV_PICKLE_FILENAME, Sphinx
 
 logger = logging.getLogger(__name__)
 
+REPO_ROOT = Path(__file__).parents[5]
 DOCTREE_CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "satyrn-cpython-sphinx-cache"
 MAX_SECTION_LINES = 500
 
@@ -155,7 +156,7 @@ def main(target_version: str, doc_directory: Path) -> None:
 
         sections_by_document[document_name].append((section, node, is_entry))
 
-    output_directory = Path(__file__).parents[5] / "datasets" / f"python{target_version}" / "input" / "docs" / "changes"
+    output_directory = REPO_ROOT / "datasets" / "inputs" / "docs" / f"python{target_version}" / "changes"
     output_directory.mkdir(parents=True, exist_ok=True)
 
     for document_name, version_changes in sections_by_document.items():

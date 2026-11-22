@@ -8,8 +8,14 @@ import { Metadata } from "./Metadata";
 import { Section } from "./Section";
 import { TestCaseCard } from "./TestCaseCard";
 
-function GenericValue({ name, value }: { name: string; value: unknown }) {
+function GenericValue({ name, value, item }: { name: string; value: unknown; item: DatasetItem }) {
   if (typeof value === "string") {
+    if (name === "text") {
+      const filename = typeof item.filename === "string" ? item.filename : "";
+      if (filename.endsWith(".md")) return <Markdown source={value} />;
+      const language = /\.(py|pyi)$/.test(filename) ? "python" : "text";
+      return <CodeBlock code={value} language={language} />;
+    }
     return isCodeKey(name) ? <CodeBlock code={value} /> : <Markdown source={value} />;
   }
   return <CodeBlock code={JSON.stringify(value, null, 2)} language="json" />;
@@ -66,7 +72,7 @@ export function ItemView({ item }: { item: DatasetItem }) {
 
       {extraFields.map(([key, value]) => (
         <Section key={key} title={humanizeKey(key)}>
-          <GenericValue name={key} value={value} />
+          <GenericValue name={key} value={value} item={item} />
         </Section>
       ))}
     </article>

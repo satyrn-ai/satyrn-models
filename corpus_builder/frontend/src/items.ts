@@ -26,6 +26,9 @@ export function itemTitle(item: DatasetItem, index: number): string {
   if (typeof idea === "string" && idea) {
     return idea;
   }
+  if (typeof item.filename === "string" && item.filename) {
+    return item.filename;
+  }
   const prompt = collectMessages(item)
     .filter((message) => messageRole(message) !== "system")
     .map((message) => (typeof message.content === "string" ? message.content : ""))

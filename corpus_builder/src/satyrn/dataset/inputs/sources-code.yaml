@@ -1,0 +1,66 @@
+web:
+  - repo: https://github.com/fastapi/fastapi@0.165.0
+    include: [fastapi, docs/en, docs_src]
+  - repo: https://github.com/pydantic/pydantic@v2.14.4
+    include: [pydantic, docs, README.md]
+    exclude: [_internal]
+  - repo: https://github.com/pallets/flask@3.1.3
+    include: [src/flask, examples]
+  - repo: https://github.com/encode/starlette@1.10.0
+    include: [starlette, docs]
+  - repo: https://github.com/encode/httpx@0.28.1
+    include: [httpx, docs]
+  - repo: https://github.com/healthchecks/healthchecks@v5.0.3
+    include: [hc, templates/docs]
+  - repo: https://github.com/sqlalchemy/sqlalchemy@rel_2_1_9
+    include: [examples, lib/sqlalchemy/orm, lib/sqlalchemy/ext]
+  - repo: https://github.com/django/django@6.1.3
+    include:
+      - django/contrib
+      - django/forms
+      - django/views
+      - django/http
+      - django/urls
+      - django/middleware
+      - django/core/management
+    exclude: [gis]
+
+datasci:
+  - repo: https://github.com/matplotlib/matplotlib@v3.11.2
+    include: [galleries]
+  - repo: https://github.com/pola-rs/polars@py-2.1.0
+    include: [docs/source, py-polars/src/polars]
+    exclude: [_utils, _plr.pyi, io]
+  - repo: https://github.com/pandas-dev/pandas@v3.1.1
+    include: [web/pandas, pandas/core/frame.py, pandas/core/series.py, pandas/core/groupby]
+  - repo: https://github.com/scikit-learn/scikit-learn@1.9.1
+    include: [examples, sklearn/linear_model, sklearn/preprocessing, sklearn/model_selection]
+  - repo: https://github.com/numpy/numpy@v2.5.5
+    include: [numpy/lib]
+
+misc:
+  - repo: https://github.com/Textualize/rich@v15.0.0
+    include: [rich, examples, docs, README.md]
+    exclude: [_unicode_data]
+  - repo: https://github.com/pallets/click@8.5.1
+    include: [src/click, docs, examples]
+  - repo: https://github.com/pytest-dev/pytest@9.2.0
+    include: [src/_pytest, doc/en]
+  - repo: https://github.com/python/cpython@v3.15.2
+    include:
+      - Lib/annotationlib.py
+      - Lib/asyncio
+      - Lib/collections
+      - Lib/compression/zstd
+      - Lib/concurrent/futures
+      - Lib/concurrent/interpreters
+      - Lib/contextlib.py
+      - Lib/dataclasses.py
+      - Lib/functools.py
+      - Lib/graphlib.py
+      - Lib/pathlib
+      - Lib/statistics.py
+      - Lib/string/templatelib.py
+      - Lib/tomllib
+      - Lib/zipfile
+      - Lib/zoneinfo
