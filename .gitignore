@@ -2,7 +2,7 @@
 .env
 outputs/
 unsloth_compiled_cache/
-datasets/sources/
+datasets/inputs/
 
 # Dataset generation progress logs
 *.progress.jsonl

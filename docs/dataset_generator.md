@@ -20,7 +20,7 @@ Before generating a dataset, gather the source documents it draws from.
 
 ### Gather Python Enhancement Proposals (PEPs)
 
-Download the PEPs for a Python version into `datasets/python3.15/input/docs/`
+Download the PEPs for a Python version into `datasets/inputs/docs/python3.15/`
 
 ```sh
 satyrn-dataset download-inputs 3.15
@@ -36,20 +36,48 @@ Clone CPython into any path on your system:
 git clone --depth 1 https://github.com/python/cpython.git /path/to/cpython
 ```
 
-Collect the documentation sections tied to changes in a Python version. Make sure that you use `Doc` 
+Collect the documentation sections tied to changes in a Python version. Make sure that you use the `Doc` 
 directory of the CPython repo as the input:
 
 ```sh
 satyrn-dataset collect-doc-changes 3.15 /path/to/cpython/Doc
 ```
 
-Writes to `datasets/python3.15/input/docs/changes/`.
+Writes to `datasets/inputs/docs/python3.15/changes/`.
+
+### Clone GitHub repositories
+
+Shallow-clone a code section (`web`, `datasci`, or `misc`) from `sources-code.yaml` into `datasets/inputs/repos/<section>/`:
+
+```sh
+satyrn-dataset download-inputs web
+satyrn-dataset download-inputs datasci
+satyrn-dataset download-inputs misc
+```
+
+## Continued Pretraining (CPT) datasets
+
+`cpt` reads from `--input` (`--input-dir` alias): a directory of `.rst` docs or cloned repositories from [Collecting input material](#collecting-input-material).
+
+```sh
+satyrn-dataset cpt --input DIR --output FILE.jsonl
+```
+
+When `--input` contains cloned git repositories, `cpt` reads their files and writes one row per file to `--output`.
+Otherwise, `cpt` converts every `.rst` file under `--input` to Markdown.
+
+Usage example:
+
+```sh
+satyrn-dataset cpt --input datasets/inputs/docs/python3.14 --output datasets/python3.14/cpt.jsonl
+satyrn-dataset cpt --input datasets/inputs/docs/python3.15 --output datasets/python3.15/cpt.jsonl
+
+satyrn-dataset cpt --input datasets/inputs/repos/web --output datasets/cpt/web.jsonl
+satyrn-dataset cpt --input datasets/inputs/repos/datasci --output datasets/cpt/datasci.jsonl
+satyrn-dataset cpt --input datasets/inputs/repos/misc --output datasets/cpt/misc.jsonl
+```
 
 ## Generating datasets
-
-Each subcommand writes JSONL to the `--output` file.
-`cpt` reads source material from `--input-dir`, the directory that
-[Collecting input material](#collecting-input-material) writes to.
 
 `sft`, `rl` and `agentic-sft` datasets are generated in two stages. `ideas` reads source material from
 `--input` (a directory or a single doc file) and writes a JSONL file of ideas. The dataset generating
@@ -57,8 +85,6 @@ command then reads those ideas from `--ideas-path`. An ideas file can be reused 
 its command, but ideas of a specific `kind` are best suited for a particular generator command.
 
 ```sh
-satyrn-dataset cpt   --input-dir DIR --output FILE.jsonl                    # Continued Pretraining (CPT)
-
 satyrn-dataset ideas --kind sft --input PATH --output SFT-IDEAS.jsonl       # Ideas for SFT
 satyrn-dataset sft   --ideas-path SFT-IDEAS.jsonl --output FILE.jsonl       # Supervised Fine-Tuning (SFT)
 
@@ -79,18 +105,6 @@ Pass `--limit` to a dataset generating command to process only the first N ideas
 > [!NOTE]
 > Each dataset generation run logs the ideas it has processed, including failed ones, in a `.progress.jsonl` file next to `--output`.
 > Running the same command again resumes automatically, skipping the logged ideas.
-
-### Generate Continued Pretraining (CPT) datasets
-
-`cpt` converts every `.rst` file under `input-dir` to Markdown and writes one row per file to
-`--output`.
-
-Usage example:
-
-```sh
-satyrn-dataset cpt --input-dir datasets/python3.14/input/docs --output datasets/python3.14/cpt.jsonl
-satyrn-dataset cpt --input-dir datasets/python3.15/input/docs --output datasets/python3.15/cpt.jsonl
-```
 
 ### Generate ideas
 
@@ -113,14 +127,14 @@ several source documents in parallel (defaults to 1).
 Generate ideas for a single PEP with preview:
 
 ```sh
-satyrn-dataset ideas -i datasets/python3.14/input/docs/PEP750.rst -o datasets/python3.14/ideas-sft.jsonl --python-version 3.14 --kind sft --preview
+satyrn-dataset ideas -i datasets/inputs/docs/python3.14/PEP750.rst -o datasets/python3.14/ideas-sft.jsonl --python-version 3.14 --kind sft --preview
 ```
 
 Generate ideas across all downloaded documents, 8 documents at a time:
 
 ```sh
-satyrn-dataset ideas -i datasets/python3.15/input/docs -o datasets/python3.15/ideas-sft.jsonl --python-version 3.15 --kind sft --workers 8
-satyrn-dataset ideas -i datasets/python3.15/input/docs -o datasets/python3.15/ideas-rl.jsonl --python-version 3.15 --kind rl --workers 8
+satyrn-dataset ideas -i datasets/inputs/docs/python3.15 -o datasets/python3.15/ideas-sft.jsonl --python-version 3.15 --kind sft --workers 8
+satyrn-dataset ideas -i datasets/inputs/docs/python3.15 -o datasets/python3.15/ideas-rl.jsonl --python-version 3.15 --kind rl --workers 8
 ```
 
 ### Generate Supervised Fine-Tuning (SFT) datasets
