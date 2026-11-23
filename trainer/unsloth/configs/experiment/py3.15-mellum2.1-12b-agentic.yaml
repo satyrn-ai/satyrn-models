@@ -16,11 +16,22 @@ model:
     r: 64
 
 datasets:
+  cpt:
+    - datasets/python3.14/cpt.jsonl
+    - datasets/python3.15/cpt.jsonl
+    - datasets/cpt/web.jsonl
+    - datasets/cpt/misc.jsonl
   sft:
     - datasets/python3.14/sft3.jsonl
     - datasets/python3.15/sft3.jsonl
     - datasets/python3.14/sft-agentic.jsonl
     - datasets/python3.15/sft-agentic.jsonl
+
+cpt:
+  eval_batch_size: 1
+  num_train_epochs: 1
+  learning_rate: 3e-5
+  prepack_dataset: true
 
 sft:
   seq_len: 18432
