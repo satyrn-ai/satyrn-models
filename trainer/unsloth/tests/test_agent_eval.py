@@ -159,13 +159,81 @@ def test_absolute_path_escape_is_not_clean(tmp_path: Path) -> None:
     assert value["clean"] == 0
 
 
+def read_call(offset: int = 1) -> ModelOutput:
+    return ModelOutput.for_tool_call("mockllm/model", "read", {"path": "solution.py", "offset": offset})
+
+
+def scored(log) -> tuple[dict, dict]:
+    """The sample's score values and its run record."""
+    score = log.samples[0].scores["agent_behaviour"]
+    return score.value, score.metadata
+
+
 def test_running_out_of_turns_is_not_a_self_stop(tmp_path: Path) -> None:
     """A model that keeps calling tools until the turn cap did not know when to stop."""
     make_task(tmp_path)
-    reads = [ModelOutput.for_tool_call("mockllm/model", "read", {"path": "solution.py"}) for _ in range(5)]
-    value = run_mock(tmp_path, reads, max_turns=3).samples[0].scores["agent_behaviour"].value
+    value, run = scored(run_mock(tmp_path, [read_call(n) for n in range(1, 6)], max_turns=3))
+    assert run["ending"] == "turn_cap"
     assert value["self_stop"] == 0
+    assert value["looped"] == 0
     assert value["clean"] == 0
+
+
+def test_the_same_turn_three_times_ends_the_sample_as_a_loop(tmp_path: Path) -> None:
+    """Greedy decoding repeats itself exactly; the third identical turn ends the sample without running it."""
+    make_task(tmp_path)
+    value, run = scored(run_mock(tmp_path, [read_call() for _ in range(10)], max_turns=10))
+    assert run["ending"] == "looped"
+    assert run["turns"] == 3
+    assert run["calls"] == 2  # the repeat that ended it was not run
+    assert value["looped"] == 1
+    assert value["self_stop"] == 0
+
+
+def test_a_different_turn_in_between_resets_the_loop_count(tmp_path: Path) -> None:
+    """Only consecutive repeats count; returning to an earlier call after something else is not a loop."""
+    make_task(tmp_path)
+    outputs = [read_call(1), read_call(1), read_call(2), read_call(1), read_call(1)]
+    outputs.append(ModelOutput.from_content("mockllm/model", "Nothing to change."))
+    value, run = scored(run_mock(tmp_path, outputs, max_turns=10))
+    assert run["ending"] == "stopped"
+    assert value["looped"] == 0
+
+
+def test_loop_repeats_is_configurable(tmp_path: Path) -> None:
+    """With loop_repeats=2 the first repeat ends the sample."""
+    make_task(tmp_path)
+    model = get_model("mockllm/model", custom_outputs=[read_call() for _ in range(5)])
+    task = agent_eval(tasks_dir=str(tmp_path), tasks=["all"], max_turns=10, loop_repeats=2)
+    [log] = inspect_eval(task, model=model, display="none", log_dir=str(tmp_path.parent / "logs"))
+    _value, run = scored(log)
+    assert (run["ending"], run["turns"]) == ("looped", 2)
+
+
+def test_solving_then_looping_is_an_overrun(tmp_path: Path) -> None:
+    """The workspace is graded however the sample ended: solved but not stopped is an overrun, not a solve-and-stop."""
+    make_task(tmp_path)
+    write = ModelOutput.for_tool_call("mockllm/model", "write", {"path": "solution.py", "content": SOLVED})
+    value, run = scored(run_mock(tmp_path, [write] + [read_call() for _ in range(5)], max_turns=10))
+    assert run["ending"] == "looped"
+    assert (value["solved"], value["overrun"], value["premature_stop"], value["clean"]) == (1, 1, 0, 0)
+
+
+def test_stopping_unsolved_is_a_premature_stop(tmp_path: Path) -> None:
+    """Stopping on its own with the tests still failing is a premature stop."""
+    make_task(tmp_path)
+    value, run = scored(run_mock(tmp_path, [read_call(), ModelOutput.from_content("mockllm/model", "All done.")]))
+    assert run["ending"] == "stopped"
+    assert (value["self_stop"], value["solved"], value["premature_stop"], value["overrun"]) == (1, 0, 1, 0)
+
+
+def test_a_tool_call_written_as_text_is_not_a_stop(tmp_path: Path) -> None:
+    """A turn whose only tool call is plain text ends the sample, but it is an invalid call, not a stop."""
+    make_task(tmp_path)
+    text_call = ModelOutput.from_content("mockllm/model", '<tool_call>\n{"name": "read"}\n</tool_call>')
+    value, run = scored(run_mock(tmp_path, [text_call]))
+    assert run["ending"] == "text_tool_call"
+    assert (value["self_stop"], value["premature_stop"], value["invalid_tool_calls"]) == (0, 0, 1)
 
 
 @pytest.mark.parametrize("bad", [{"path": "solution.py"}, {"content": "x"}])

@@ -11,9 +11,14 @@ agentic SFT data (`SATYRN_AGENTIC_DATA`, by default `datasets/python3.15/sft-age
 with `<cwd>` naming the sample's real folder. Nothing about the recording harness is kept in code, so the eval
 follows the training data if that harness changes.
 
-A sample is *clean* when the hidden tests pass, the model stopped on its own (a turn with no tool calls)
-before the cap, and it made no workspace escapes and no invalid tool calls. The headline score is the share of
-clean samples; the parts are logged beside it, named as in satyrn-evals where the two measure the same thing.
+A sample ends in one of four ways: the model stops on its own (a turn with no tool calls), it writes a tool call
+as plain text instead of stopping, it repeats the same turn `loop_repeats` times in a row (the repeat is not
+run), or it reaches `max_turns`. The workspace is graded however the sample ended, so stopping can be scored
+against solving: a premature stop gave up unsolved, an overrun solved the task but did not stop.
+
+A sample is *clean* when the hidden tests pass, the model stopped on its own, and it made no workspace escapes
+and no invalid tool calls. The headline score is the share of clean samples; the parts are logged beside it,
+named as in satyrn-evals where the two measure the same thing.
 """
 
 from __future__ import annotations
@@ -50,6 +55,10 @@ COPY_IGNORE = shutil.ignore_patterns(".venv", "__pycache__", ".pytest_cache", "*
 MAX_OUTPUT = 20_000
 BASH_TIMEOUT = 120
 TEXT_TOOL_CALL = re.compile(r"<tool_call>|<\|tool_call>|\"name\"\s*:\s*\"(read|bash|edit|write)\"")
+# Greedy decoding repeats itself exactly once it starts looping, so the same turn this many times in a row ends it
+LOOP_REPEATS = 3
+# How a sample ended
+STOPPED, TEXT_TOOL_CALL_END, LOOPED, TURN_CAP = "stopped", "text_tool_call", "looped", "turn_cap"
 
 
 @dataclass(frozen=True)
@@ -249,23 +258,35 @@ def agent_tools() -> list[ToolDef]:
     ]
 
 
+def turn_signature(tool_calls: list) -> tuple:
+    """What a turn asked for: its calls' names and arguments, in order, ignoring call ids."""
+    return tuple((call.function, json.dumps(call.arguments, sort_keys=True, default=str)) for call in tool_calls)
+
+
 @solver
-def agent_loop(max_turns: int, runs_dir: str | None) -> Solver:
-    """Let the model call tools until it answers without one, or until max_turns turns."""
+def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_REPEATS) -> Solver:
+    """Let the model call tools until it answers without one, repeats itself, or reaches max_turns turns."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         agent_task = load_task(Path(state.metadata["task_dir"]))
         ws = Workspace.create(agent_task, Path(runs_dir or tempfile.gettempdir()))
         state.messages.insert(0, ChatMessageSystem(content=system_prompt(ws.root)))
         tools, model = agent_tools(), get_model()
-        self_stop, text_calls, turns = False, 0, 0
+        ending, text_calls, turns = TURN_CAP, 0, 0
+        last_signature, repeats = None, 0
         for turns in range(1, max_turns + 1):  # noqa: B007 - the last turn number is the turn count
             output = await model.generate(state.messages, tools)
             message = output.message
             state.messages.append(message)
             if not message.tool_calls:
                 text_calls += bool(TEXT_TOOL_CALL.search(message.text or ""))
-                self_stop = not text_calls
+                ending = TEXT_TOOL_CALL_END if text_calls else STOPPED
+                break
+            signature = turn_signature(message.tool_calls)
+            repeats = repeats + 1 if signature == last_signature else 1
+            last_signature = signature
+            if repeats >= loop_repeats:
+                ending = LOOPED  # the repeat is not run: it would only return the same results again
                 break
             for call in message.tool_calls:
                 if call.parse_error:
@@ -278,7 +299,8 @@ def agent_loop(max_turns: int, runs_dir: str | None) -> Solver:
         state.metadata["agent"] = {
             "workspace": str(ws.root),
             "turns": turns,
-            "self_stop": self_stop,
+            "ending": ending,
+            "self_stop": ending == STOPPED,
             "calls": ws.calls,
             "errors": ws.errors,
             "workspace_escapes": ws.escapes,
@@ -296,6 +318,9 @@ def agent_loop(max_turns: int, runs_dir: str | None) -> Solver:
         "clean": [mean()],
         "solved": [mean()],
         "self_stop": [mean()],
+        "premature_stop": [mean()],
+        "overrun": [mean()],
+        "looped": [mean()],
         "tool_error_rate": [mean()],
         "workspace_escapes": [mean()],
         "invalid_tool_calls": [mean()],
@@ -309,24 +334,33 @@ def agent_behaviour() -> Scorer:
         run = state.metadata["agent"]
         expected = state.metadata["expected"]
         solved = int(set(expected) <= set(run["passed"]))
-        clean = int(solved and run["self_stop"] and not run["workspace_escapes"] and not run["invalid_tool_calls"])
+        stopped = int(run["self_stop"])
+        clean = int(solved and stopped and not run["workspace_escapes"] and not run["invalid_tool_calls"])
         value = {
             "clean": clean,
             "solved": solved,
-            "self_stop": int(run["self_stop"]),
+            "self_stop": stopped,
+            "premature_stop": int(stopped and not solved),  # gave up, or believed it was done, unsolved
+            "overrun": int(solved and not stopped),  # solved, then kept going
+            "looped": int(run["ending"] == LOOPED),
             "tool_error_rate": run["errors"] / run["calls"] if run["calls"] else 0.0,
             "workspace_escapes": run["workspace_escapes"],
             "invalid_tool_calls": run["invalid_tool_calls"],
             "turns": run["turns"],
         }
-        explanation = f"passed {len(run['passed'])}/{len(expected)} tests; tools {run['by_tool']}"
+        explanation = (
+            f"ended {run['ending']} after {run['turns']} turns; passed {len(run['passed'])}/{len(expected)} tests; "
+            f"tools {run['by_tool']}"
+        )
         return Score(value=value, explanation=explanation, metadata=run)
 
     return score
 
 
 @task
-def agent_eval(tasks_dir: str | None = None, tasks: list[str] | None = None, max_turns: int = 30) -> Task:
+def agent_eval(
+    tasks_dir: str | None = None, tasks: list[str] | None = None, max_turns: int = 30, loop_repeats: int = LOOP_REPEATS
+) -> Task:
     """Build the agent-behaviour eval over satyrn-evals tasks: DEFAULT_TASKS, the named `tasks`, or ["all"]."""
     root = Path(tasks_dir or os.environ[TASKS_ENV])
     present = sorted(p.parent.name for p in root.glob("*/manifest.json"))
@@ -341,4 +375,5 @@ def agent_eval(tasks_dir: str | None = None, tasks: list[str] | None = None, max
                 metadata={"task_dir": str(root / name), "expected": agent_task.expected},
             )
         )
-    return Task(dataset=MemoryDataset(samples), solver=agent_loop(max_turns, None), scorer=agent_behaviour())
+    solver = agent_loop(max_turns, None, loop_repeats)
+    return Task(dataset=MemoryDataset(samples), solver=solver, scorer=agent_behaviour())
