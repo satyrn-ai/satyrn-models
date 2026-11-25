@@ -35,6 +35,8 @@ class ExperimentConfig(BaseModel):
     max_steps: int
     optim: str
     pre_model_eval: bool
+    push_to_hub: bool
+    push_to_hub_path: str | None
     run_name: str
 
 

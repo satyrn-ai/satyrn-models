@@ -19,6 +19,7 @@ from satyrn.trainer.unsloth.dataset_packing import pack_documents
 from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
+from satyrn.trainer.unsloth.hub import log_code_version, upload_to_hub
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.rl.prompt import to_chat_prompt
 from satyrn.trainer.unsloth.rl.reward import reward_correct_code
@@ -153,14 +154,14 @@ def main(cfg: DictConfig) -> None:
         config = validate_config(cfg)
 
         logger.info("Downloading model %s", config.model.name)
-        model, tokenizer = FastVisionModel.from_pretrained(
+        model, processor = FastVisionModel.from_pretrained(
             model_name=config.model.name,
             max_seq_length=config.max_seq_length,
             dtype=None,
             load_in_4bit=config.load_in_4bit,
         )
         # Multimodal models return a Processor; text-only training uses its tokenizer.
-        tokenizer = getattr(tokenizer, "tokenizer", tokenizer)
+        tokenizer = getattr(processor, "tokenizer", processor)
 
         model = FastModel.get_peft_model(
             model,
@@ -208,6 +209,8 @@ def main(cfg: DictConfig) -> None:
                         "params_train_pct": trainable_percentage,
                     }
                 )
+                if config.push_to_hub:
+                    log_code_version()
 
                 if config.pre_model_eval:
                     logger.info("Model evaluation before training")
@@ -297,6 +300,9 @@ def main(cfg: DictConfig) -> None:
 
                     logger.info("Model evaluation after Reinforcement Learning (RL)")
                     evaluate_model("rl", model, tokenizer)
+
+                if config.push_to_hub:
+                    upload_to_hub(model, processor, config)
 
             except Exception:
                 logger.exception("Run failed")
