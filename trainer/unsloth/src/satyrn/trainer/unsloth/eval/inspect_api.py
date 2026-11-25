@@ -24,6 +24,35 @@ if TYPE_CHECKING:
     from transformers import PreTrainedTokenizerBase
 
 
+def standard_tool_calls(messages: list) -> list:
+    """Messages with each tool call in the Hugging Face chat-template format.
+
+    inspect_ai dumps a tool call flat, as `{"id", "function": "<name>", "arguments"}`. Chat templates (Qwen,
+    Mellum, Gemma) expect `{"type": "function", "function": {"name", "arguments"}}`; Qwen3.8's raises
+    "Tool call is missing a function name" on the flat form, so every agent turn after the first failed.
+    """
+    converted = []
+    for message in messages:
+        if getattr(message, "tool_calls", None):  # inspect_ai before 0.3.290 passes ChatMessage objects
+            message = message.model_dump(exclude_none=True)
+        calls = message.get("tool_calls") if isinstance(message, dict) else None
+        if calls:
+            message = message | {
+                "tool_calls": [
+                    call
+                    if isinstance(call.get("function"), dict)
+                    else {
+                        "type": "function",
+                        "id": call.get("id"),
+                        "function": {"name": call["function"], "arguments": call.get("arguments") or {}},
+                    }
+                    for call in calls
+                ]
+            }
+        converted.append(message)
+    return converted
+
+
 class InMemoryHuggingFaceAPI(HuggingFaceAPI):
     """Inspect-AI HuggingFaceAPI which wraps a live model and tokenizer instead of loading one.
 
@@ -50,6 +79,13 @@ class InMemoryHuggingFaceAPI(HuggingFaceAPI):
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "left"
+
+        # inspect_ai only reshapes earlier tool calls for a chat template when the model name names the family,
+        # and ours is always `huggingface-local`, so reshape them here (on our copy of the tokenizer only)
+        render = self.tokenizer.apply_chat_template
+        self.tokenizer.apply_chat_template = lambda conversation, *args, **kwargs: render(
+            standard_tool_calls(conversation), *args, **kwargs
+        )
 
     async def generate(
         self, input: list[ChatMessage], tools: list[ToolInfo], tool_choice: ToolChoice, config: GenerateConfig

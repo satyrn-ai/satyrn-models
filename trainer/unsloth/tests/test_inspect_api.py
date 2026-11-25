@@ -153,3 +153,46 @@ def test_tool_calls_are_parsed_from_the_raw_completion(monkeypatch) -> None:
     assert [(c.function, c.arguments) for c in message.tool_calls] == [("read", {"path": "a.py"})]
     assert message.text == "Reading."
     assert output.completion == "Reading."
+
+
+# The part of Qwen3.8's chat template that renders earlier tool calls, including its check for a name
+TOOL_CALL_TEMPLATE = (
+    "{%- for message in messages %}{%- for tool_call in message.tool_calls or [] %}"
+    "{%- if tool_call.function is defined %}{%- set tool_call = tool_call.function %}{%- endif %}"
+    "{%- if tool_call.name is not defined or tool_call.name is none %}"
+    "{{- raise_exception('Tool call is missing a function name.') }}{%- endif %}"
+    "<function={{ tool_call.name }}>{%- for key, value in tool_call.arguments | items %}"
+    "<parameter={{ key }}>{{ value }}</parameter>{%- endfor %}</function>"
+    "{%- endfor %}{%- endfor %}"
+)
+
+
+def render_tool_calls(conversation: list[dict], *args, **kwargs) -> str:
+    """Render as `apply_chat_template` does, with transformers' own compiled (sandboxed) template."""
+    from transformers.utils.chat_template_utils import _compile_jinja_template
+
+    return _compile_jinja_template(TOOL_CALL_TEMPLATE).render(messages=conversation)
+
+
+def test_earlier_tool_calls_render_through_the_chat_template() -> None:
+    """The second agent turn re-renders the first turn's tool call; the template must find its name."""
+    import jinja2
+    import pytest
+    from inspect_ai.model import ChatMessageAssistant, ChatMessageTool
+    from inspect_ai.tool import ToolCall, ToolInfo, ToolParams
+
+    tokenizer = MagicMock()
+    tokenizer.pad_token = "<pad>"
+    tokenizer.apply_chat_template = render_tool_calls
+    api = InMemoryHuggingFaceAPI(MagicMock(), tokenizer, enable_thinking=False)
+    call = ToolCall(id="call_1", function="bash", arguments={"command": "ls"})
+    messages = [
+        ChatMessageUser(content="List the files."),
+        ChatMessageAssistant(content="", tool_calls=[call]),
+        ChatMessageTool(content="a.py", tool_call_id="call_1", function="bash"),
+    ]
+    tools = [ToolInfo(name="bash", description="Run a command", parameters=ToolParams())]
+
+    assert api.hf_chat(messages, tools) == "<function=bash><parameter=command>ls</parameter></function>"
+    with pytest.raises(jinja2.exceptions.TemplateError, match="missing a function name"):
+        render_tool_calls([message.model_dump(exclude_none=True) for message in messages])  # inspect's own form
