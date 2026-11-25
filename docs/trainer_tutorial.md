@@ -373,6 +373,28 @@ Log: logs/2026-10-21T18-05-35-00-00_python-eval_FQb83R3ifskWXNCfNTzRTi.eval
 ---------------------------------------------------------
 ```
 
+### Agent Score
+
+When `SATYRN_EVALS_TASKS` points at a satyrn-evals tasks directory (`src/satyrn_evals/tasks`), a third evaluation
+measures agent behaviour: whether the model makes correct tool calls and knows when to stop. Each task runs in a fresh
+copy of its `base/` through the `read`, `bash`, `edit` and `write` tools, with the system prompt and tool schemas read
+from the agentic SFT data (`SATYRN_AGENTIC_DATA`, by default `datasets/python3.15/sft-agentic.jsonl`), for at most 30 turns, and is graded by the task's own tests. By default four short
+tasks run; pass `tasks=["all"]` to `agent_eval()` for every task. The working folder is long and different for every sample, so a model which builds absolute
+paths from a fixed folder such as `/workspace` writes outside it and is caught.
+
+A sample is clean when its tests pass, the model stopped on its own and it made no escapes or malformed calls.
+
+- `clean`: the share of clean samples, the headline Agent Score
+- `solved`: the share of samples whose tests pass
+- `self_stop`: the share that ended with an answer rather than at the turn cap
+- `tool_error_rate`: failed tool calls as a share of all calls
+- `workspace_escapes`: tool calls aimed outside the working folder, per sample
+- `invalid_tool_calls`: malformed tool calls, or tool calls written as plain text, per sample
+- `turns`: turns per sample
+
+Note that `bash` runs on the training machine, in the sample's working folder, as `sandbox: local` does for the
+other evaluations.
+
 Python Eval scores are further divided by Python version and PEP, so you can see which new features the model handles
 well. These per-PEP scores are only shown in the terminal output.
 
