@@ -126,3 +126,30 @@ def test_eval_log_roundtrip_preserves_thinking_for_humaneval(monkeypatch, tmp_pa
     score = logged_sample.scores["verify"]
 
     assert_thinking_preserved_and_answer_scored(logged_sample.output, score.value, score.answer, executed_commands)
+
+
+def test_tool_calls_are_parsed_from_the_raw_completion(monkeypatch) -> None:
+    """With tools, the template still renders them, but the calls come from our parser, not inspect's."""
+    from inspect_ai.tool import ToolInfo, ToolParams
+
+    raw = (
+        '<think>\nplan\n</think>\nReading.\n<tool_call>\n{"name": "read", "arguments": {"path": "a.py"}}\n</tool_call>'
+    )
+    seen_tools = []
+    monkeypatch.setattr(
+        HuggingFaceAPI, "generate", AsyncMock(return_value=ModelOutput.from_content("huggingface-local", raw))
+    )
+    monkeypatch.setattr(HuggingFaceAPI, "hf_chat", lambda self, messages, tools: seen_tools.append(tools) or "")
+    tokenizer = MagicMock()
+    tokenizer.pad_token = "<pad>"
+    api = InMemoryHuggingFaceAPI(MagicMock(), tokenizer, enable_thinking=True)
+    tools = [ToolInfo(name="read", description="Read a file", parameters=ToolParams())]
+
+    output = asyncio.run(api.generate([ChatMessageUser(content="hi")], tools, "auto", GenerateConfig()))
+
+    assert HuggingFaceAPI.generate.call_args.args[1] == []  # inspect's own parser never runs
+    api.hf_chat([ChatMessageUser(content="hi")], [])
+    message = output.choices[0].message
+    assert [(c.function, c.arguments) for c in message.tool_calls] == [("read", {"path": "a.py"})]
+    assert message.text == "Reading."
+    assert output.completion == "Reading."
