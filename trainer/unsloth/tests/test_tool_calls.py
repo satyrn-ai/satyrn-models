@@ -53,3 +53,36 @@ def test_broken_json_is_a_parse_error_not_a_crash() -> None:
 def test_plain_text_has_no_calls() -> None:
     """An answer without tool-call markup is just content."""
     assert parse_tool_calls("All done, the tests pass.") == ("All done, the tests pass.", [])
+
+
+def test_xml_values_take_the_type_their_schema_declares() -> None:
+    """XML parameters are bare text; the tool schema says whether `5` is a number or a string."""
+    from inspect_ai.tool import ToolInfo, ToolParam, ToolParams
+
+    params = ToolParams(
+        properties={
+            "path": ToolParam(type="string"),
+            "offset": ToolParam(type="number"),
+            "flag": ToolParam(type="boolean"),
+            "edits": ToolParam(type="array"),
+        }
+    )
+    tools = [ToolInfo(name="read", description="Read a file", parameters=params)]
+    raw = (
+        "<tool_call>\n<function=read>\n<parameter=path>\n5\n</parameter>\n<parameter=offset>\n5\n</parameter>\n"
+        "<parameter=flag>\ntrue\n</parameter>\n<parameter=edits>\n[1]\n</parameter>\n"
+        "<parameter=extra>\n7\n</parameter>\n</function>\n</tool_call>"
+    )
+    _content, [call] = parse_tool_calls(raw, tools)
+    assert call.arguments == {"path": "5", "offset": 5, "flag": True, "edits": [1], "extra": "7"}
+
+
+def test_an_xml_value_that_is_not_its_declared_type_stays_text() -> None:
+    """A value that does not parse stays text, so schema validation reports it rather than the parser guessing."""
+    from inspect_ai.tool import ToolInfo, ToolParam, ToolParams
+
+    tools = [
+        ToolInfo(name="read", description="", parameters=ToolParams(properties={"offset": ToolParam(type="number")}))
+    ]
+    raw = "<tool_call>\n<function=read>\n<parameter=offset>\ntwo\n</parameter>\n</function>\n</tool_call>"
+    assert parse_tool_calls(raw, tools)[1][0].arguments == {"offset": "two"}

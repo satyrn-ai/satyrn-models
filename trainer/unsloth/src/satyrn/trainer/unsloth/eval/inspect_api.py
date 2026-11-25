@@ -103,7 +103,7 @@ class InMemoryHuggingFaceAPI(HuggingFaceAPI):
         thinking, answer = split_thinking(output.completion)
         calls = []
         if tools:
-            answer, calls = parse_tool_calls(answer)
+            answer, calls = parse_tool_calls(answer, tools)
         output.completion = answer
         if output.choices:
             message = output.choices[0].message

@@ -7,6 +7,10 @@ in `configs/model` write three formats, each the inverse of what their chat temp
 - JSON (Mellum):        <tool_call>\n{"name": "read", "arguments": {...}}\n</tool_call>
 - XML (Qwen 3.6, Ornith): <tool_call>\n<function=read>\n<parameter=path>\na.py\n</parameter>\n</function>\n</tool_call>
 - Gemma 4:              <|tool_call>call:read{path:<|"|>a.py<|"|>}<tool_call|>
+
+JSON and Gemma values carry their own types. XML values are bare text, so each is converted to the type its tool's
+schema declares (`5` for a number, `"5"` for a string); a value the schema does not type stays text unless it is
+a JSON array or object.
 """
 
 from __future__ import annotations
@@ -14,8 +18,12 @@ from __future__ import annotations
 import json
 import re
 import uuid
+from typing import TYPE_CHECKING
 
 from inspect_ai.tool import ToolCall
+
+if TYPE_CHECKING:
+    from inspect_ai.tool import ToolInfo
 
 TAGGED = re.compile(r"<tool_call>(.*?)</tool_call>", re.DOTALL)
 GEMMA = re.compile(r"<\|tool_call>call:([\w.-]+)(\{.*?\})<tool_call\|>", re.DOTALL)
@@ -29,9 +37,23 @@ def _call(function: str, arguments: dict | None, error: str | None = None) -> To
     return ToolCall(id=f"call_{uuid.uuid4().hex[:12]}", function=function, arguments=arguments or {}, parse_error=error)
 
 
-def _xml_value(text: str) -> object:
-    """A parameter value: structured values are rendered as JSON, anything else is a plain string."""
-    if text[:1] in "[{":
+ParamTypes = dict[str, dict[str, str | None]]
+
+
+def param_types(tools: list[ToolInfo] | None) -> ParamTypes:
+    """Each tool's declared JSON type per parameter, None where the schema gives no single type."""
+    types: ParamTypes = {}
+    for tool in tools or []:
+        properties = tool.parameters.properties
+        types[tool.name] = {name: p.type if isinstance(p.type, str) else None for name, p in properties.items()}
+    return types
+
+
+def _xml_value(text: str, declared: str | None) -> object:
+    """A parameter value converted to its declared type; text that does not parse as that type stays text."""
+    if declared == "string":
+        return text
+    if declared is not None or text[:1] in "[{":
         try:
             return json.loads(text)
         except json.JSONDecodeError:
@@ -39,10 +61,13 @@ def _xml_value(text: str) -> object:
     return text
 
 
-def _tagged(body: str) -> ToolCall:
+def _tagged(body: str, types: ParamTypes) -> ToolCall:
     body = body.strip()
     if function := XML_FUNCTION.search(body):
-        params = {name: _xml_value(value) for name, value in XML_PARAMETER.findall(function.group(2))}
+        declared = types.get(function.group(1), {})
+        params = {
+            name: _xml_value(value, declared.get(name)) for name, value in XML_PARAMETER.findall(function.group(2))
+        }
         return _call(function.group(1), params)
     try:
         data = json.loads(body)
@@ -67,9 +92,13 @@ def _gemma(name: str, body: str) -> ToolCall:
         return _call(name, None, f"could not parse tool call arguments: {error}")
 
 
-def parse_tool_calls(text: str) -> tuple[str, list[ToolCall]]:
-    """The completion's text outside its tool calls, and the calls in the order written."""
-    found = [(m.start(), m.end(), _tagged(m.group(1))) for m in TAGGED.finditer(text)]
+def parse_tool_calls(text: str, tools: list[ToolInfo] | None = None) -> tuple[str, list[ToolCall]]:
+    """The completion's text outside its tool calls, and the calls in the order written.
+
+    `tools` are the tools offered for the turn; their schemas type the values of XML-format calls.
+    """
+    types = param_types(tools)
+    found = [(m.start(), m.end(), _tagged(m.group(1), types)) for m in TAGGED.finditer(text)]
     found += [(m.start(), m.end(), _gemma(m.group(1), m.group(2))) for m in GEMMA.finditer(text)]
     found.sort(key=lambda item: item[0])
     content, last = [], 0

@@ -30,7 +30,7 @@ import shutil
 import subprocess
 import tempfile
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from inspect_ai import Task, task
@@ -39,6 +39,8 @@ from inspect_ai.model import ChatMessageSystem, ChatMessageTool, get_model
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import ToolDef, ToolParams
+from jsonschema import Draft202012Validator  # a dependency of inspect_ai
+from jsonschema.exceptions import best_match
 
 TASKS_ENV = "SATYRN_EVALS_TASKS"
 # Short tasks, so the eval fits after every training stage; pass tasks=["all"] for every task in the directory
@@ -55,6 +57,7 @@ COPY_IGNORE = shutil.ignore_patterns(".venv", "__pycache__", ".pytest_cache", "*
 MAX_OUTPUT = 20_000
 BASH_TIMEOUT = 120
 TEXT_TOOL_CALL = re.compile(r"<tool_call>|<\|tool_call>|\"name\"\s*:\s*\"(read|bash|edit|write)\"")
+TOOL_NAMES = ("read", "bash", "edit", "write")
 # Greedy decoding repeats itself exactly once it starts looping, so the same turn this many times in a row ends it
 LOOP_REPEATS = 3
 # How a sample ended
@@ -92,21 +95,39 @@ def _clip(text: str) -> str:
 
 
 @dataclass
+class ToolStats:
+    """Calls to one tool: how many, and how many were invalid or failed."""
+
+    calls: int = 0
+    invalid: int = 0
+    failed: int = 0
+
+
+@dataclass
 class Workspace:
-    """A sample's working folder and the tool calls made in it, executed the way the recording harness did."""
+    """A sample's working folder and the tool calls made in it, executed the way the recording harness did.
+
+    Every call is one of three kinds. *Invalid*: the model got the call itself wrong (an unknown tool, arguments
+    that break the tool's schema, or a call that could not be parsed); it is not run. *Failed*: a valid call whose
+    operation did not work (a missing file, an edit whose oldText does not match exactly once, a path outside the
+    workspace, a command that timed out). *OK*: everything else. A shell command that exits non-zero is OK, since
+    a failing test run or a grep with no match is often what the model meant to do; it is counted separately.
+    """
 
     root: Path
+    schemas: dict[str, dict] = field(default_factory=dict)
     calls: int = 0
-    errors: int = 0
-    escapes: int = 0
     invalid: int = 0
-    by_tool: dict[str, int] = field(default_factory=dict)
+    failed: int = 0
+    escapes: int = 0
+    command_exit_nonzero: int = 0
+    by_tool: dict[str, ToolStats] = field(default_factory=dict)
 
     @classmethod
-    def create(cls, agent_task: AgentTask, runs_dir: Path) -> Workspace:
+    def create(cls, agent_task: AgentTask, runs_dir: Path, schemas: dict[str, dict] | None = None) -> Workspace:
         root = runs_dir / f"satyrn-agent-eval-{uuid.uuid4().hex[:12]}" / agent_task.name / "project-workspace"
         shutil.copytree(agent_task.base, root, ignore=COPY_IGNORE)
-        return cls(root.resolve())
+        return cls(root.resolve(), schemas or {})
 
     def resolve(self, path: str) -> Path | None:
         """The file a path names, or None if it is outside the workspace."""
@@ -163,28 +184,55 @@ class Workspace:
             return f"Error: command timed out after {limit:g}s", True
         output = _clip((done.stdout + done.stderr).strip())
         if done.returncode:
-            return f"{output}\n\nCommand exited with code {done.returncode}", True
+            self.command_exit_nonzero += 1
+            return f"{output}\n\nCommand exited with code {done.returncode}", False
         return output or "(no output)", False
 
-    def call(self, name: str, arguments: dict) -> tuple[str, bool]:
-        """Run one tool call; an unknown tool or missing argument is an error result, never an exception."""
+    def _stats(self, name: str) -> ToolStats:
         self.calls += 1
-        self.by_tool[name] = self.by_tool.get(name, 0) + 1
+        stats = self.by_tool.setdefault(name, ToolStats())
+        stats.calls += 1
+        return stats
+
+    def reject(self, name: str, why: str) -> str:
+        """Count an invalid call, which is not run, and return the error the model sees."""
+        self._stats(name).invalid += 1
+        self.invalid += 1
+        return f"Error: {why}"
+
+    def problem(self, name: str, arguments: dict) -> str | None:
+        """Why a call is invalid (an unknown tool, or arguments that break the tool's schema), or None."""
+        if name not in (self.schemas or TOOL_NAMES):
+            return f"unknown tool {name}"
+        schema = self.schemas.get(name)
+        error = best_match(Draft202012Validator(schema).iter_errors(arguments)) if schema else None
+        if error is None:
+            return None
+        where = ".".join(str(part) for part in error.absolute_path)
+        return f"invalid arguments for {name}{f' at {where}' if where else ''}: {error.message}"
+
+    def call(self, name: str, arguments: dict) -> tuple[str, bool]:
+        """Run one tool call; an invalid call or failed operation is an error result, never an exception."""
+        if why := self.problem(name, arguments):
+            return self.reject(name, why), True
+        stats = self._stats(name)
         try:
             if name == "read":
-                out, err = self.read(arguments["path"], arguments.get("offset"), arguments.get("limit"))
+                out, failed = self.read(arguments["path"], arguments.get("offset"), arguments.get("limit"))
             elif name == "write":
-                out, err = self.write(arguments["path"], arguments["content"])
+                out, failed = self.write(arguments["path"], arguments["content"])
             elif name == "edit":
-                out, err = self.edit(arguments["path"], arguments["edits"])
-            elif name == "bash":
-                out, err = self.bash(arguments["command"], arguments.get("timeout"))
+                out, failed = self.edit(arguments["path"], arguments["edits"])
             else:
-                out, err = f"Error: unknown tool {name}", True
-        except (KeyError, TypeError, ValueError) as missing:
-            out, err = f"Error: bad arguments for {name}: {missing}", True
-        self.errors += err
-        return out, err
+                out, failed = self.bash(arguments["command"], arguments.get("timeout"))
+        except (KeyError, TypeError, ValueError, AttributeError) as bad:
+            # without schemas (a bare Workspace) a malformed call surfaces here instead; it is still invalid
+            stats.invalid += 1
+            self.invalid += 1
+            return f"Error: bad arguments for {name}: {bad}", True
+        stats.failed += failed
+        self.failed += failed
+        return out, failed
 
 
 def grade(workspace: Workspace, agent_task: AgentTask) -> set[str]:
@@ -269,7 +317,8 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         agent_task = load_task(Path(state.metadata["task_dir"]))
-        ws = Workspace.create(agent_task, Path(runs_dir or tempfile.gettempdir()))
+        schemas = {spec["function"]["name"]: spec["function"]["parameters"] for spec in recorded_session()[1]}
+        ws = Workspace.create(agent_task, Path(runs_dir or tempfile.gettempdir()), schemas)
         state.messages.insert(0, ChatMessageSystem(content=system_prompt(ws.root)))
         tools, model = agent_tools(), get_model()
         ending, text_calls, turns = TURN_CAP, 0, 0
@@ -290,9 +339,7 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
                 break
             for call in message.tool_calls:
                 if call.parse_error:
-                    ws.calls += 1
-                    ws.invalid += 1
-                    result = f"Error: could not parse the tool call arguments: {call.parse_error}"
+                    result = ws.reject(call.function, f"could not parse the tool call arguments: {call.parse_error}")
                 else:
                     result, _err = ws.call(call.function, call.arguments)
                 state.messages.append(ChatMessageTool(content=result, tool_call_id=call.id, function=call.function))
@@ -301,11 +348,12 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
             "turns": turns,
             "ending": ending,
             "self_stop": ending == STOPPED,
-            "calls": ws.calls,
-            "errors": ws.errors,
-            "workspace_escapes": ws.escapes,
+            "calls": ws.calls + text_calls,  # a tool call written as text is an attempted call
             "invalid_tool_calls": ws.invalid + text_calls,
-            "by_tool": ws.by_tool,
+            "failed_calls": ws.failed,
+            "command_exit_nonzero": ws.command_exit_nonzero,
+            "workspace_escapes": ws.escapes,
+            "by_tool": {name: asdict(stats) for name, stats in ws.by_tool.items()},
             "passed": sorted(grade(ws, agent_task)),
         }
         return state
@@ -321,9 +369,11 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
         "premature_stop": [mean()],
         "overrun": [mean()],
         "looped": [mean()],
-        "tool_error_rate": [mean()],
-        "workspace_escapes": [mean()],
+        "invalid_call_rate": [mean()],
+        "failed_call_rate": [mean()],
         "invalid_tool_calls": [mean()],
+        "command_exit_nonzero": [mean()],
+        "workspace_escapes": [mean()],
         "turns": [mean()],
     }
 )
@@ -343,14 +393,19 @@ def agent_behaviour() -> Scorer:
             "premature_stop": int(stopped and not solved),  # gave up, or believed it was done, unsolved
             "overrun": int(solved and not stopped),  # solved, then kept going
             "looped": int(run["ending"] == LOOPED),
-            "tool_error_rate": run["errors"] / run["calls"] if run["calls"] else 0.0,
-            "workspace_escapes": run["workspace_escapes"],
+            # the model got the call itself wrong, as a share of all attempted calls
+            "invalid_call_rate": run["invalid_tool_calls"] / run["calls"] if run["calls"] else 0.0,
+            # a valid call whose operation did not work, as a share of the calls that ran
+            "failed_call_rate": run["failed_calls"] / ran if (ran := run["calls"] - run["invalid_tool_calls"]) else 0.0,
             "invalid_tool_calls": run["invalid_tool_calls"],
+            "command_exit_nonzero": run["command_exit_nonzero"],
+            "workspace_escapes": run["workspace_escapes"],
             "turns": run["turns"],
         }
+        tools = ", ".join(f"{n} {t['calls']} ({t['invalid']}/{t['failed']})" for n, t in run["by_tool"].items())
         explanation = (
             f"ended {run['ending']} after {run['turns']} turns; passed {len(run['passed'])}/{len(expected)} tests; "
-            f"tools {run['by_tool']}"
+            f"calls (invalid/failed): {tools or 'none'}"
         )
         return Score(value=value, explanation=explanation, metadata=run)
 

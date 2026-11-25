@@ -97,8 +97,8 @@ def test_workspace_root_is_long_and_unique(tmp_path: Path) -> None:
     assert len(str(a.root)) > len("/workspace") + 20
 
 
-def test_tools_count_calls_errors_and_escapes(tmp_path: Path) -> None:
-    """Each call is counted; a failed edit is an error, a path outside the workspace is an escape."""
+def test_tools_count_calls_failures_and_escapes(tmp_path: Path) -> None:
+    """Each call is counted; a non-matching edit failed, and a path outside the workspace failed and escaped."""
     ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs")
     assert not ws.call("read", {"path": "solution.py"})[1]
     _out, err = ws.call("edit", {"path": "solution.py", "edits": [{"oldText": "nothing like this", "newText": "x"}]})
@@ -106,7 +106,7 @@ def test_tools_count_calls_errors_and_escapes(tmp_path: Path) -> None:
     _out, err = ws.call("write", {"path": "/workspace/solution.py", "content": SOLVED})
     assert err
     assert not ws.call("write", {"path": "solution.py", "content": SOLVED})[1]
-    assert (ws.calls, ws.errors, ws.escapes) == (4, 2, 1)
+    assert (ws.calls, ws.invalid, ws.failed, ws.escapes) == (4, 0, 2, 1)
 
 
 def test_grade_runs_the_hidden_overlay_against_the_workspace(tmp_path: Path) -> None:
@@ -237,12 +237,72 @@ def test_a_tool_call_written_as_text_is_not_a_stop(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("bad", [{"path": "solution.py"}, {"content": "x"}])
-def test_missing_arguments_are_tool_errors_not_crashes(tmp_path: Path, bad: dict) -> None:
-    """A malformed call becomes an error result the model can read, not an exception."""
-    ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs")
-    _out, err = ws.call("write", bad)
-    assert err
-    assert ws.errors == 1
+def test_missing_arguments_are_invalid_calls_not_crashes(tmp_path: Path, bad: dict) -> None:
+    """A malformed call becomes an error result the model can read, not an exception, with or without schemas."""
+    task = load_task(make_task(tmp_path))
+    for schemas in ({}, SCHEMAS):
+        ws = Workspace.create(task, tmp_path / "runs", schemas)
+        _out, err = ws.call("write", bad)
+        assert err
+        assert (ws.calls, ws.invalid, ws.failed) == (1, 1, 0)
+
+
+SCHEMAS = {spec["function"]["name"]: spec["function"]["parameters"] for spec in TOOLS}
+
+
+@pytest.mark.parametrize(
+    ("name", "arguments", "message"),
+    [
+        ("read", {"path": "solution.py", "offset": "two"}, "'two' is not of type 'number'"),
+        ("bash", {}, "'command' is a required property"),
+        ("edit", {"path": "solution.py", "edits": "oldText=a"}, "is not of type 'array'"),
+        ("grep", {"pattern": "x"}, "unknown tool grep"),
+    ],
+)
+def test_calls_that_break_the_schema_are_invalid_and_not_run(
+    tmp_path: Path, name: str, arguments: dict, message: str
+) -> None:
+    """A wrong type, a missing required argument or an unknown tool is the model's mistake; the call is not run."""
+    ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    out, err = ws.call(name, arguments)
+    assert err and message in out
+    assert (ws.calls, ws.invalid, ws.failed) == (1, 1, 0)
+    assert ws.by_tool[name].invalid == 1
+
+
+def test_valid_calls_whose_operation_fails_are_failed_not_invalid(tmp_path: Path) -> None:
+    """A missing file, a non-matching edit and a path outside the workspace are failed operations."""
+    ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    assert ws.call("read", {"path": "missing.py"})[1]
+    assert ws.call("edit", {"path": "solution.py", "edits": [{"oldText": "absent", "newText": "x"}]})[1]
+    assert ws.call("write", {"path": "../outside.py", "content": "x"})[1]
+    assert (ws.calls, ws.invalid, ws.failed, ws.escapes) == (3, 0, 3, 1)
+
+
+def test_a_command_exiting_non_zero_is_ok_but_counted(tmp_path: Path) -> None:
+    """A grep with no match or a failing test run is often intended, so it is not a failed call."""
+    ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    out, err = ws.call("bash", {"command": "grep -q nothing-like-this solution.py"})
+    assert not err and "exited with code 1" in out
+    assert (ws.calls, ws.invalid, ws.failed, ws.command_exit_nonzero) == (1, 0, 0, 1)
+
+
+def test_scores_separate_invalid_from_failed_calls(tmp_path: Path) -> None:
+    """Rates: invalid over all attempted calls, failed over the calls that ran; per-tool counts in the run."""
+    make_task(tmp_path)
+    outputs = [
+        ModelOutput.for_tool_call("mockllm/model", "read", {"path": "solution.py", "offset": "two"}),  # invalid
+        ModelOutput.for_tool_call("mockllm/model", "read", {"path": "missing.py"}),  # failed
+        ModelOutput.for_tool_call("mockllm/model", "bash", {"command": "exit 3"}),  # ok, non-zero exit
+        ModelOutput.for_tool_call("mockllm/model", "write", {"path": "solution.py", "content": SOLVED}),  # ok
+        ModelOutput.from_content("mockllm/model", "Done."),
+    ]
+    value, run = scored(run_mock(tmp_path, outputs))
+    assert value["invalid_call_rate"] == 1 / 4
+    assert value["failed_call_rate"] == 1 / 3
+    assert (value["invalid_tool_calls"], value["command_exit_nonzero"]) == (1, 1)
+    assert run["by_tool"]["read"] == {"calls": 2, "invalid": 1, "failed": 1}
+    assert (value["solved"], value["clean"]) == (1, 0)  # solved and stopped, but an invalid call is not clean
 
 
 def test_grade_honours_the_oracle_env_prefix(tmp_path: Path) -> None:
