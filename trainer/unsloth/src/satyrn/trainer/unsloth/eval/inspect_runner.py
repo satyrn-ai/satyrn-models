@@ -46,6 +46,7 @@ def run_inspect_eval(
             task,
             model=Model(api, GenerateConfig(max_tokens=max_new_tokens, max_connections=batch_size)),
             limit=limit,
+            metadata={"stage": stage},
             max_samples=batch_size,
             display="plain",
         )
