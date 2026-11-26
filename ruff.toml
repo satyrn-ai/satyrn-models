@@ -1,4 +1,6 @@
 line-length = 120
+# Agent-eval tasks' starting code is deliberately imperfect: seeded bugs, and messy code a model should leave alone
+extend-exclude = ["trainer/unsloth/src/satyrn/trainer/unsloth/eval/agent_tasks/*/base"]
 
 [lint]
 select = [

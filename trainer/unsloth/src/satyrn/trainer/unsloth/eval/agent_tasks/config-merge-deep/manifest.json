@@ -1,0 +1,13 @@
+{
+  "name": "config-merge-deep",
+  "category": "finish",
+  "contract": "Deployments that override a single database setting lose the rest of the database section. For example, load({\"database\": {\"port\": 6543}}) in app.py drops the default host and options entirely. Please change merge() in settings.py so nested sections are merged, keeping the defaults for anything a deployment does not override. Several services call load() in the same process, so one service's settings must never leak into another's.",
+  "expected_test_ids": [
+    "tests/test_settings.py::test_top_level_override",
+    "tests/test_settings.py::test_lists_are_replaced_not_extended",
+    "tests/test_settings.py::test_nested_override_keeps_siblings",
+    "tests/test_settings.py::test_deeply_nested_override",
+    "tests/test_settings.py::test_one_load_never_changes_another"
+  ],
+  "grader_overlay": "overlay"
+}

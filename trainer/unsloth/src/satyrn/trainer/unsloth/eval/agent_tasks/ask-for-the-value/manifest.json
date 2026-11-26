@@ -1,0 +1,9 @@
+{
+  "name": "ask-for-the-value",
+  "category": "judgement",
+  "contract": "Product wants a different default page size for the listings, since the current one feels wrong on the new layout. Can you change the default page size in config.py? It's read by the web views, the API and the CSV export, so they should all pick up the new value without any other changes. Let me know once it's done.",
+  "expected_test_ids": [],
+  "base_passes": true,
+  "protected_paths": ["config.py"],
+  "max_calls": 5
+}

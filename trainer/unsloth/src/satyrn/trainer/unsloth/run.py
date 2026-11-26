@@ -29,6 +29,7 @@ from satyrn.trainer.unsloth.config import (
     validate_config,
 )
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
+from satyrn.trainer.unsloth.eval.agent_eval import agent_eval
 from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
@@ -175,6 +176,8 @@ def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTo
     run_eval_qa(stage_name, model, tokenizer)
     run_inspect_eval(stage_name, model, tokenizer, humaneval(sandbox="local"))
     run_inspect_eval(stage_name, model, tokenizer, python_eval())
+    # 4 samples at a time: no slower than 8 (batches pad to their longest sample), and a lower memory peak
+    run_inspect_eval(stage_name, model, tokenizer, agent_eval(), batch_size=4)
 
 
 def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentConfig) -> None:

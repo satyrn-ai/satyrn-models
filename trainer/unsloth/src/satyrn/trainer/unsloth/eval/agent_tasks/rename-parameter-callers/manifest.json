@@ -1,0 +1,12 @@
+{
+  "name": "rename-parameter-callers",
+  "category": "finish",
+  "contract": "Please rename the timeout parameter of fetch() in http_client.py to timeout_s, and give it a default of 15 seconds, so it matches the naming used everywhere else in our codebase. Don't keep the old name around as an alias; we want a clean rename. Then update every caller in the repository, the sync jobs included, so that nothing breaks when the nightly jobs run.",
+  "expected_test_ids": [
+    "test_rename.py::test_fetch_takes_timeout_s_with_a_default",
+    "test_rename.py::test_the_old_name_is_gone",
+    "test_rename.py::test_sync_jobs_still_run",
+    "test_rename.py::test_reports_still_run"
+  ],
+  "grader_overlay": "overlay"
+}

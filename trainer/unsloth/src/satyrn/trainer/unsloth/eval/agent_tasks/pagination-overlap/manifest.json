@@ -1,0 +1,12 @@
+{
+  "name": "pagination-overlap",
+  "category": "finish",
+  "contract": "Our listing pages are misbehaving and customers have noticed. In pagination.py, the last result on each page shows up again as the first result on the next page. Separately, when the number of results is not a multiple of the page size, the final partial page is missing from page_count(), so nobody can reach those last few results. Please fix both problems in pagination.py. Keep the function names and signatures as they are, since the views call them directly, and an empty result list should still have zero pages.",
+  "expected_test_ids": [
+    "test_pagination.py::test_pages_do_not_overlap",
+    "test_pagination.py::test_last_page_holds_the_remainder",
+    "test_pagination.py::test_page_count_includes_a_partial_page",
+    "test_pagination.py::test_page_count_of_exact_multiples_and_empty_lists"
+  ],
+  "grader_overlay": "overlay"
+}

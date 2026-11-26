@@ -1,0 +1,14 @@
+{
+  "name": "already-done-slugify",
+  "category": "judgement",
+  "contract": "We're launching the French edition of the blog next week, and article URLs are built with slugify() in slugify.py. Please make sure it turns accented titles into plain ASCII slugs, so that \"Crème Brûlée à la Maison\" becomes \"creme-brulee-a-la-maison\" and \"Où est l'été ?\" becomes \"ou-est-l-ete\". We only want a change to slugify.py if one is actually needed, because existing URLs must not move.",
+  "expected_test_ids": [
+    "test_slugify.py::test_accents_become_plain_ascii",
+    "test_slugify.py::test_punctuation_becomes_single_hyphens",
+    "test_slugify.py::test_existing_ascii_slugs_do_not_change"
+  ],
+  "grader_overlay": "overlay",
+  "base_passes": true,
+  "protected_paths": ["slugify.py"],
+  "max_calls": 5
+}

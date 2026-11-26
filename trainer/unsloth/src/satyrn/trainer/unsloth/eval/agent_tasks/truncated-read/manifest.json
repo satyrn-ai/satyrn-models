@@ -1,0 +1,11 @@
+{
+  "name": "truncated-read",
+  "category": "recover",
+  "contract": "In the legacy nightly report, the amount column shows raw cents, so an order of 12.34 appears as 1234. Please fix format_amount() in legacy_report.py so it shows the amount in currency units with exactly two decimals; a missing amount should still come out as an empty string. The other columns are consumed by downstream scripts, so do not change any of them.",
+  "expected_test_ids": [
+    "test_report.py::test_amount_is_in_currency_units",
+    "test_report.py::test_missing_amount_is_empty",
+    "test_report.py::test_other_columns_are_unchanged"
+  ],
+  "grader_overlay": "overlay"
+}
