@@ -17,6 +17,7 @@ from satyrn.dataset.utils.generation import (
     Idea,
     append_dataset_line,
     append_progress,
+    find_version_check,
     load_ideas,
     output_file_lock,
     pep_identifier,
@@ -29,32 +30,29 @@ logger = logging.getLogger(__name__)
 
 
 def generate_code_block(model: Model, idea: Idea, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> dict:
-    """Return a verified code block, its reasoning trace, and expected output."""
+    """Return a verified code block and its expected output."""
     prompt = f"""
 The attached document describes a change in Python version {idea.python_version}. Write the `code`
 block described by this idea:
 
 {idea.description}
 
-In `trace` write the reasoning that leads to this code, in first person and present tense, as you
-would think it through before writing it: what the task requires, which Python
-{idea.python_version} feature applies and how it behaves, how the code uses it, and step by step
-what each statement prints as it runs. Write as though you thought of the task yourself: do not
-mention the attached document, the idea, training, datasets, or examples, and do not address the
-reader.
-
+Write a complete, realistic, self-contained script (~15-35 lines when natural) that exercises the new feature across realistic inputs or edge cases rather than a minimal toy snippet.
+Avoid comments that just restate the code.
+If the idea is a function idea, put the function and its imports in `code` and the calls that print its
+results in `test_code`. For a question idea, put the whole script in `code` and leave `test_code` empty.
 In `expected_output` state exactly what running the code outputs, whether to stdout or stderr.
 
 {PYTHON_CODE_RULES}
-    """
+    """  # noqa: E501
     schema = {
         "type": "object",
         "properties": {
             "code": {"type": "string"},
-            "trace": {"type": "string"},
+            "test_code": {"type": "string"},
             "expected_output": {"type": "string"},
         },
-        "required": ["code", "trace", "expected_output"],
+        "required": ["code", "expected_output"],
     }
     context = Context()
     context.system_prompt = SYSTEM_PROMPT
@@ -64,49 +62,26 @@ In `expected_output` state exactly what running the code outputs, whether to std
     max_attempts = 3
     for attempt in range(max_attempts):
         code_block = model.generate(prompt, context, thinking=True)
+        program = f"{code_block['code'].rstrip()}\n\n{code_block.get('test_code', '').rstrip()}".rstrip()
+        rejection = find_version_check(program)
+        if rejection:
+            prompt += f"\n\nYour previous code:\n{program}\n\n{rejection}\n"
+            continue
+
         verified, actual_output = verify_code_block(
-            code_block["code"], code_block["expected_output"], sandbox, predecessor_sandbox
+            program, code_block["expected_output"], sandbox, predecessor_sandbox
         )
         if verified:
             return code_block
 
-        if actual_output.strip() == code_block["expected_output"].strip():
-            prompt += f"""\n
+        if actual_output.strip() != code_block["expected_output"].strip():
+            judgement = judge_code_block(model, idea, code_block, actual_output)
+            if not judgement["passed"]:
+                # Allow the model to retry code/output generation
+                # Intentionally leave actual_output out of the retry prompt, so model doesn't just copy it.
+                prompt += f"""\n
 Your previous code:
-{code_block["code"]}
-
-Reasoning trace:
-{code_block["trace"]}
-
-Predicted output:
-{code_block["expected_output"]}
-
-The code produced equivalent output under both Python {sandbox.python_version} and Python
-{predecessor_sandbox.python_version}, so it does not demonstrate behavior introduced in Python
-{sandbox.python_version}. Fix the code to specifically demonstrate the new behavior.
-            """
-            logger.warning(
-                "Attempt %d/%d: code block behaved equivalently under Python %s. Prompting model to retry.",
-                attempt + 1,
-                max_attempts,
-                predecessor_sandbox.python_version,
-            )
-            continue
-
-        judgement = judge_code_block(model, idea, code_block, actual_output)
-        if judgement["passed"]:
-            logger.info("Judge accepted mismatched output: %s", judgement["judgement"])
-            code_block["expected_output"] = actual_output
-            return code_block
-
-        # Allow the model to retry code/output generation
-        # Intentionally leave actual_output out of the retry prompt, so model doesn't just copy it.
-        prompt += f"""\n
-Your previous code:
-{code_block["code"]}
-
-Reasoning trace:
-{code_block["trace"]}
+{program}
 
 Predicted output:
 {code_block["expected_output"]}
@@ -117,7 +92,36 @@ That prediction did not match the code's actual output.
 
 Fix the code so it actually does what the idea describes, and predict its real output again.
         """
-        logger.warning("Attempt %d/%d: code block did not verify. Prompting model to retry.", attempt + 1, max_attempts)
+                logger.warning(
+                    "Attempt %d/%d: code block did not verify. Prompting model to retry.", attempt + 1, max_attempts
+                )
+                continue
+
+            logger.info("Judge accepted mismatched output: %s", judgement["judgement"])
+            code_block["expected_output"] = actual_output
+            verified, actual_output = verify_code_block(
+                program, code_block["expected_output"], sandbox, predecessor_sandbox
+            )
+            if verified:
+                return code_block
+
+        prompt += f"""\n
+Your previous code:
+{program}
+
+Predicted output:
+{code_block["expected_output"]}
+
+The code produced equivalent output under both Python {sandbox.python_version} and Python
+{predecessor_sandbox.python_version}, so it does not demonstrate behavior introduced in Python
+{sandbox.python_version}. Fix the code to specifically demonstrate the new behavior.
+            """
+        logger.warning(
+            "Attempt %d/%d: code block behaved equivalently under Python %s. Prompting model to retry.",
+            attempt + 1,
+            max_attempts,
+            predecessor_sandbox.python_version,
+        )
 
     raise ValueError(f"Could not generate a verified code block for idea: {idea.description}")
 
@@ -135,8 +139,8 @@ Idea:
 Code:
 {result["code"]}
 
-Reasoning trace:
-{result["trace"]}
+Test code:
+{result.get("test_code", "")}
 
 Predicted output:
 {result["expected_output"]}
@@ -212,32 +216,116 @@ def verify_code_block(
 
 
 def generate_conversation(model: Model, idea: Idea, code_block: dict) -> dict:
-    """Return a user prompt and assistant response pair whose response includes code_block's verified code."""
+    """Return a user prompt, assistant response, and reasoning trace for code_block."""
+    expected_output = "" if code_block.get("test_code") else f"Expected output:\n{code_block['expected_output']}"
     prompt = f"""
+Example:
+
+Code:
+```python
+NOT_FOUND = sentinel("NOT_FOUND")
+
+def find_first_positive(values):
+    for value in values:
+        if value > 0:
+            return value
+    return NOT_FOUND
+
+result = find_first_positive([-1, -2])
+if result is NOT_FOUND:
+    print("not found")
+```
+
+Expected output:
+not found
+
+JSON response:
+{{
+  "prompt": "How can I use the new built-in sentinel in Python 3.15 to represent a 'not found' condition when returning from a function?",
+  "explanation": "`sentinel(name, /, repr=None)` creates a unique placeholder object that you can return for a missing result instead of `None` or a magic number like `-1`. Because sentinels only equal themselves, compare them with an identity check (`result is NOT_FOUND`) rather than `==`.",
+  "trace": "`sentinel()` was added in Python 3.15 as a built-in (PEP 661), so no import is needed. Using a unique sentinel object for 'not found' avoids overloading `None` (which can be a valid value) or magic numbers like `-1`, and sentinel objects are compared by identity with `is`.\\n\\nI need to define a module-level sentinel, return it from a search function when no item matches, and check the result with `is`.\\n\\n1. `NOT_FOUND = sentinel(\\"NOT_FOUND\\")` creates a new sentinel object named `NOT_FOUND` at module level.\\n2. Define `find_first_positive(values)` to iterate over `values` and return the first element greater than `0`.\\n3. Calling `find_first_positive([-1, -2])` starts the loop; neither `-1` nor `-2` is greater than `0`, so the loop completes without returning.\\n4. The function falls through to `return NOT_FOUND`, returning the sentinel object.\\n5. `result` is bound to that returned `NOT_FOUND` sentinel object.\\n6. Check `if result is NOT_FOUND:`, performing an identity check that evaluates to `True`.\\n7. `print(\\"not found\\")` writes `not found` to stdout."
+}}
+
+---
+
+Example for an idea that asks for a function:
+
+Idea:
+Write function: `split_perfect_squares(values)` takes an iterable of integers and returns a tuple of two
+lists, the perfect squares and all other values, each in input order, using the new integer-math module's
+square-root function.
+
+Code:
+```python
+from math.integer import isqrt
+
+
+def split_perfect_squares(values):
+    squares = []
+    others = []
+    for value in values:
+        if value >= 0 and isqrt(value) ** 2 == value:
+            squares.append(value)
+        else:
+            others.append(value)
+    return squares, others
+```
+
+JSON response:
+{{
+  "prompt": "Write `split_perfect_squares(values)` for Python 3.15, using the square-root function of the new integer-math module. It takes an iterable of integers and returns a tuple of two lists: the values that are perfect squares and all the other values, each in input order. Negative numbers are never perfect squares. Reply with only the code.",
+  "explanation": "",
+  "trace": "`math.integer` is a new module in Python 3.15 that provides the integer-only math functions, including `isqrt(n, /)`. `isqrt` returns the floor of the exact square root of a non-negative integer, so `isqrt(n) ** 2 == n` is an exact perfect-square test with no floating-point rounding.\\n\\nI need to sort each value into one of two lists with `isqrt`, treating negative numbers as non-squares.\\n\\n1. `from math.integer import isqrt` imports the function from the new 3.15 module.\\n2. `split_perfect_squares(values)` starts with two empty lists, `squares` and `others`.\\n3. For each `value`, the condition `value >= 0 and isqrt(value) ** 2 == value` first rules out negatives, because `isqrt` is defined only for non-negative integers.\\n4. For `9`, `isqrt(9)` is `3` and `3 ** 2 == 9`, so it goes to `squares`; for `10`, `isqrt(10)` is `3` and `9 != 10`, so it goes to `others`.\\n5. The function returns the two lists as a tuple, keeping the input order.\\n6. A negative value such as `-4` and a non-square such as `2` both land in `others`, so the result is always a pair of lists that together hold every input value."
+}}
+
+---
+
 The attached document describes a change in Python version {idea.python_version}. A verified code
 block demonstrates this idea:
 
 {idea.description}
 
 Code:
+```python
 {code_block["code"]}
+```
 
-Reasoning trace:
-{code_block["trace"]}
+{expected_output}
 
-Write a natural user question that this code would answer, and an explanation an assistant would give
-alongside the code in its response. Do not repeat or alter the code itself.
-
-If this feature replaces or is commonly confused with an older idiom or workaround, name that older
-approach in the explanation and state briefly why it no longer applies or is not the right choice here.
-    """
+Write:
+1. `prompt`: a natural user question that this code answers, or, if the idea asks for a function, a request that
+   describes and names the function, its type-annotated parameters and what it returns, and asks for only the code.
+2. `explanation`: 1 short paragraph of human-facing prose (2-3 sentences, ~180-350 characters, never exceeding
+   450 characters) that answers the user's question directly, stating the Python feature/API behavior and any
+   key gotchas. Do not start with "Python", "In Python", or "With Python". Never narrate the example script
+   line by line (never write "The snippet creates...", "The code prints...", "This script imports...", or
+   "This example demonstrates..."). Do not include pre-version legacy workarounds unless the user prompt asks
+   for them, and do not include code blocks or markdown fences. If the `prompt` only asks to write code, the
+   explanation is optional and should be an empty string.
+3. `trace`: internal reasoning (`<think>` content) targeting 900-1,300 characters (up to 2,000 when the solution
+   has several steps) across 3 parts separated by blank lines (`\\n\\n`):
+   - Part 1 (Python API exploration paragraph): pinpoint the exact feature/PEP, built-in or module location,
+     signature, and behavioral constraints or pitfalls relevant to this task, mentioning the Python version
+     naturally inside a sentence when relevant. Never start `trace` with "Python", "In Python", or "With
+     Python", and never include unrelated API details, PEP history, or rejected alternatives.
+   - Part 2 (one-sentence problem plan): state in one first-person sentence ("I need to...") what the snippet
+     will build and verify.
+   - Part 3 (numbered step-by-step walkthrough, no heading): numbered prose steps (`1.`, `2.`, ...) explaining
+     what each step of the solution does and how execution flows from setup through to the final result.
+   Use first-person ("I need to...", "Let me...") for Part 2, and direct code-and-runtime phrasing for Part 3.
+   Never use third-person ("The user is asking..."), meta-commentary ("the attached document", "the idea",
+   "training example"), or repeat "I <verb>" on every numbered line. Do not include markdown code blocks
+   (```) or `<think>` tags, and stay strictly consistent with `prompt`, `explanation`, `code`, and
+   `expected_output`.
+    """  # noqa: E501
     schema = {
         "type": "object",
         "properties": {
             "prompt": {"type": "string"},
             "explanation": {"type": "string"},
+            "trace": {"type": "string"},
         },
-        "required": ["prompt", "explanation"],
+        "required": ["prompt", "explanation", "trace"],
     }
     context = Context()
     context.system_prompt = SYSTEM_PROMPT
@@ -245,8 +333,10 @@ approach in the explanation and state briefly why it no longer applies or is not
     context.set_json_schema(schema)
     result = model.generate(prompt, context)
 
-    response = f"{result['explanation']}\n\n```python\n{code_block['code']}\n```"
-    return {"prompt": result["prompt"], "response": response}
+    code_fence = f"```python\n{code_block['code']}\n```"
+    explanation = result["explanation"].strip()
+    response = f"{explanation}\n\n{code_fence}" if explanation else code_fence
+    return {"prompt": result["prompt"], "response": response, "trace": result["trace"]}
 
 
 def judge_conversation(model: Model, idea: Idea, code_block: dict, conversation: dict) -> None:
@@ -257,7 +347,7 @@ def judge_conversation(model: Model, idea: Idea, code_block: dict, conversation:
     ]
     prompt = f"""
 The attached document describes a change in Python version {idea.python_version}. The following
-conversation was generated to teach this idea as a fine-tuning example.
+conversation and reasoning trace were generated to teach this idea as a fine-tuning example.
 
 Idea:
 {idea.description}
@@ -265,8 +355,14 @@ Idea:
 Code:
 {code_block["code"]}
 
+Test code:
+{code_block.get("test_code", "")}
+
 Actual output when the code runs:
 {code_block["expected_output"]}
+
+Reasoning trace:
+{conversation["trace"]}
 
 Conversation:
 {json.dumps(messages, indent=2)}
@@ -276,6 +372,12 @@ Decide whether this conversation is a good training example for fine-tuning a mo
 
 - The messages follow logically from each other: the assistant's response actually answers the
   user's message.
+- The explanation before the code block is concise (1 paragraph) and does not narrate the script
+  line by line or pad with unrequested legacy workarounds. A short line of explanatory text before the
+  code is acceptable even when the user asks only for code.
+- The reasoning trace is consistent with the code and actual output, follows the 3-part structure
+  (API exploration, one-sentence "I need to..." plan, numbered execution walkthrough), and contains
+  no markdown code fences or `<think>` tags.
 - The code is not contrived to work around sandbox limitations (e.g. avoiding real file I/O, network
   access, or subprocesses only because a sandbox can't run them, rather than because the idea calls
   for it).
@@ -284,6 +386,9 @@ Decide whether this conversation is a good training example for fine-tuning a mo
 Set `passed` to false if any of these is true:
 
 - The messages are malformed or don't logically match each other.
+- The explanation is bloated/multi-paragraph or narrates the test script line by line.
+- The reasoning trace contradicts the code/output, uses third-person ("The user is asking..."), or
+  includes code fences or `<think>` tags.
 - The code was clearly written to dodge sandbox limitations instead of naturally demonstrating the
   idea.
 - The example does not actually teach idea.
@@ -329,7 +434,8 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
         "python_version": idea.python_version,
         "idea": idea.description,
         "code": code_block["code"],
-        "trace": code_block["trace"],
+        "test_code": code_block.get("test_code", ""),
+        "trace": conversation["trace"],
         "expected_output": code_block["expected_output"],
     }
 
