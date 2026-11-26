@@ -20,6 +20,7 @@ PYTHON_CODE_RULES = """
 - Use Python API calls (e.g. call a module's functions directly instead of `python -m module ...`).
 - The code must run non-interactively to completion without requiring a real terminal.
 - The code must terminate within a few seconds; no infinite loops or blocking waits.
+- The code must not check the Python version at runtime; it must use the feature directly.
 - Only write Python code. Skip anything that cannot be expressed as a Python code example,
   such as C API changes, shell commands and CLI invocations, build configuration, etc.
 """
@@ -49,6 +50,16 @@ def idea_hash(idea: Idea) -> str:
     """Return a short hash of the idea."""
     key = f"{idea.doc_path}|{idea.python_version}|{idea.description}"
     return hashlib.sha256(key.encode()).hexdigest()[:10]
+
+
+def find_version_check(code: str) -> str | None:
+    """Return a rejection message if code compares the Python version at runtime, else None."""
+    version_check = re.compile(
+        r"\b(version_info|hexversion|python_version_tuple\(\))(\[[^\]]*\]|\.(major|minor|micro))?\s*(<=|>=|<|>|==|!=)"
+    )
+    if version_check.search(code):
+        return "Do not check the Python version at runtime. The code must use the feature directly."
+    return None
 
 
 def pep_identifier(doc_path: Path) -> str | None:

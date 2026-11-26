@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import random
-import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,6 +20,7 @@ from satyrn.dataset.utils.generation import (
     Idea,
     append_dataset_line,
     append_progress,
+    find_version_check,
     load_ideas,
     output_file_lock,
     pep_identifier,
@@ -53,11 +53,9 @@ def run_tests(code: str, tests: str, sandbox: Sandbox) -> tuple[bool, str]:
 
 def verify_code(code: str, tests: str, sandbox: Sandbox, predecessor_sandbox: Sandbox) -> str | None:
     """Return why the tests do not pass on code in sandbox and fail in predecessor_sandbox, or None."""
-    version_check = re.compile(
-        r"\b(version_info|hexversion|python_version_tuple\(\))(\[[^\]]*\]|\.(major|minor|micro))?\s*(<=|>=|<|>|==|!=)"
-    )
-    if version_check.search(code) or version_check.search(tests):
-        return "Do not check the Python version at runtime. The code must use the feature directly."
+    rejection = find_version_check(code) or find_version_check(tests)
+    if rejection:
+        return rejection
 
     passed, output = run_tests(code, tests, sandbox)
     if not passed:

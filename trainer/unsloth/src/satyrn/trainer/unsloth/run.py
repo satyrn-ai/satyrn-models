@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import shutil
@@ -33,6 +32,7 @@ from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
+from satyrn.trainer.unsloth.repo_sources import load_cpt_dataset, read_rows
 from satyrn.trainer.unsloth.rl.prompt import to_chat_prompt
 from satyrn.trainer.unsloth.rl.reward import reward_correct_code
 from satyrn.trainer.unsloth.secrets import load_secrets
@@ -63,18 +63,6 @@ def unsloth_init() -> None:
     from transformers.trainer_callback import ProgressCallback
 
     transformers.trainer.DEFAULT_PROGRESS_CALLBACK = ProgressCallback
-
-
-def read_rows(paths: str | list[str]) -> list[dict]:
-    """Read the rows of one or more JSONL files."""
-    if isinstance(paths, str):
-        paths = [paths]
-
-    rows = []
-    for path in paths:
-        with Path(path).open() as fh:
-            rows += [json.loads(line) for line in fh if line.strip()]
-    return rows
 
 
 def load_dataset(paths: str | list[str]) -> Dataset:
@@ -272,7 +260,7 @@ def main(cfg: DictConfig) -> None:
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
-                    dataset = load_dataset(config.datasets.cpt)
+                    dataset = load_cpt_dataset(config.datasets.cpt, config.cpt.seq_len)
                     packing = config.cpt.packing
 
                     if packing and config.cpt.prepack_dataset:

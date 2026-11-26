@@ -15,4 +15,6 @@ RUN printf '%s\n' \
         > /usr/local/bin/run-with-xvfb \
     && chmod 755 /usr/local/bin/run-with-xvfb
 
+ENV XDG_CACHE_HOME=/tmp
+
 ENTRYPOINT ["/usr/local/bin/run-with-xvfb"]

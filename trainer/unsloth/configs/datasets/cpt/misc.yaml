@@ -1,0 +1,4 @@
+- git+https://github.com/python/cpython
+- git+https://github.com/pytest-dev/pytest
+- git+https://github.com/pallets/click
+- git+https://github.com/Textualize/rich

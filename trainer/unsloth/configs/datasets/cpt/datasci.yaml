@@ -1,0 +1,6 @@
+- git+https://github.com/numpy/numpy
+- git+https://github.com/scipy/scipy
+- git+https://github.com/pandas-dev/pandas
+- git+https://github.com/scikit-learn/scikit-learn
+- git+https://github.com/pola-rs/polars
+- git+https://github.com/matplotlib/matplotlib
