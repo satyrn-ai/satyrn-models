@@ -24,6 +24,7 @@ from satyrn.trainer.unsloth.config import (
     StageName,
     basename,
     calculate_eval_steps,
+    is_evaluated,
     log_config,
     validate_config,
 )
@@ -254,7 +255,7 @@ def main(cfg: DictConfig) -> None:
                 )
                 log_code_version()
 
-                if config.pre_model_eval:
+                if is_evaluated(config, "pre"):
                     logger.info("Model evaluation before training")
                     evaluate_model("pre", model, tokenizer)
 
@@ -285,8 +286,9 @@ def main(cfg: DictConfig) -> None:
                         log_dataset_params(config.datasets.cpt, trainer)
                         trainer.train()
 
-                    logger.info("Model evaluation after Continuous Pre-Training (CPT)")
-                    evaluate_model("cpt", model, tokenizer)
+                    if is_evaluated(config, "cpt"):
+                        logger.info("Model evaluation after Continuous Pre-Training (CPT)")
+                        evaluate_model("cpt", model, tokenizer)
 
                 if config.datasets.sft is not None:
                     logger.info("Starting Supervised Fine-Tuning (SFT) stage")
@@ -305,8 +307,9 @@ def main(cfg: DictConfig) -> None:
                         log_dataset_params(config.datasets.sft, trainer)
                         trainer.train()
 
-                    logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
-                    evaluate_model("sft", model, tokenizer)
+                    if is_evaluated(config, "sft"):
+                        logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
+                        evaluate_model("sft", model, tokenizer)
 
                 if config.datasets.rl is not None:
                     logger.info("Starting Reinforcement Learning (RL) stage")
@@ -348,8 +351,9 @@ def main(cfg: DictConfig) -> None:
                         log_dataset_params(config.datasets.rl, trainer)
                         trainer.train()
 
-                    logger.info("Model evaluation after Reinforcement Learning (RL)")
-                    evaluate_model("rl", model, tokenizer)
+                    if is_evaluated(config, "rl"):
+                        logger.info("Model evaluation after Reinforcement Learning (RL)")
+                        evaluate_model("rl", model, tokenizer)
 
                 if config.push_to_hub:
                     upload_to_hub(model, processor, config)

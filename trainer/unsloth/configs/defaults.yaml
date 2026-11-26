@@ -6,7 +6,8 @@ logging_steps: 2
 eval_ratio: 0.1
 rng_seed: 3407 # LoRA initialization and data order
 max_steps: -1 # positive values cut a run short, overriding num_train_epochs
-pre_model_eval: true # run the full eval suite on the untrained model before any stage
+eval_stages: [pre, sft, rl] # stages after which the full eval suite runs; pre is the untrained model
+pre_model_eval: true # false skips the pre eval even when pre is in eval_stages
 push_to_hub: false # upload the trained model to Hugging Face
 push_to_hub_path: null # repo id; defaults to $HF_USERNAME/<base model name>
 

@@ -42,6 +42,7 @@ class ExperimentConfig(BaseModel):
     max_seq_length: int
     max_steps: int
     optim: str
+    eval_stages: list[StageName]
     pre_model_eval: bool
     rng_seed: int
     run_name: str
@@ -137,6 +138,11 @@ class RlStageConfig(BaseModel):
 
 def validate_config(cfg: DictConfig) -> ExperimentConfig:
     return ExperimentConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
+
+
+def is_evaluated(config: ExperimentConfig, stage: StageName) -> bool:
+    """Return whether the eval suite runs after stage; pre_model_eval=false also skips pre."""
+    return stage in config.eval_stages and (stage != "pre" or config.pre_model_eval)
 
 
 def log_config(cfg: DictConfig) -> None:
