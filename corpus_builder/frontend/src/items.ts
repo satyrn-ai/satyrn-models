@@ -16,6 +16,10 @@ export function isCodeKey(key: string): boolean {
   return /(^|_)(code|solution|source|program|tests|initial)$/i.test(key) || key.endsWith("_code");
 }
 
+export function isPlainTextKey(key: string): boolean {
+  return /(^|_)(output|stdout|stderr)$/i.test(key);
+}
+
 export function itemTitle(item: DatasetItem, index: number): string {
   const metadata = item.metadata ?? {};
   const entryPoint = metadata.entry_point;

@@ -1,5 +1,5 @@
 import { collectMessages } from "../conversations";
-import { humanizeKey, isCodeKey, itemSubtitle, itemTitle, KNOWN_KEYS } from "../items";
+import { humanizeKey, isCodeKey, isPlainTextKey, itemSubtitle, itemTitle, KNOWN_KEYS } from "../items";
 import type { DatasetItem } from "../types";
 import { CodeBlock } from "./CodeBlock";
 import { Conversation } from "./Conversation";
@@ -10,7 +10,9 @@ import { TestCaseCard } from "./TestCaseCard";
 
 function GenericValue({ name, value }: { name: string; value: unknown }) {
   if (typeof value === "string") {
-    return isCodeKey(name) ? <CodeBlock code={value} /> : <Markdown source={value} />;
+    if (isCodeKey(name)) return <CodeBlock code={value} language="python" />;
+    if (isPlainTextKey(name)) return <CodeBlock code={value} language="text" />;
+    return <Markdown source={value} />;
   }
   return <CodeBlock code={JSON.stringify(value, null, 2)} language="json" />;
 }
