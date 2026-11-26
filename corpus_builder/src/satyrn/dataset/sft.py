@@ -39,6 +39,8 @@ block described by this idea:
 
 Write a complete, realistic, self-contained script (~15-35 lines when natural) that exercises the new feature across realistic inputs or edge cases rather than a minimal toy snippet.
 Avoid comments that just restate the code.
+If the idea is a function idea, put the function and its imports in `code` and the calls that print its
+results in `test_code`. For a question idea, put the whole script in `code` and leave `test_code` empty.
 In `expected_output` state exactly what running the code outputs, whether to stdout or stderr.
 
 {PYTHON_CODE_RULES}
@@ -47,6 +49,7 @@ In `expected_output` state exactly what running the code outputs, whether to std
         "type": "object",
         "properties": {
             "code": {"type": "string"},
+            "test_code": {"type": "string"},
             "expected_output": {"type": "string"},
         },
         "required": ["code", "expected_output"],
@@ -59,13 +62,14 @@ In `expected_output` state exactly what running the code outputs, whether to std
     max_attempts = 3
     for attempt in range(max_attempts):
         code_block = model.generate(prompt, context, thinking=True)
-        rejection = find_version_check(code_block["code"])
+        program = f"{code_block['code'].rstrip()}\n\n{code_block.get('test_code', '').rstrip()}".rstrip()
+        rejection = find_version_check(program)
         if rejection:
-            prompt += f"\n\nYour previous code:\n{code_block['code']}\n\n{rejection}\n"
+            prompt += f"\n\nYour previous code:\n{program}\n\n{rejection}\n"
             continue
 
         verified, actual_output = verify_code_block(
-            code_block["code"], code_block["expected_output"], sandbox, predecessor_sandbox
+            program, code_block["expected_output"], sandbox, predecessor_sandbox
         )
         if verified:
             return code_block
@@ -77,7 +81,7 @@ In `expected_output` state exactly what running the code outputs, whether to std
                 # Intentionally leave actual_output out of the retry prompt, so model doesn't just copy it.
                 prompt += f"""\n
 Your previous code:
-{code_block["code"]}
+{program}
 
 Predicted output:
 {code_block["expected_output"]}
@@ -96,14 +100,14 @@ Fix the code so it actually does what the idea describes, and predict its real o
             logger.info("Judge accepted mismatched output: %s", judgement["judgement"])
             code_block["expected_output"] = actual_output
             verified, actual_output = verify_code_block(
-                code_block["code"], code_block["expected_output"], sandbox, predecessor_sandbox
+                program, code_block["expected_output"], sandbox, predecessor_sandbox
             )
             if verified:
                 return code_block
 
         prompt += f"""\n
 Your previous code:
-{code_block["code"]}
+{program}
 
 Predicted output:
 {code_block["expected_output"]}
@@ -134,6 +138,9 @@ Idea:
 
 Code:
 {result["code"]}
+
+Test code:
+{result.get("test_code", "")}
 
 Predicted output:
 {result["expected_output"]}
@@ -210,6 +217,7 @@ def verify_code_block(
 
 def generate_conversation(model: Model, idea: Idea, code_block: dict) -> dict:
     """Return a user prompt, assistant response, and reasoning trace for code_block."""
+    expected_output = "" if code_block.get("test_code") else f"Expected output:\n{code_block['expected_output']}"
     prompt = f"""
 Example:
 
@@ -240,6 +248,38 @@ JSON response:
 
 ---
 
+Example for an idea that asks for a function:
+
+Idea:
+Write function: `split_perfect_squares(values)` takes an iterable of integers and returns a tuple of two
+lists, the perfect squares and all other values, each in input order, using the new integer-math module's
+square-root function.
+
+Code:
+```python
+from math.integer import isqrt
+
+
+def split_perfect_squares(values):
+    squares = []
+    others = []
+    for value in values:
+        if value >= 0 and isqrt(value) ** 2 == value:
+            squares.append(value)
+        else:
+            others.append(value)
+    return squares, others
+```
+
+JSON response:
+{{
+  "prompt": "Write `split_perfect_squares(values)` for Python 3.15, using the square-root function of the new integer-math module. It takes an iterable of integers and returns a tuple of two lists: the values that are perfect squares and all the other values, each in input order. Negative numbers are never perfect squares. Reply with only the code.",
+  "explanation": "",
+  "trace": "`math.integer` is a new module in Python 3.15 that provides the integer-only math functions, including `isqrt(n, /)`. `isqrt` returns the floor of the exact square root of a non-negative integer, so `isqrt(n) ** 2 == n` is an exact perfect-square test with no floating-point rounding.\\n\\nI need to sort each value into one of two lists with `isqrt`, treating negative numbers as non-squares.\\n\\n1. `from math.integer import isqrt` imports the function from the new 3.15 module.\\n2. `split_perfect_squares(values)` starts with two empty lists, `squares` and `others`.\\n3. For each `value`, the condition `value >= 0 and isqrt(value) ** 2 == value` first rules out negatives, because `isqrt` is defined only for non-negative integers.\\n4. For `9`, `isqrt(9)` is `3` and `3 ** 2 == 9`, so it goes to `squares`; for `10`, `isqrt(10)` is `3` and `9 != 10`, so it goes to `others`.\\n5. The function returns the two lists as a tuple, keeping the input order.\\n6. A negative value such as `-4` and a non-square such as `2` both land in `others`, so the result is always a pair of lists that together hold every input value."
+}}
+
+---
+
 The attached document describes a change in Python version {idea.python_version}. A verified code
 block demonstrates this idea:
 
@@ -250,19 +290,20 @@ Code:
 {code_block["code"]}
 ```
 
-Expected output:
-{code_block["expected_output"]}
+{expected_output}
 
 Write:
-1. `prompt`: a natural user question that this code answers.
+1. `prompt`: a natural user question that this code answers, or, if the idea asks for a function, a request that
+   describes and names the function, its type-annotated parameters and what it returns, and asks for only the code.
 2. `explanation`: 1 short paragraph of human-facing prose (2-3 sentences, ~180-350 characters, never exceeding
    450 characters) that answers the user's question directly, stating the Python feature/API behavior and any
    key gotchas. Do not start with "Python", "In Python", or "With Python". Never narrate the example script
    line by line (never write "The snippet creates...", "The code prints...", "This script imports...", or
    "This example demonstrates..."). Do not include pre-version legacy workarounds unless the user prompt asks
-   for them, and do not include code blocks or markdown fences.
-3. `trace`: internal reasoning (`<think>` content) targeting 900-1,300 characters across 3 parts separated by
-   blank lines (`\\n\\n`):
+   for them, and do not include code blocks or markdown fences. If the `prompt` only asks to write code, the
+   explanation is optional and should be an empty string.
+3. `trace`: internal reasoning (`<think>` content) targeting 900-1,300 characters (up to 2,000 when the solution
+   has several steps) across 3 parts separated by blank lines (`\\n\\n`):
    - Part 1 (Python API exploration paragraph): pinpoint the exact feature/PEP, built-in or module location,
      signature, and behavioral constraints or pitfalls relevant to this task, mentioning the Python version
      naturally inside a sentence when relevant. Never start `trace` with "Python", "In Python", or "With
@@ -292,7 +333,9 @@ Write:
     context.set_json_schema(schema)
     result = model.generate(prompt, context)
 
-    response = f"{result['explanation']}\n\n```python\n{code_block['code']}\n```"
+    code_fence = f"```python\n{code_block['code']}\n```"
+    explanation = result["explanation"].strip()
+    response = f"{explanation}\n\n{code_fence}" if explanation else code_fence
     return {"prompt": result["prompt"], "response": response, "trace": result["trace"]}
 
 
@@ -312,6 +355,9 @@ Idea:
 Code:
 {code_block["code"]}
 
+Test code:
+{code_block.get("test_code", "")}
+
 Actual output when the code runs:
 {code_block["expected_output"]}
 
@@ -327,7 +373,8 @@ Decide whether this conversation is a good training example for fine-tuning a mo
 - The messages follow logically from each other: the assistant's response actually answers the
   user's message.
 - The explanation before the code block is concise (1 paragraph) and does not narrate the script
-  line by line or pad with unrequested legacy workarounds.
+  line by line or pad with unrequested legacy workarounds. A short line of explanatory text before the
+  code is acceptable even when the user asks only for code.
 - The reasoning trace is consistent with the code and actual output, follows the 3-part structure
   (API exploration, one-sentence "I need to..." plan, numbered execution walkthrough), and contains
   no markdown code fences or `<think>` tags.
@@ -387,6 +434,7 @@ def build_dataset_line(model: Model, idea: Idea, sandbox: Sandbox, predecessor_s
         "python_version": idea.python_version,
         "idea": idea.description,
         "code": code_block["code"],
+        "test_code": code_block.get("test_code", ""),
         "trace": conversation["trace"],
         "expected_output": code_block["expected_output"],
     }

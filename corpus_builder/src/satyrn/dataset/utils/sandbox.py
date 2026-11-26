@@ -20,7 +20,9 @@ SANDBOX_DOCKERFILE = Path(__file__).with_name("sandbox.dockerfile")
 def get_predecessor_python_version(python_version: str) -> str:
     """Return the Python feature release immediately before python_version."""
     major, minor, *_ = python_version.split(".")
-    return f"{major}.{int(minor) - 1}"
+    # The .0 release, which has none of the changes backported to later patch releases
+    predecessor_version = f"{major}.{int(minor) - 1}.0"
+    return predecessor_version
 
 
 def truncate(text: str, limit: int = MAX_OUTPUT_CHARACTERS) -> str:

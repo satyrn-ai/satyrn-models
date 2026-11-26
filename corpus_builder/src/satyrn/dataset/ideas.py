@@ -29,7 +29,13 @@ SFT_IDEAS_PROMPT = """
 The attached document describes a change in Python version {python_version}. Describe between 0 and 50
 ideas for short, self-contained code blocks that would demonstrate the described features.
 
-- Each idea is a short description of what the example would show.
+- Each idea is a short description of what the example would show, in one of two formats. The idea
+  states its format: either a question a user might ask, answered with an example, or a function to write.
+  Propose about as many function ideas as question ideas.
+- A function idea names the function and its parameters and states what it returns, and where relevant the
+  errors it raises and the edge cases it handles, precisely enough to write tests for it.
+- Each idea shows behavior introduced in Python {python_version}: running it on the previous Python version
+  must give a different result or an error.
 - Propose fewer ideas if the document only covers a small change.
 - Do not repeat the same idea.
 - DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
