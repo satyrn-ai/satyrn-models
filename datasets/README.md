@@ -15,6 +15,8 @@ This table records the methodology used to generate each dataset: model and prom
 | `python3.15/sft4.jsonl` | 2268 | 1.4M | 1.3M | deepseek-v4-pro | As above, from `python3.15/sft2.jsonl` + `python3.15/sft.jsonl`. |
 | `python3.14/sft4.1.jsonl` | 287 | 200k | 190k | deepseek-v4-pro | Regenerated from the rows dropped from `python3.14/sft4.jsonl`, using code from [PR #91](https://github.com/satyrn-ai/satyrn-models/pull/91). |
 | `python3.15/sft4.1.jsonl` | 611 | 440k | 420k | deepseek-v4-pro | As above. |
+| `python3.14/sft4.2.jsonl` | 246 | 150k | 130k | deepseek-v4-flash | Rows generated from new ideas to expand the dataset, using code from [PR #91](https://github.com/satyrn-ai/satyrn-models/pull/91). |
+| `python3.15/sft4.2.jsonl` | 545 | 350k | 310k | deepseek-v4-flash | As above. |
 | `python3.14/sft-agentic.jsonl` | 696 | 3.2M | 1.8M | deepseek-v4-flash, deepseek-v4-pro | Using code from [PR #79](https://github.com/satyrn-ai/satyrn-models/pull/79). Tasks written by deepseek-v4-flash and solved by deepseek-v4-pro in the Pi coding agent. C API topics skipped. Rows over 16k tokens or 20 tool calls were removed. |
 | `python3.15/sft-agentic.jsonl` | 873 | 3.8M | 2.0M | deepseek-v4-flash, deepseek-v4-pro | As above. |
 
