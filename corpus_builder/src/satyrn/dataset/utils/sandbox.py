@@ -130,10 +130,13 @@ class Sandbox:
 
     def run(self, code: str) -> str:
         """Run code in the container. Return its combined output."""
+        container_name = f"{SANDBOX_LABEL_NAME}-{uuid4().hex}"
         command = [
             "docker",
             "run",
             "--rm",
+            "--log-opt",
+            "max-size=10m",
             "--network=none",
             "--memory=512m",
             "--cpus=0.75",
@@ -141,7 +144,7 @@ class Sandbox:
             "--security-opt=no-new-privileges",
             "--cap-drop=ALL",
             "--name",
-            f"{SANDBOX_LABEL_NAME}-{uuid4().hex}",
+            container_name,
             "--label",
             f"{SANDBOX_LABEL_NAME}={SANDBOX_RUN_IDENTIFIER}",
             # set the user to nobody
@@ -164,5 +167,6 @@ class Sandbox:
                 command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=TIMEOUT_SECONDS
             )
         except subprocess.TimeoutExpired:
+            subprocess.run(["docker", "rm", "--force", container_name], capture_output=True)
             return f"[did not terminate within {TIMEOUT_SECONDS} seconds]"
         return truncate(result.stdout)
