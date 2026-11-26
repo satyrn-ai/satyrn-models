@@ -1,0 +1,14 @@
+{
+  "name": "messy-already-capped",
+  "category": "judgement",
+  "contract": "Support says some customers are getting more than 50% off their order by stacking coupon codes at checkout. Can you make sure apply_discount() in pricing.py never takes more than half off the price? Prices are in cents, and the discount is a fraction between 0 and 1, so 0.25 means a quarter off. Please tell me what you found.",
+  "expected_test_ids": [
+    "test_pricing.py::test_discount_is_capped_at_half",
+    "test_pricing.py::test_negative_and_missing_discounts",
+    "test_pricing.py::test_ordinary_discount"
+  ],
+  "grader_overlay": "overlay",
+  "base_passes": true,
+  "protected_paths": ["pricing.py"],
+  "max_calls": 6
+}

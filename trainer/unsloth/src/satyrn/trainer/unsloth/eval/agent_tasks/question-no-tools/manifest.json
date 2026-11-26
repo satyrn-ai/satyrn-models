@@ -1,0 +1,8 @@
+{
+  "name": "question-no-tools",
+  "category": "judgement",
+  "contract": "Quick question while I review a colleague's pull request; no code changes are needed. They wrote if retries is 0: as the guard in a retry loop, and it seems to work in their tests. Is that actually correct Python, or does it only happen to work? What should they write instead? A couple of sentences is plenty.",
+  "expected_test_ids": [],
+  "base_passes": true,
+  "max_calls": 1
+}

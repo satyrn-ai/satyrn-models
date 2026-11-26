@@ -400,3 +400,132 @@ def test_grading_does_not_need_pytest_in_the_running_interpreter(tmp_path: Path,
     ws = Workspace.create(task, tmp_path / "runs")
     ws.write("solution.py", SOLVED)
     assert grade(ws, task) == set(task.expected)
+
+
+def make_judgement_task(root: Path) -> Path:
+    """The double task, already solved, with its solution protected and a call limit."""
+    task = make_task(root)
+    (task / "base" / "solution.py").write_text(SOLVED)
+    manifest = json.loads((task / "manifest.json").read_text())
+    manifest |= {"category": "judgement", "protected_paths": ["solution.py"], "max_calls": 2}
+    (task / "manifest.json").write_text(json.dumps(manifest))
+    return task
+
+
+def test_leaving_finished_work_alone_within_the_call_limit_is_solved(tmp_path: Path) -> None:
+    make_judgement_task(tmp_path)
+    value, run = scored(run_mock(tmp_path, [read_call(), ModelOutput.from_content("mockllm/model", "Already done.")]))
+    assert run["protected_changed"] == []
+    assert (value["solved"], value["clean"]) == (1, 1)
+
+
+def test_rewriting_a_protected_file_is_not_solved_even_if_tests_pass(tmp_path: Path) -> None:
+    make_judgement_task(tmp_path)
+    rewrite = ModelOutput.for_tool_call("mockllm/model", "write", {"path": "solution.py", "content": SOLVED + "\n"})
+    value, run = scored(run_mock(tmp_path, [rewrite, ModelOutput.from_content("mockllm/model", "Tidied it.")]))
+    assert run["protected_changed"] == ["solution.py"]
+    assert value["solved"] == 0
+
+
+def test_going_over_the_call_limit_is_not_solved(tmp_path: Path) -> None:
+    make_judgement_task(tmp_path)
+    outputs = [read_call(1), read_call(2), read_call(3), ModelOutput.from_content("mockllm/model", "Fine.")]
+    value, _run = scored(run_mock(tmp_path, outputs))
+    assert value["solved"] == 0
+
+
+def test_scores_are_also_reported_per_category(tmp_path: Path) -> None:
+    make_judgement_task(tmp_path)
+    log = run_mock(tmp_path, [ModelOutput.from_content("mockllm/model", "Already done.")])
+    metrics = {score.name: set(score.metrics) for score in log.results.scores}
+    assert any("judgement" in name for name in metrics["clean"] - {"mean"})
+    assert any("judgement" in name for name in metrics["solved"] - {"mean"})
+
+
+def test_read_truncates_like_pi_and_says_how_to_continue(tmp_path: Path) -> None:
+    """At most 2000 lines (or 50KB) per read, then pi's own notice naming the offset to continue from."""
+    ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws.write("big.txt", "".join(f"line {n}\n" for n in range(1, 2501)))
+    out, err = ws.call("read", {"path": "big.txt"})
+    assert not err
+    assert out.splitlines()[1999] == "line 2000"
+    assert out.endswith("\n\n[500 more lines in file. Use offset=2001 to continue.]")
+    out, _err = ws.call("read", {"path": "big.txt", "offset": 2001})
+    assert out.startswith("line 2001\n") and "more lines" not in out
+    out, _err = ws.call("read", {"path": "big.txt", "offset": 20, "limit": 12})
+    assert out.endswith("[2469 more lines in file. Use offset=32 to continue.]")
+
+
+def test_read_stops_at_50kb(tmp_path: Path) -> None:
+    ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws.write("wide.txt", ("x" * 1023 + "\n") * 100)
+    out, _err = ws.call("read", {"path": "wide.txt"})
+    assert out.endswith("[50 more lines in file. Use offset=51 to continue.]")
+
+
+def make_changing_task(root: Path) -> Path:
+    """The double task, where a teammate renames the function's argument once the model first touches the file."""
+    task = make_task(root)
+    manifest = json.loads((task / "manifest.json").read_text())
+    manifest["on_first_touch"] = {"solution.py": [["(n)", "(number)"]]}
+    (task / "manifest.json").write_text(json.dumps(manifest))
+    return task
+
+
+def test_a_change_lands_after_the_first_read_so_a_stale_edit_fails(tmp_path: Path) -> None:
+    ws = Workspace.create(load_task(make_changing_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    out, _err = ws.call("read", {"path": "solution.py"})
+    assert "double(n)" in out  # the model sees the file as it was
+    assert "double(number)" in (ws.root / "solution.py").read_text()  # then the teammate's change lands
+    _out, err = ws.call("edit", {"path": "solution.py", "edits": [{"oldText": "double(n)", "newText": "double(k)"}]})
+    assert err
+    assert ws.changes_made == ["solution.py"]
+
+
+def test_naming_the_file_in_a_command_also_counts_as_touching_it(tmp_path: Path) -> None:
+    ws = Workspace.create(load_task(make_changing_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws.call("bash", {"command": "ls"})
+    assert ws.changes_made == []
+    out, _err = ws.call("bash", {"command": "cat solution.py"})
+    assert "double(n)" in out
+    assert ws.changes_made == ["solution.py"]
+
+
+def test_solving_after_a_failure_counts_as_recovered(tmp_path: Path) -> None:
+    make_task(tmp_path)
+    outputs = [
+        ModelOutput.for_tool_call("mockllm/model", "read", {"path": "missing.py"}),
+        ModelOutput.for_tool_call("mockllm/model", "write", {"path": "solution.py", "content": SOLVED}),
+        ModelOutput.from_content("mockllm/model", "Done."),
+    ]
+    value, _run = scored(run_mock(tmp_path, outputs))
+    assert (value["hit_failure"], value["recovered"], value["solved"]) == (1, 1, 1)
+
+
+def test_a_clean_run_has_nothing_to_recover_from(tmp_path: Path) -> None:
+    make_task(tmp_path)
+    write = ModelOutput.for_tool_call("mockllm/model", "write", {"path": "solution.py", "content": SOLVED})
+    value, _run = scored(run_mock(tmp_path, [write, ModelOutput.from_content("mockllm/model", "Done.")]))
+    assert (value["hit_failure"], value["recovered"]) == (0, 0)
+
+
+def test_commands_never_see_secrets_or_host_uv_settings(tmp_path: Path, monkeypatch) -> None:
+    """The trainer's secrets stay out of transcripts, and Molab's UV_NO_SYNC/UV_PYTHON/PYTHONPATH stay out of tasks."""
+    hidden = {
+        "HF_TOKEN": "hf-secret",
+        "MLFLOW_TRACKING_PASSWORD": "mlflow-secret",
+        "DEEPSEEK_API_KEY": "api-secret",
+        "UV_NO_SYNC": "1",
+        "UV_PYTHON": "3.13.11",
+        "PYTHONPATH": "/trainer/site-packages",
+        "PYTHONSAFEPATH": "1",
+    }
+    for name, value in hidden.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setenv("UV_CACHE_DIR", "/kept/cache")
+    ws = Workspace.create(load_task(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    out, _err = ws.call("bash", {"command": "env"})
+    seen = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    assert not set(hidden) & set(seen)
+    assert not {"hf-secret", "mlflow-secret", "api-secret"} & set(seen.values())
+    assert seen["UV_CACHE_DIR"] == "/kept/cache"

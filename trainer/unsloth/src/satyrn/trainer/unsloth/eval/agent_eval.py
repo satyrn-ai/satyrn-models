@@ -23,6 +23,7 @@ named as in satyrn-evals where the two measure the same thing.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -36,12 +37,14 @@ from pathlib import Path
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.model import ChatMessageSystem, ChatMessageTool, get_model
-from inspect_ai.scorer import Score, Scorer, Target, mean, scorer
+from inspect_ai.scorer import Score, Scorer, Target, grouped, mean, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import ToolDef, ToolParams
 from jsonschema import Draft202012Validator  # a dependency of inspect_ai
 from jsonschema.exceptions import best_match
 
+# The tasks kept with this module; SATYRN_EVALS_TASKS may point at a satyrn-evals checkout instead
+AGENT_TASKS = Path(__file__).resolve().parent / "agent_tasks"
 TASKS_ENV = "SATYRN_EVALS_TASKS"
 # Short tasks, so the eval fits after every training stage; pass tasks=["all"] for every task in the directory
 DEFAULT_TASKS = [
@@ -55,18 +58,31 @@ AGENTIC_DATA = Path(__file__).resolve().parents[7] / "datasets" / "python3.15" /
 CWD_BLOCK = re.compile(r"<cwd>\n.*?\n</cwd>", re.DOTALL)
 COPY_IGNORE = shutil.ignore_patterns(".venv", "__pycache__", ".pytest_cache", "*.pyc", ".git")
 MAX_OUTPUT = 20_000
+# pi's read tool: "output is truncated to 2000 lines or 50KB (whichever is hit first)"
+READ_MAX_LINES = 2000
+READ_MAX_BYTES = 50 * 1024
 BASH_TIMEOUT = 120
 TEXT_TOOL_CALL = re.compile(r"<tool_call>|<\|tool_call>|\"name\"\s*:\s*\"(read|bash|edit|write)\"")
 TOOL_NAMES = ("read", "bash", "edit", "write")
 # Greedy decoding repeats itself exactly once it starts looping, so the same turn this many times in a row ends it
 LOOP_REPEATS = 3
+# Bounds the long tail: a model that wanders without repeating itself exactly would otherwise set the eval's run time
+# (one such sample took 30 turns and doubled the eval to 14 minutes); 90% of agentic SFT sessions take 11 turns or fewer
+MAX_TURNS = 15
 # How a sample ended
 STOPPED, TEXT_TOOL_CALL_END, LOOPED, TURN_CAP = "stopped", "text_tool_call", "looped", "turn_cap"
 
 
 @dataclass(frozen=True)
 class AgentTask:
-    """One satyrn-evals task: the prompt, its starting files and how it is graded."""
+    """One task: the prompt, its starting files and how it is graded.
+
+    Beyond the satyrn-evals manifest, a task may set `category` (finish, recover or judgement), `max_calls` (solved
+    only within that many tool calls) and `protected_paths` (solved only if those files are left as in `base/`), for
+    behaviour that hidden tests cannot see, such as leaving finished work alone. `on_first_touch` maps a path to
+    text replacements made right after the model's first tool call that names that file, standing in for a
+    teammate's change landing mid-task, so an edit built from the earlier read fails and has to be redone.
+    """
 
     name: str
     contract: str
@@ -74,18 +90,54 @@ class AgentTask:
     overlay: Path | None
     expected: list[str]
     oracle_env: dict[str, str] = field(default_factory=dict)
+    category: str = "other"
+    max_calls: int | None = None
+    protected: dict[str, str] = field(default_factory=dict)  # path -> sha256 of the file in base/
+    on_first_touch: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+
+
+def file_digest(path: Path) -> str | None:
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
 def load_task(task_dir: Path) -> AgentTask:
-    """Read a satyrn-evals task directory."""
+    """Read a task directory in the satyrn-evals layout."""
     manifest = json.loads((task_dir / "manifest.json").read_text())
     overlay = task_dir / manifest["grader_overlay"] if manifest.get("grader_overlay") else None
     oracle = manifest.get("oracle") or []
     # an oracle such as `env PYTHONPATH=scripts python -m pytest` names the environment its tests need
     oracle_env = dict(arg.split("=", 1) for arg in oracle[1:] if "=" in arg) if oracle[:1] == ["env"] else {}
+    base = task_dir / "base"
+    protected = {path: file_digest(base / path) for path in manifest.get("protected_paths", [])}
     return AgentTask(
-        manifest["name"], manifest["contract"], task_dir / "base", overlay, manifest["expected_test_ids"], oracle_env
+        manifest["name"],
+        manifest["contract"],
+        base,
+        overlay,
+        manifest["expected_test_ids"],
+        oracle_env,
+        manifest.get("category", "other"),
+        manifest.get("max_calls"),
+        protected,
+        {path: [tuple(pair) for pair in pairs] for path, pairs in manifest.get("on_first_touch", {}).items()},
     )
+
+
+# Never passed to the model's commands or to grading: the trainer's secrets (they would end up in transcripts
+# logged to MLflow), and settings of the training host that change how Python and uv behave in a task's repository
+# (Molab sets UV_NO_SYNC and UV_PYTHON, so `uv run` skipped installing a task's dependencies; PYTHONPATH, which
+# leaked the trainer's packages into the task; and PYTHONSAFEPATH, so `python -m pytest` could not import the
+# project's own modules)
+HIDDEN_ENV = re.compile(
+    r"^(UV_NO_SYNC|UV_PYTHON|UV_FROZEN|UV_OFFLINE|UV_PROJECT_ENVIRONMENT|PYTHONPATH|PYTHONHOME|PYTHONSAFEPATH|VIRTUAL_ENV"
+    r"|VIRTUAL_ENV_PROMPT)$|^(HF_|HUGGING_FACE|MLFLOW_)|TOKEN|KEY|PASSWORD|SECRET|CREDENTIAL",
+    re.IGNORECASE,
+)
+
+
+def task_env() -> dict[str, str]:
+    """The environment for the model's commands and for grading: the host's, minus HIDDEN_ENV."""
+    return {name: value for name, value in os.environ.items() if not HIDDEN_ENV.search(name)}
 
 
 def _clip(text: str) -> str:
@@ -122,12 +174,26 @@ class Workspace:
     escapes: int = 0
     command_exit_nonzero: int = 0
     by_tool: dict[str, ToolStats] = field(default_factory=dict)
+    pending_changes: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    changes_made: list[str] = field(default_factory=list)
 
     @classmethod
     def create(cls, agent_task: AgentTask, runs_dir: Path, schemas: dict[str, dict] | None = None) -> Workspace:
         root = runs_dir / f"satyrn-agent-eval-{uuid.uuid4().hex[:12]}" / agent_task.name / "project-workspace"
         shutil.copytree(agent_task.base, root, ignore=COPY_IGNORE)
-        return cls(root.resolve(), schemas or {})
+        return cls(root.resolve(), schemas or {}, pending_changes=dict(agent_task.on_first_touch))
+
+    def _apply_pending_changes(self, name: str, arguments: dict) -> None:
+        """Make each pending change once the model has touched its file: named it in a path, or in a command."""
+        for path in list(self.pending_changes):
+            named = arguments.get("path") and self.resolve(str(arguments["path"])) == self.root / path
+            if named or (name == "bash" and Path(path).name in str(arguments.get("command", ""))):
+                target = self.root / path
+                text = target.read_text()
+                for old, new in self.pending_changes.pop(path):
+                    text = text.replace(old, new)
+                target.write_text(text)
+                self.changes_made.append(path)
 
     def resolve(self, path: str) -> Path | None:
         """The file a path names, or None if it is outside the workspace."""
@@ -149,8 +215,17 @@ class Workspace:
             return f"Error: no such file: {path}", True
         lines = target.read_text(errors="replace").splitlines(keepends=True)
         start = max(int(offset or 1), 1) - 1
-        end = start + int(limit) if limit else len(lines)
-        return _clip("".join(lines[start:end])), False
+        end = min(len(lines), start + int(limit) if limit else len(lines), start + READ_MAX_LINES)
+        size = 0
+        for index in range(start, end):
+            size += len(lines[index].encode())
+            if size > READ_MAX_BYTES:
+                end = max(index, start + 1)
+                break
+        text = "".join(lines[start:end])
+        if end < len(lines):  # pi's own notice, as the model saw it in training
+            text += f"\n\n[{len(lines) - end} more lines in file. Use offset={end + 1} to continue.]"
+        return text, False
 
     def write(self, path: str, content: str) -> tuple[str, bool]:
         target, why = self._target(path)
@@ -179,7 +254,9 @@ class Workspace:
     def bash(self, command: str, timeout: float | None = None) -> tuple[str, bool]:
         limit = min(float(timeout or BASH_TIMEOUT), BASH_TIMEOUT)
         try:
-            done = subprocess.run(command, shell=True, cwd=self.root, capture_output=True, text=True, timeout=limit)
+            done = subprocess.run(
+                command, shell=True, cwd=self.root, capture_output=True, text=True, timeout=limit, env=task_env()
+            )
         except subprocess.TimeoutExpired:
             return f"Error: command timed out after {limit:g}s", True
         output = _clip((done.stdout + done.stderr).strip())
@@ -232,11 +309,14 @@ class Workspace:
             return f"Error: bad arguments for {name}: {bad}", True
         stats.failed += failed
         self.failed += failed
+        self._apply_pending_changes(name, arguments)
         return out, failed
 
 
 def grade(workspace: Workspace, agent_task: AgentTask) -> set[str]:
     """Expected test ids that pass on a copy of the workspace with the hidden overlay added."""
+    if not agent_task.expected:
+        return set()
     with tempfile.TemporaryDirectory() as tmp:
         tree = Path(tmp) / "grade"
         shutil.copytree(workspace.root, tree, ignore=COPY_IGNORE)
@@ -260,7 +340,7 @@ def grade(workspace: Workspace, agent_task: AgentTask) -> set[str]:
                 "-p",
                 "no:cacheprovider",
             ]
-        env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"} | {"PYTHONPATH": str(tree)}
+        env = task_env() | {"PYTHONPATH": str(tree)}
         for key, value in agent_task.oracle_env.items():
             env[key] = (
                 os.pathsep.join(str(tree / part) for part in value.split(os.pathsep)) + os.pathsep + str(tree)
@@ -355,6 +435,11 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
             "workspace_escapes": ws.escapes,
             "by_tool": {name: asdict(stats) for name, stats in ws.by_tool.items()},
             "passed": sorted(grade(ws, agent_task)),
+            "max_calls": agent_task.max_calls,
+            "changes_made": ws.changes_made,
+            "protected_changed": sorted(
+                path for path, digest in agent_task.protected.items() if file_digest(ws.root / path) != digest
+            ),
         }
         return state
 
@@ -363,12 +448,14 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
 
 @scorer(
     metrics={
-        "clean": [mean()],
-        "solved": [mean()],
+        "clean": [mean(), grouped(mean(), "category", all=False, name_template="{group_name}")],
+        "solved": [mean(), grouped(mean(), "category", all=False, name_template="{group_name}")],
         "self_stop": [mean()],
         "premature_stop": [mean()],
         "overrun": [mean()],
         "looped": [mean()],
+        "hit_failure": [mean()],
+        "recovered": [mean()],
         "invalid_call_rate": [mean()],
         "failed_call_rate": [mean()],
         "invalid_tool_calls": [mean()],
@@ -383,8 +470,10 @@ def agent_behaviour() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         run = state.metadata["agent"]
         expected = state.metadata["expected"]
-        solved = int(set(expected) <= set(run["passed"]))
+        within_calls = run["max_calls"] is None or run["calls"] <= run["max_calls"]
+        solved = int(set(expected) <= set(run["passed"]) and within_calls and not run["protected_changed"])
         stopped = int(run["self_stop"])
+        hit_failure = bool(run["invalid_tool_calls"] or run["failed_calls"] or run["command_exit_nonzero"])
         clean = int(solved and stopped and not run["workspace_escapes"] and not run["invalid_tool_calls"])
         value = {
             "clean": clean,
@@ -393,6 +482,10 @@ def agent_behaviour() -> Scorer:
             "premature_stop": int(stopped and not solved),  # gave up, or believed it was done, unsolved
             "overrun": int(solved and not stopped),  # solved, then kept going
             "looped": int(run["ending"] == LOOPED),
+            # recovery: a sample that hit an invalid or failed call, or a failing command, and still solved the task;
+            # recovered / hit_failure is the share of samples that recovered from a failure
+            "hit_failure": int(hit_failure),
+            "recovered": int(hit_failure and bool(solved)),
             # the model got the call itself wrong, as a share of all attempted calls
             "invalid_call_rate": run["invalid_tool_calls"] / run["calls"] if run["calls"] else 0.0,
             # a valid call whose operation did not work, as a share of the calls that ran
@@ -406,6 +499,8 @@ def agent_behaviour() -> Scorer:
         explanation = (
             f"ended {run['ending']} after {run['turns']} turns; passed {len(run['passed'])}/{len(expected)} tests; "
             f"calls (invalid/failed): {tools or 'none'}"
+            + (f"; changed protected {run['protected_changed']}" if run["protected_changed"] else "")
+            + ("" if within_calls else f"; over the {run['max_calls']}-call limit")
         )
         return Score(value=value, explanation=explanation, metadata=run)
 
@@ -414,12 +509,20 @@ def agent_behaviour() -> Scorer:
 
 @task
 def agent_eval(
-    tasks_dir: str | None = None, tasks: list[str] | None = None, max_turns: int = 30, loop_repeats: int = LOOP_REPEATS
+    tasks_dir: str | None = None,
+    tasks: list[str] | None = None,
+    max_turns: int = MAX_TURNS,
+    loop_repeats: int = LOOP_REPEATS,
 ) -> Task:
-    """Build the agent-behaviour eval over satyrn-evals tasks: DEFAULT_TASKS, the named `tasks`, or ["all"]."""
-    root = Path(tasks_dir or os.environ[TASKS_ENV])
+    """Build the agent-behaviour eval: every task in AGENT_TASKS, or the named `tasks`, or ["all"].
+
+    `tasks_dir` (or SATYRN_EVALS_TASKS) points at another task directory, such as a satyrn-evals checkout, where
+    only DEFAULT_TASKS run unless `tasks` says otherwise.
+    """
+    root = Path(tasks_dir or os.environ.get(TASKS_ENV) or AGENT_TASKS)
     present = sorted(p.parent.name for p in root.glob("*/manifest.json"))
-    names = present if tasks == ["all"] else [name for name in tasks or DEFAULT_TASKS if name in present]
+    default = present if root == AGENT_TASKS else DEFAULT_TASKS
+    names = present if tasks == ["all"] else [name for name in tasks or default if name in present]
     samples = []
     for name in names:
         agent_task = load_task(root / name)
@@ -427,7 +530,11 @@ def agent_eval(
             Sample(
                 id=agent_task.name,
                 input=agent_task.contract,
-                metadata={"task_dir": str(root / name), "expected": agent_task.expected},
+                metadata={
+                    "task_dir": str(root / name),
+                    "expected": agent_task.expected,
+                    "category": agent_task.category,
+                },
             )
         )
     solver = agent_loop(max_turns, None, loop_repeats)

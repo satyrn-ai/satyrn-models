@@ -1,0 +1,11 @@
+{
+  "name": "misleading-traceback",
+  "category": "recover",
+  "contract": "order_total_cents() in orders/report.py has crashed on every order file since yesterday's release. Here is the end of the traceback from this morning's run:\n\n  File \"orders/report.py\", line 10, in order_total_cents\n    total += item[\"quantity\"] * item[\"unit_price_cents\"]\nTypeError: unsupported operand type(s) for +=: 'int' and 'str'\n\nPlease fix it so the nightly totals run again.",
+  "expected_test_ids": [
+    "test_orders.py::test_order_total",
+    "test_orders.py::test_parse_line_returns_numbers",
+    "test_orders.py::test_parse_line_tolerates_spaces"
+  ],
+  "grader_overlay": "overlay"
+}

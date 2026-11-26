@@ -1,0 +1,14 @@
+{
+  "name": "csv-export-quoting",
+  "category": "finish",
+  "contract": "Finance can't import our CSV export any more. A customer note such as late, again ends up split across two columns, and notes that contain double quotes break the whole row. Please fix to_csv() in exporter.py so every field is written the way spreadsheet programs expect. Our importer is picky about the rest of the format, which it has relied on for years, so nothing else about the output may change.",
+  "expected_test_ids": [
+    "tests/test_exporter.py::test_header_and_rows",
+    "tests/test_exporter.py::test_lines_end_with_a_bare_newline",
+    "tests/test_exporter.py::test_tsv_fields_are_written_exactly",
+    "tests/test_exporter.py::test_commas_are_quoted",
+    "tests/test_exporter.py::test_quotes_are_doubled",
+    "tests/test_exporter.py::test_line_breaks_inside_a_field_are_quoted"
+  ],
+  "grader_overlay": "overlay"
+}

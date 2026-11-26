@@ -1,0 +1,18 @@
+{
+  "name": "stale-read",
+  "category": "recover",
+  "contract": "order_total() in orders.py ignores the quantity on each line item, so an order for three of the same book is charged as one. Please fix it. Heads-up: a teammate is landing a small naming refactor of orders.py at the same time as you, so make sure your fix ends up on top of whatever is in the file when you are done, without undoing their change.",
+  "expected_test_ids": [
+    "test_orders.py::test_quantity_is_charged",
+    "test_orders.py::test_tax_is_added",
+    "test_orders.py::test_the_teammates_rename_is_kept"
+  ],
+  "grader_overlay": "overlay",
+  "on_first_touch": {
+    "orders.py": [
+      ["TAX_RATE = 0.2", "VAT_RATE = 0.2  # renamed from TAX_RATE to match finance's naming"],
+      ["(1 + TAX_RATE)", "(1 + VAT_RATE)"],
+      ["subtotal", "net"]
+    ]
+  }
+}
