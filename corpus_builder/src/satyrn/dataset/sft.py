@@ -44,7 +44,7 @@ results in `test_code`. For a question idea, put the whole script in `code` and 
 In `expected_output` state exactly what running the code outputs, whether to stdout or stderr.
 
 {PYTHON_CODE_RULES}
-    """
+    """  # noqa: E501
     schema = {
         "type": "object",
         "properties": {
@@ -317,7 +317,7 @@ Write:
    "training example"), or repeat "I <verb>" on every numbered line. Do not include markdown code blocks
    (```) or `<think>` tags, and stay strictly consistent with `prompt`, `explanation`, `code`, and
    `expected_output`.
-    """
+    """  # noqa: E501
     schema = {
         "type": "object",
         "properties": {
