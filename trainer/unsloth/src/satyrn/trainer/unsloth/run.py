@@ -66,6 +66,11 @@ def unsloth_init() -> None:
     transformers.trainer.DEFAULT_PROGRESS_CALLBACK = ProgressCallback
 
 
+def get_output_dir() -> Path:
+    """Return the Hydra run directory."""
+    return Path(HydraConfig.get().runtime.output_dir)
+
+
 def load_dataset(paths: str | list[str]) -> Dataset:
     """Read one or more JSONL files into a single dataset."""
     return Dataset.from_list(read_rows(paths))
@@ -107,8 +112,12 @@ def build_trainer(
         eval_steps = calculate_eval_steps(len(train_dataset), stage, cfg.max_steps)
         logger.info("Resolved %s eval_steps=%d", name, eval_steps)
 
+    checkpoint_steps = stage.checkpoint_steps or eval_steps
+    checkpoint_dir = get_output_dir() / "checkpoints" / name
+
     training_args = SFTConfig(
-        output_dir=f"outputs/{name}",
+        output_dir=str(checkpoint_dir),
+        save_steps=checkpoint_steps,
         per_device_train_batch_size=stage.batch_size,
         per_device_eval_batch_size=stage.eval_batch_size,
         gradient_accumulation_steps=stage.gradient_accumulation_steps,
@@ -184,7 +193,7 @@ def main(cfg: DictConfig) -> None:
         print("Usage: satyrn-unsloth --config-name experiment/<name>")
         return
 
-    output_dir = Path(HydraConfig.get().runtime.output_dir)
+    output_dir = get_output_dir()
     log_path = output_dir / "run.log"
     evals_dir = output_dir / "evals"
     os.environ["INSPECT_LOG_DIR"] = str(evals_dir)
@@ -319,7 +328,7 @@ def main(cfg: DictConfig) -> None:
                     dataset = dataset.map(to_chat_prompt)
 
                     training_args = GRPOConfig(
-                        output_dir="outputs/rl",
+                        output_dir=str(output_dir / "checkpoints" / "rl"),
                         per_device_train_batch_size=config.rl.batch_size,
                         gradient_accumulation_steps=config.rl.gradient_accumulation_steps,
                         num_generations=config.rl.num_generations,

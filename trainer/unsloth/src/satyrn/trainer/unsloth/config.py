@@ -107,6 +107,7 @@ class CptStageConfig(BaseModel):
     batch_size: int
     eval_batch_size: int
     eval_steps: int | None
+    checkpoint_steps: int | None
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
@@ -119,6 +120,7 @@ class SftStageConfig(BaseModel):
     batch_size: int
     eval_batch_size: int
     eval_steps: int | None
+    checkpoint_steps: int | None
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float

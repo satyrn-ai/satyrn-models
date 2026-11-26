@@ -116,6 +116,7 @@ def test_calculate_eval_steps(
         batch_size=batch_size,
         eval_batch_size=1,
         eval_steps=None,
+        checkpoint_steps=None,
         gradient_accumulation_steps=gradient_accumulation_steps,
         num_train_epochs=num_train_epochs,
         learning_rate=1e-4,

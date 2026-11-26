@@ -51,6 +51,7 @@ cpt:
   batch_size: 8
   eval_batch_size: 4
   eval_steps: null
+  checkpoint_steps: null # null saves an adapter checkpoint at every eval step
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 1e-4
@@ -60,6 +61,7 @@ sft:
   batch_size: 8
   eval_batch_size: 4
   eval_steps: null
+  checkpoint_steps: null # null saves an adapter checkpoint at every eval step
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 2e-4
