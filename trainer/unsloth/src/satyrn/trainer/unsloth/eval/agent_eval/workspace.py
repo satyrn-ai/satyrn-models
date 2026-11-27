@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import subprocess
 import uuid
 from dataclasses import dataclass, field
@@ -17,7 +16,6 @@ from jsonschema.exceptions import best_match
 if TYPE_CHECKING:
     from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask
 
-COPY_IGNORE = shutil.ignore_patterns(".venv", "__pycache__", ".pytest_cache", "*.pyc", ".git")
 MAX_OUTPUT = 20_000
 # pi's read tool: "output is truncated to 2000 lines or 50KB (whichever is hit first)"
 READ_MAX_LINES = 2000
@@ -82,7 +80,8 @@ class Workspace:
     @classmethod
     def create(cls, agent_task: AgentTask, runs_dir: Path, schemas: dict[str, dict] | None = None) -> Workspace:
         root = runs_dir / f"satyrn-agent-eval-{uuid.uuid4().hex[:12]}" / agent_task.name / "project-workspace"
-        shutil.copytree(agent_task.base, root, ignore=COPY_IGNORE)
+        root.mkdir(parents=True)
+        agent_task.write_files(root, "base")
         return cls(root.resolve(), schemas or {}, pending_changes=dict(agent_task.on_first_touch))
 
     def _apply_pending_changes(self, name: str, arguments: dict) -> None:

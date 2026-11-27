@@ -34,8 +34,8 @@ from inspect_ai.scorer import Score, Scorer, Target, grouped, mean, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import ToolDef, ToolParams
 
-from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask, file_digest, load_task
-from satyrn.trainer.unsloth.eval.agent_eval.workspace import COPY_IGNORE, Workspace, task_env
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask, file_digest
+from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace, task_env
 
 # The tasks kept with this module; SATYRN_EVALS_TASKS may point at a satyrn-evals checkout instead
 AGENT_TASKS = Path(__file__).resolve().parent / "agent_tasks"
@@ -64,9 +64,10 @@ def grade(workspace: Workspace, agent_task: AgentTask) -> set[str]:
         return set()
     with tempfile.TemporaryDirectory() as tmp:
         tree = Path(tmp) / "grade"
-        shutil.copytree(workspace.root, tree, ignore=COPY_IGNORE)
-        if agent_task.overlay:
-            shutil.copytree(agent_task.overlay, tree, dirs_exist_ok=True)
+        caches = shutil.ignore_patterns(".venv", "__pycache__", ".pytest_cache", "*.pyc", ".git")
+        shutil.copytree(workspace.root, tree, ignore=caches)
+        if overlay := agent_task.manifest.get("grader_overlay"):
+            agent_task.write_files(tree, overlay)
         files = sorted({test_id.split("::")[0] for test_id in agent_task.expected})
         if (tree / "pyproject.toml").is_file():
             command = ["uv", "run", "--with", "pytest", "python", "-m", "pytest", "-rA", "-p", "no:cacheprovider"]
@@ -129,7 +130,7 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
     """Let the model call tools until it answers without one, repeats itself, or reaches max_turns turns."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        agent_task = load_task(Path(state.metadata["task_dir"]))
+        agent_task = AgentTask.from_directory(Path(state.metadata["task_dir"]))
         schemas = {spec["function"]["name"]: spec["function"]["parameters"] for spec in agent_task.tools}
         ws = Workspace.create(agent_task, Path(runs_dir or tempfile.gettempdir()), schemas)
         state.messages.insert(0, ChatMessageSystem(content=system_prompt(agent_task.system_prompt, ws.root)))
@@ -258,7 +259,7 @@ def agent_eval(
     names = present if tasks == ["all"] else [name for name in tasks or default if name in present]
     samples = []
     for name in names:
-        agent_task = load_task(root / name)
+        agent_task = AgentTask.from_directory(root / name)
         samples.append(
             Sample(
                 id=agent_task.name,

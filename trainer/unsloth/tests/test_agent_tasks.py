@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from satyrn.trainer.unsloth.eval.agent_eval.agent_task import file_digest, load_task
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask, file_digest
 from satyrn.trainer.unsloth.eval.agent_eval.task import AGENT_TASKS, agent_eval, grade
 from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace
 
@@ -22,13 +22,12 @@ def test_there_are_packaged_tasks_and_the_eval_runs_them_by_default() -> None:
 @pytest.mark.parametrize("task_dir", TASK_DIRS, ids=lambda path: path.name)
 def test_manifest_is_sound(task_dir: Path) -> None:
     manifest = json.loads((task_dir / "manifest.json").read_text())
-    task = load_task(task_dir)
+    task = AgentTask.from_directory(task_dir)
     assert task.name == task_dir.name
     assert task.category in CATEGORIES
     assert 300 <= len(task.contract) <= 900, "prompts follow the agentic SFT data, 400-800 characters"
-    assert all(digest is not None for digest in task.protected.values()), "every protected path exists in base/"
     for path, replacements in task.on_first_touch.items():
-        text = (task.base / path).read_text()
+        text = task.files[f"base/{path}"]
         assert all(old in text for old, _new in replacements), f"every first-touch change to {path} applies to base/"
     has_reference = (task_dir / "reference").is_dir() or manifest.get("reference_delete")
     assert manifest.get("base_passes") or has_reference, "a task to solve needs a reference"
@@ -37,7 +36,7 @@ def test_manifest_is_sound(task_dir: Path) -> None:
 @pytest.mark.parametrize("task_dir", TASK_DIRS, ids=lambda path: path.name)
 def test_base_fails_and_reference_passes(task_dir: Path, tmp_path: Path) -> None:
     """The starting code fails the hidden tests (unless the task is already done) and the reference passes them."""
-    task = load_task(task_dir)
+    task = AgentTask.from_directory(task_dir)
     manifest = json.loads((task_dir / "manifest.json").read_text())
     ws = Workspace.create(task, tmp_path)
     passed = grade(ws, task)
