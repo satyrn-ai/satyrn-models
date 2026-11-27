@@ -7,8 +7,8 @@ import pytest
 from inspect_ai import eval as inspect_eval
 from inspect_ai.model import ModelOutput, get_model
 
-from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask
-from satyrn.trainer.unsloth.eval.agent_eval.task import DEFAULT_TASKS, agent_eval, grade, system_prompt
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask, directories_to_jsonl
+from satyrn.trainer.unsloth.eval.agent_eval.task import agent_eval, grade, system_prompt
 from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace
 
 SOLVED = "def double(n):\n    return n * 2\n"
@@ -106,9 +106,16 @@ def test_grade_runs_the_hidden_overlay_against_the_workspace(tmp_path: Path) -> 
     assert grade(ws, task) == set(task.expected)
 
 
+def write_tasks_file(tasks_dir: Path) -> str:
+    """Write the task folders in tasks_dir to a JSONL file in it and return the file's path."""
+    tasks_file = tasks_dir / "tasks.jsonl"
+    directories_to_jsonl(tasks_dir, tasks_file)
+    return str(tasks_file)
+
+
 def run_mock(tasks_dir: Path, outputs, max_turns: int = 10):
     model = get_model("mockllm/model", custom_outputs=outputs)
-    task = agent_eval(tasks_dir=str(tasks_dir), tasks=["all"], max_turns=max_turns)
+    task = agent_eval(tasks_file=write_tasks_file(tasks_dir), max_turns=max_turns)
     [log] = inspect_eval(task, model=model, display="none", log_dir=str(tasks_dir.parent / "logs"))
     return log
 
@@ -191,7 +198,7 @@ def test_loop_repeats_is_configurable(tmp_path: Path) -> None:
     """With loop_repeats=2 the first repeat ends the sample."""
     make_task(tmp_path)
     model = get_model("mockllm/model", custom_outputs=[read_call() for _ in range(5)])
-    task = agent_eval(tasks_dir=str(tmp_path), tasks=["all"], max_turns=10, loop_repeats=2)
+    task = agent_eval(tasks_file=write_tasks_file(tmp_path), max_turns=10, loop_repeats=2)
     [log] = inspect_eval(task, model=model, display="none", log_dir=str(tmp_path.parent / "logs"))
     _value, run = scored(log)
     assert (run["ending"], run["turns"]) == ("looped", 2)
@@ -223,20 +230,6 @@ def test_a_tool_call_written_as_text_is_not_a_stop(tmp_path: Path) -> None:
     assert (value["self_stop"], value["premature_stop"], value["invalid_tool_calls"]) == (0, 0, 1)
 
 
-@pytest.mark.parametrize("bad", [{"path": "solution.py"}, {"content": "x"}])
-def test_missing_arguments_are_invalid_calls_not_crashes(tmp_path: Path, bad: dict) -> None:
-    """A malformed call becomes an error result the model can read, not an exception, with or without schemas."""
-    task = AgentTask.from_directory(make_task(tmp_path))
-    for schemas in ({}, SCHEMAS):
-        ws = Workspace.create(task, tmp_path / "runs", schemas)
-        _out, err = ws.call("write", bad)
-        assert err
-        assert (ws.calls, ws.invalid, ws.failed) == (1, 1, 0)
-
-
-SCHEMAS = {spec["function"]["name"]: spec["function"]["parameters"] for spec in TOOLS}
-
-
 @pytest.mark.parametrize(
     ("name", "arguments", "message"),
     [
@@ -250,7 +243,7 @@ def test_calls_that_break_the_schema_are_invalid_and_not_run(
     tmp_path: Path, name: str, arguments: dict, message: str
 ) -> None:
     """A wrong type, a missing required argument or an unknown tool is the model's mistake; the call is not run."""
-    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs")
     out, err = ws.call(name, arguments)
     assert err and message in out
     assert (ws.calls, ws.invalid, ws.failed) == (1, 1, 0)
@@ -259,7 +252,7 @@ def test_calls_that_break_the_schema_are_invalid_and_not_run(
 
 def test_valid_calls_whose_operation_fails_are_failed_not_invalid(tmp_path: Path) -> None:
     """A missing file, a non-matching edit and a path outside the workspace are failed operations."""
-    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs")
     assert ws.call("read", {"path": "missing.py"})[1]
     assert ws.call("edit", {"path": "solution.py", "edits": [{"oldText": "absent", "newText": "x"}]})[1]
     assert ws.call("write", {"path": "../outside.py", "content": "x"})[1]
@@ -268,7 +261,7 @@ def test_valid_calls_whose_operation_fails_are_failed_not_invalid(tmp_path: Path
 
 def test_a_command_exiting_non_zero_is_ok_but_counted(tmp_path: Path) -> None:
     """A grep with no match or a failing test run is often intended, so it is not a failed call."""
-    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs")
     out, err = ws.call("bash", {"command": "grep -q nothing-like-this solution.py"})
     assert not err and "exited with code 1" in out
     assert (ws.calls, ws.invalid, ws.failed, ws.command_exit_nonzero) == (1, 0, 0, 1)
@@ -332,18 +325,19 @@ def test_the_model_is_offered_pis_tool_schemas(tmp_path: Path) -> None:
     }
 
 
-def test_default_task_set_is_the_short_tasks(tmp_path: Path) -> None:
-    """Without `tasks`, only the default short tasks that exist in the directory run; ["all"] runs every task."""
+def test_named_tasks_select_a_subset(tmp_path: Path) -> None:
+    """Without `tasks` every task in the file runs; with `tasks` only the named ones."""
     make_task(tmp_path)
-    (tmp_path / "double").rename(tmp_path / DEFAULT_TASKS[0])
-    manifest = json.loads((tmp_path / DEFAULT_TASKS[0] / "manifest.json").read_text())
-    manifest["name"] = DEFAULT_TASKS[0]
-    (tmp_path / DEFAULT_TASKS[0] / "manifest.json").write_text(json.dumps(manifest))
-    make_task(tmp_path)  # a second task, not in the default set
-    assert [s.id for s in agent_eval(tasks_dir=str(tmp_path)).dataset] == [DEFAULT_TASKS[0]]
-    assert sorted(s.id for s in agent_eval(tasks_dir=str(tmp_path), tasks=["all"]).dataset) == sorted(
-        [DEFAULT_TASKS[0], "double"]
-    )
+    (tmp_path / "double").rename(tmp_path / "triple")
+    manifest = json.loads((tmp_path / "triple" / "manifest.json").read_text())
+    manifest["name"] = "triple"
+    (tmp_path / "triple" / "manifest.json").write_text(json.dumps(manifest))
+    make_task(tmp_path)
+    tasks_file = write_tasks_file(tmp_path)
+    every_task = [sample.id for sample in agent_eval(tasks_file=tasks_file).dataset]
+    named_task = [sample.id for sample in agent_eval(tasks_file=tasks_file, tasks=["triple"]).dataset]
+    assert every_task == ["double", "triple"]
+    assert named_task == ["triple"]
 
 
 def test_read_offset_limit_and_bash_timeout_are_honoured(tmp_path: Path) -> None:
@@ -411,7 +405,7 @@ def test_scores_are_also_reported_per_category(tmp_path: Path) -> None:
 
 def test_read_truncates_like_pi_and_says_how_to_continue(tmp_path: Path) -> None:
     """At most 2000 lines (or 50KB) per read, then pi's own notice naming the offset to continue from."""
-    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs")
     ws.write("big.txt", "".join(f"line {n}\n" for n in range(1, 2501)))
     out, err = ws.call("read", {"path": "big.txt"})
     assert not err
@@ -424,7 +418,7 @@ def test_read_truncates_like_pi_and_says_how_to_continue(tmp_path: Path) -> None
 
 
 def test_read_stops_at_50kb(tmp_path: Path) -> None:
-    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs")
     ws.write("wide.txt", ("x" * 1023 + "\n") * 100)
     out, _err = ws.call("read", {"path": "wide.txt"})
     assert out.endswith("[50 more lines in file. Use offset=51 to continue.]")
@@ -440,7 +434,7 @@ def make_changing_task(root: Path) -> Path:
 
 
 def test_a_change_lands_after_the_first_read_so_a_stale_edit_fails(tmp_path: Path) -> None:
-    ws = Workspace.create(AgentTask.from_directory(make_changing_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_changing_task(tmp_path)), tmp_path / "runs")
     out, _err = ws.call("read", {"path": "solution.py"})
     assert "double(n)" in out  # the model sees the file as it was
     assert "double(number)" in (ws.root / "solution.py").read_text()  # then the teammate's change lands
@@ -450,7 +444,7 @@ def test_a_change_lands_after_the_first_read_so_a_stale_edit_fails(tmp_path: Pat
 
 
 def test_naming_the_file_in_a_command_also_counts_as_touching_it(tmp_path: Path) -> None:
-    ws = Workspace.create(AgentTask.from_directory(make_changing_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_changing_task(tmp_path)), tmp_path / "runs")
     ws.call("bash", {"command": "ls"})
     assert ws.changes_made == []
     out, _err = ws.call("bash", {"command": "cat solution.py"})
@@ -490,7 +484,7 @@ def test_commands_never_see_secrets_or_host_uv_settings(tmp_path: Path, monkeypa
     for name, value in hidden.items():
         monkeypatch.setenv(name, value)
     monkeypatch.setenv("UV_CACHE_DIR", "/kept/cache")
-    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs", SCHEMAS)
+    ws = Workspace.create(AgentTask.from_directory(make_task(tmp_path)), tmp_path / "runs")
     out, _err = ws.call("bash", {"command": "env"})
     seen = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
     assert not set(hidden) & set(seen)

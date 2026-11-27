@@ -19,7 +19,6 @@ MAX_OUTPUT = 20_000
 READ_MAX_LINES = 2000
 READ_MAX_BYTES = 50 * 1024
 BASH_TIMEOUT = 120
-TOOL_NAMES = ("read", "bash", "edit", "write")
 
 # Never passed to the model's commands or to grading: the trainer's secrets (they would end up in transcripts
 # logged to MLflow), and settings of the training host that change how Python and uv behave in a task's repository
@@ -65,7 +64,7 @@ class Workspace:
     """
 
     root: Path
-    schemas: dict[str, dict] = field(default_factory=dict)
+    schemas: dict[str, dict]
     calls: int = 0
     invalid: int = 0
     failed: int = 0
@@ -76,10 +75,11 @@ class Workspace:
     changes_made: list[str] = field(default_factory=list)
 
     @classmethod
-    def create(cls, agent_task: AgentTask, runs_dir: Path, schemas: dict[str, dict] | None = None) -> Workspace:
+    def create(cls, agent_task: AgentTask, runs_dir: Path) -> Workspace:
         root = runs_dir / f"satyrn-agent-eval-{uuid.uuid4().hex[:12]}" / agent_task.name / "project-workspace"
         agent_task.write_files(root, "base")
-        return cls(root.resolve(), schemas or {}, pending_changes=dict(agent_task.on_first_touch))
+        schemas = {spec["function"]["name"]: spec["function"]["parameters"] for spec in agent_task.tools}
+        return cls(root.resolve(), schemas, pending_changes=dict(agent_task.on_first_touch))
 
     def _apply_pending_changes(self, name: str, arguments: dict) -> None:
         """Make each pending change once the model has touched its file: named it in a path, or in a command."""
@@ -177,10 +177,9 @@ class Workspace:
 
     def problem(self, name: str, arguments: dict) -> str | None:
         """Why a call is invalid (an unknown tool, or arguments that break the tool's schema), or None."""
-        if name not in (self.schemas or TOOL_NAMES):
+        if name not in self.schemas:
             return f"unknown tool {name}"
-        schema = self.schemas.get(name)
-        error = best_match(Draft202012Validator(schema).iter_errors(arguments)) if schema else None
+        error = best_match(Draft202012Validator(self.schemas[name]).iter_errors(arguments))
         if error is None:
             return None
         where = ".".join(str(part) for part in error.absolute_path)
@@ -191,20 +190,14 @@ class Workspace:
         if why := self.problem(name, arguments):
             return self.reject(name, why), True
         stats = self._stats(name)
-        try:
-            if name == "read":
-                out, failed = self.read(arguments["path"], arguments.get("offset"), arguments.get("limit"))
-            elif name == "write":
-                out, failed = self.write(arguments["path"], arguments["content"])
-            elif name == "edit":
-                out, failed = self.edit(arguments["path"], arguments["edits"])
-            else:
-                out, failed = self.bash(arguments["command"], arguments.get("timeout"))
-        except (KeyError, TypeError, ValueError, AttributeError) as bad:
-            # without schemas (a bare Workspace) a malformed call surfaces here instead; it is still invalid
-            stats.invalid += 1
-            self.invalid += 1
-            return f"Error: bad arguments for {name}: {bad}", True
+        if name == "read":
+            out, failed = self.read(arguments["path"], arguments.get("offset"), arguments.get("limit"))
+        elif name == "write":
+            out, failed = self.write(arguments["path"], arguments["content"])
+        elif name == "edit":
+            out, failed = self.edit(arguments["path"], arguments["edits"])
+        else:
+            out, failed = self.bash(arguments["command"], arguments.get("timeout"))
         stats.failed += failed
         self.failed += failed
         self._apply_pending_changes(name, arguments)

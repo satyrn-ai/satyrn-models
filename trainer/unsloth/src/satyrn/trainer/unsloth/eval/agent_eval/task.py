@@ -37,16 +37,7 @@ from inspect_ai.tool import ToolDef, ToolParams
 from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask
 from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace, task_env
 
-# The tasks kept with this module; SATYRN_EVALS_TASKS may point at a satyrn-evals checkout instead
-AGENT_TASKS = Path(__file__).resolve().parent / "agent_tasks"
-TASKS_ENV = "SATYRN_EVALS_TASKS"
-# Short tasks, so the eval fits after every training stage; pass tasks=["all"] for every task in the directory
-DEFAULT_TASKS = [
-    "format_number",
-    "agentclinic-complaint-lifecycle",
-    "agentclinic-repair-depth-2",
-    "selfhost-review-script",
-]
+TASKS_FILE = Path(__file__).resolve().parents[8] / "datasets" / "eval" / "agent_tasks.jsonl"
 CWD_BLOCK = re.compile(r"<cwd>\n.*?\n</cwd>", re.DOTALL)
 TEXT_TOOL_CALL = re.compile(r"<tool_call>|<\|tool_call>|\"name\"\s*:\s*\"(read|bash|edit|write)\"")
 # Greedy decoding repeats itself exactly once it starts looping, so the same turn this many times in a row ends it
@@ -126,13 +117,14 @@ def turn_signature(tool_calls: list) -> tuple:
 
 
 @solver
-def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_REPEATS) -> Solver:
+def agent_loop(tasks_file: str, max_turns: int, loop_repeats: int = LOOP_REPEATS) -> Solver:
     """Let the model call tools until it answers without one, repeats itself, or reaches max_turns turns."""
+    lines = Path(tasks_file).read_text().splitlines()
+    tasks = {task.name: task for task in map(AgentTask.from_json, lines)}
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        agent_task = AgentTask.from_directory(Path(state.metadata["task_dir"]))
-        schemas = {spec["function"]["name"]: spec["function"]["parameters"] for spec in agent_task.tools}
-        ws = Workspace.create(agent_task, Path(runs_dir or tempfile.gettempdir()), schemas)
+        agent_task = tasks[state.sample_id]
+        ws = Workspace.create(agent_task, Path(tempfile.gettempdir()))
         state.messages.insert(0, ChatMessageSystem(content=system_prompt(agent_task.system_prompt, ws.root)))
         tools, model = agent_tools(agent_task.tools), get_model()
         ending, text_calls, turns = TURN_CAP, 0, 0
@@ -241,33 +233,18 @@ def agent_behaviour() -> Scorer:
 
 @task
 def agent_eval(
-    tasks_dir: str | None = None,
+    tasks_file: str | None = None,
     tasks: list[str] | None = None,
     max_turns: int = MAX_TURNS,
     loop_repeats: int = LOOP_REPEATS,
 ) -> Task:
-    """Build the agent-behaviour eval: every task in AGENT_TASKS, or the named `tasks`, or ["all"].
-
-    `tasks_dir` (or SATYRN_EVALS_TASKS) points at another task directory, such as a satyrn-evals checkout, where
-    only DEFAULT_TASKS run unless `tasks` says otherwise.
-    """
-    root = Path(tasks_dir or os.environ.get(TASKS_ENV) or AGENT_TASKS)
-    present = sorted(p.parent.name for p in root.glob("*/manifest.json"))
-    default = present if root == AGENT_TASKS else DEFAULT_TASKS
-    names = present if tasks == ["all"] else [name for name in tasks or default if name in present]
+    """Build the agent-behaviour eval over every task in tasks_file, or only the named `tasks`."""
+    tasks_file = tasks_file or str(TASKS_FILE)
     samples = []
-    for name in names:
-        agent_task = AgentTask.from_directory(root / name)
-        samples.append(
-            Sample(
-                id=agent_task.name,
-                input=agent_task.contract,
-                metadata={
-                    "task_dir": str(root / name),
-                    "expected": agent_task.expected,
-                    "category": agent_task.category,
-                },
-            )
-        )
-    solver = agent_loop(max_turns, None, loop_repeats)
+    for line in Path(tasks_file).read_text().splitlines():
+        agent_task = AgentTask.from_json(line)
+        if tasks is None or agent_task.name in tasks:
+            metadata = {"expected": agent_task.expected, "category": agent_task.category}
+            samples.append(Sample(id=agent_task.name, input=agent_task.contract, metadata=metadata))
+    solver = agent_loop(tasks_file, max_turns, loop_repeats)
     return Task(dataset=MemoryDataset(samples), solver=solver, scorer=agent_behaviour())
