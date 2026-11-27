@@ -96,7 +96,8 @@ def evaluate_checkpoints(run: TuningRun) -> None:
         return
 
     # Unsloth must be imported before transformers, which inspect_ai's HF provider imports
-    from unsloth import FastVisionModel
+    from unsloth import FastVisionModel  # noqa: I001
+    from peft.helpers import rescale_adapter_scale
 
     model, processor = FastVisionModel.from_pretrained(
         model_name=str(checkpoint.path),
@@ -120,7 +121,8 @@ def evaluate_checkpoints(run: TuningRun) -> None:
 
         model.load_adapter(str(checkpoint.path), adapter_name="checkpoint")
         model.set_adapter("checkpoint")
-        logs = run_eval_suite(model, tokenizer, metadata, run.run_dir / "evals")
+        with rescale_adapter_scale(model, run.config.model.peft.adapter_scale):
+            logs = run_eval_suite(model, tokenizer, metadata, run.run_dir / "evals")
         model.set_adapter("default")
         model.delete_adapter("checkpoint")
 

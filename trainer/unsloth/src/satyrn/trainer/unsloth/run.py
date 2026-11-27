@@ -50,10 +50,12 @@ CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 def unsloth_init() -> None:
     """Initialize unsloth and patch the training libraries."""
     global FastModel, FastVisionModel, GRPOConfig, GRPOTrainer, SFTConfig, SFTTrainer, torch, train_on_responses_only
+    global rescale_adapter_scale
 
     # Unsloth must be imported first to patch transformers, accelerate, etc.
     from unsloth import FastModel, FastVisionModel  # noqa: I001
     from unsloth.chat_templates import train_on_responses_only
+    from peft.helpers import rescale_adapter_scale
     import torch
     from trl import GRPOConfig, GRPOTrainer, SFTConfig, SFTTrainer
 
@@ -166,10 +168,13 @@ def log_code_version() -> None:
     mlflow.log_text("\n".join(packages), "pip-freeze.txt")
 
 
-def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
+def evaluate_model(
+    stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase, config: ExperimentConfig
+) -> None:
     """Run every eval against the model as it stands after stage_name."""
-    run_eval_qa(stage_name, model, tokenizer)
-    logs = run_eval_suite(model, tokenizer, {"stage": stage_name}, get_output_dir() / "evals")
+    with rescale_adapter_scale(model, config.model.peft.adapter_scale):
+        run_eval_qa(stage_name, model, tokenizer)
+        logs = run_eval_suite(model, tokenizer, {"stage": stage_name}, get_output_dir() / "evals")
     log_eval_metrics(logs, step=get_args(StageName).index(stage_name))
 
 
@@ -178,11 +183,12 @@ def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentCo
     hub_model_id = config.push_to_hub_path or f"{os.environ['HF_USERNAME']}/{basename(config.model.name)}"
     gguf_hub_model_id = f"{hub_model_id}-GGUF"
 
-    logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
-    model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
+    with rescale_adapter_scale(model, config.model.peft.adapter_scale):
+        logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
+        model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
 
-    logger.info("Pushing GGUF model to Hugging Face Hub: https://huggingface.co/%s", gguf_hub_model_id)
-    model.push_to_hub_gguf(gguf_hub_model_id, processor, quantization_method="q4_k_m")
+        logger.info("Pushing GGUF model to Hugging Face Hub: https://huggingface.co/%s", gguf_hub_model_id)
+        model.push_to_hub_gguf(gguf_hub_model_id, processor, quantization_method="q4_k_m")
 
 
 @hydra.main(config_path=CONFIG_DIR)
@@ -263,7 +269,7 @@ def main(cfg: DictConfig) -> None:
 
                 if is_evaluated(config, "pre"):
                     logger.info("Model evaluation before training")
-                    evaluate_model("pre", model, tokenizer)
+                    evaluate_model("pre", model, tokenizer, config)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
@@ -294,7 +300,7 @@ def main(cfg: DictConfig) -> None:
 
                     if is_evaluated(config, "cpt"):
                         logger.info("Model evaluation after Continuous Pre-Training (CPT)")
-                        evaluate_model("cpt", model, tokenizer)
+                        evaluate_model("cpt", model, tokenizer, config)
 
                 if config.datasets.sft is not None:
                     logger.info("Starting Supervised Fine-Tuning (SFT) stage")
@@ -315,7 +321,7 @@ def main(cfg: DictConfig) -> None:
 
                     if is_evaluated(config, "sft"):
                         logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
-                        evaluate_model("sft", model, tokenizer)
+                        evaluate_model("sft", model, tokenizer, config)
 
                 if config.datasets.rl is not None:
                     logger.info("Starting Reinforcement Learning (RL) stage")
@@ -359,7 +365,7 @@ def main(cfg: DictConfig) -> None:
 
                     if is_evaluated(config, "rl"):
                         logger.info("Model evaluation after Reinforcement Learning (RL)")
-                        evaluate_model("rl", model, tokenizer)
+                        evaluate_model("rl", model, tokenizer, config)
 
                 if config.push_to_hub:
                     upload_to_hub(model, processor, config)

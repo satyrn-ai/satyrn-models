@@ -52,12 +52,13 @@ class ExperimentConfig(BaseModel):
 
 
 class PeftConfig(BaseModel):
-    """Arguments passed to FastModel.get_peft_model."""
+    """LoRA adapter settings."""
 
     model_config = ConfigDict(extra="forbid")
 
     r: int
     lora_alpha: int
+    adapter_scale: float
     lora_dropout: float
     target_modules: list[str] | None
     finetune_attention_modules: bool

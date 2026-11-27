@@ -24,6 +24,7 @@ model:
   peft:
     # r - must be explicitly set by model or experiment config
     lora_alpha: ${mul:${.r},2} # r * 2 by default
+    adapter_scale: 1.0 # multiplier on the trained adapter strength in evals and export
     lora_dropout: 0.0
     target_modules: null
     finetune_attention_modules: true
