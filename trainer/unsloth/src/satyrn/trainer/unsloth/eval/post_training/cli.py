@@ -147,6 +147,8 @@ def main(run_id: str) -> None:
     """Evaluate the checkpoints of the training run of the MLflow run RUN_ID."""
     run = load_run_data(find_run_dir(run_id))
     print_run_summary(run)
+    if run.has_scores:
+        update_chart(run)
     evaluate_checkpoints(run)
     if run.has_scores:
         update_chart(run)
