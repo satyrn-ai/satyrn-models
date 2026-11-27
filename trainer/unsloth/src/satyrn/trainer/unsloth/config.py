@@ -42,6 +42,7 @@ class ExperimentConfig(BaseModel):
     max_seq_length: int
     max_steps: int
     optim: str
+    eval_stages: list[StageName]
     pre_model_eval: bool
     rng_seed: int
     run_name: str
@@ -51,12 +52,13 @@ class ExperimentConfig(BaseModel):
 
 
 class PeftConfig(BaseModel):
-    """Arguments passed to FastModel.get_peft_model."""
+    """LoRA adapter settings."""
 
     model_config = ConfigDict(extra="forbid")
 
     r: int
     lora_alpha: int
+    adapter_scale: float
     lora_dropout: float
     target_modules: list[str] | None
     finetune_attention_modules: bool
@@ -106,6 +108,7 @@ class CptStageConfig(BaseModel):
     batch_size: int
     eval_batch_size: int
     eval_steps: int | None
+    checkpoint_steps: int | None
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
@@ -118,6 +121,7 @@ class SftStageConfig(BaseModel):
     batch_size: int
     eval_batch_size: int
     eval_steps: int | None
+    checkpoint_steps: int | None
     gradient_accumulation_steps: int
     num_train_epochs: int
     learning_rate: float
@@ -137,6 +141,11 @@ class RlStageConfig(BaseModel):
 
 def validate_config(cfg: DictConfig) -> ExperimentConfig:
     return ExperimentConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
+
+
+def is_evaluated(config: ExperimentConfig, stage: StageName) -> bool:
+    """Return whether the eval suite runs after stage; pre_model_eval=false also skips pre."""
+    return stage in config.eval_stages and (stage != "pre" or config.pre_model_eval)
 
 
 def log_config(cfg: DictConfig) -> None:

@@ -6,7 +6,8 @@ logging_steps: 2
 eval_ratio: 0.1
 rng_seed: 3407 # LoRA initialization and data order
 max_steps: -1 # positive values cut a run short, overriding num_train_epochs
-pre_model_eval: true # run the full eval suite on the untrained model before any stage
+eval_stages: [pre, sft, rl] # stages after which the full eval suite runs; pre is the untrained model
+pre_model_eval: true # false skips the pre eval even when pre is in eval_stages
 push_to_hub: false # upload the trained model to Hugging Face
 push_to_hub_path: null # repo id; defaults to $HF_USERNAME/<base model name>
 
@@ -23,6 +24,7 @@ model:
   peft:
     # r - must be explicitly set by model or experiment config
     lora_alpha: ${mul:${.r},2} # r * 2 by default
+    adapter_scale: 1.0 # multiplier on the trained adapter strength in evals and export
     lora_dropout: 0.0
     target_modules: null
     finetune_attention_modules: true
@@ -50,6 +52,7 @@ cpt:
   batch_size: 8
   eval_batch_size: 4
   eval_steps: null
+  checkpoint_steps: null # null saves an adapter checkpoint at every eval step
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 1e-4
@@ -59,6 +62,7 @@ sft:
   batch_size: 8
   eval_batch_size: 4
   eval_steps: null
+  checkpoint_steps: null # null saves an adapter checkpoint at every eval step
   gradient_accumulation_steps: 1
   num_train_epochs: 1
   learning_rate: 2e-4

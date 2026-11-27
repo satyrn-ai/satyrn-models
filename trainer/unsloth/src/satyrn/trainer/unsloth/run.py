@@ -7,14 +7,13 @@ import os
 import shutil
 from importlib.metadata import distributions
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, get_args
 
 import hydra
 import mlflow
 from datasets import Dataset
 from git import Repo
 from hydra.core.hydra_config import HydraConfig
-from inspect_evals.humaneval import humaneval
 from mlflow.utils.git_utils import get_git_branch, get_git_commit
 from mlflow.utils.mlflow_tags import MLFLOW_GIT_BRANCH, MLFLOW_GIT_COMMIT, MLFLOW_GIT_DIRTY
 from omegaconf import DictConfig
@@ -24,12 +23,12 @@ from satyrn.trainer.unsloth.config import (
     StageName,
     basename,
     calculate_eval_steps,
+    is_evaluated,
     log_config,
     validate_config,
 )
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
-from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
-from satyrn.trainer.unsloth.eval.python_eval import python_eval
+from satyrn.trainer.unsloth.eval.inspect_runner import log_eval_metrics, run_eval_suite
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.repo_sources import load_cpt_dataset, read_rows
@@ -51,10 +50,12 @@ CONFIG_DIR = str(Path(__file__).resolve().parents[4] / "configs")
 def unsloth_init() -> None:
     """Initialize unsloth and patch the training libraries."""
     global FastModel, FastVisionModel, GRPOConfig, GRPOTrainer, SFTConfig, SFTTrainer, torch, train_on_responses_only
+    global rescale_adapter_scale
 
     # Unsloth must be imported first to patch transformers, accelerate, etc.
     from unsloth import FastModel, FastVisionModel  # noqa: I001
     from unsloth.chat_templates import train_on_responses_only
+    from peft.helpers import rescale_adapter_scale
     import torch
     from trl import GRPOConfig, GRPOTrainer, SFTConfig, SFTTrainer
 
@@ -63,6 +64,11 @@ def unsloth_init() -> None:
     from transformers.trainer_callback import ProgressCallback
 
     transformers.trainer.DEFAULT_PROGRESS_CALLBACK = ProgressCallback
+
+
+def get_output_dir() -> Path:
+    """Return the Hydra run directory."""
+    return Path(HydraConfig.get().runtime.output_dir)
 
 
 def load_dataset(paths: str | list[str]) -> Dataset:
@@ -106,8 +112,12 @@ def build_trainer(
         eval_steps = calculate_eval_steps(len(train_dataset), stage, cfg.max_steps)
         logger.info("Resolved %s eval_steps=%d", name, eval_steps)
 
+    checkpoint_steps = stage.checkpoint_steps or eval_steps
+    checkpoint_dir = get_output_dir() / "checkpoints" / name
+
     training_args = SFTConfig(
-        output_dir=f"outputs/{name}",
+        output_dir=str(checkpoint_dir),
+        save_steps=checkpoint_steps,
         per_device_train_batch_size=stage.batch_size,
         per_device_eval_batch_size=stage.eval_batch_size,
         gradient_accumulation_steps=stage.gradient_accumulation_steps,
@@ -158,11 +168,14 @@ def log_code_version() -> None:
     mlflow.log_text("\n".join(packages), "pip-freeze.txt")
 
 
-def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
+def evaluate_model(
+    stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase, config: ExperimentConfig
+) -> None:
     """Run every eval against the model as it stands after stage_name."""
-    run_eval_qa(stage_name, model, tokenizer)
-    run_inspect_eval(stage_name, model, tokenizer, humaneval(sandbox="local"))
-    run_inspect_eval(stage_name, model, tokenizer, python_eval())
+    with rescale_adapter_scale(model, config.model.peft.adapter_scale):
+        run_eval_qa(stage_name, model, tokenizer)
+        logs = run_eval_suite(model, tokenizer, {"stage": stage_name}, get_output_dir() / "evals")
+    log_eval_metrics(logs, step=get_args(StageName).index(stage_name))
 
 
 def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentConfig) -> None:
@@ -170,11 +183,12 @@ def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentCo
     hub_model_id = config.push_to_hub_path or f"{os.environ['HF_USERNAME']}/{basename(config.model.name)}"
     gguf_hub_model_id = f"{hub_model_id}-GGUF"
 
-    logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
-    model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
+    with rescale_adapter_scale(model, config.model.peft.adapter_scale):
+        logger.info("Pushing merged model to Hugging Face Hub: https://huggingface.co/%s", hub_model_id)
+        model.push_to_hub_merged(hub_model_id, processor, save_method="merged_16bit")
 
-    logger.info("Pushing GGUF model to Hugging Face Hub: https://huggingface.co/%s", gguf_hub_model_id)
-    model.push_to_hub_gguf(gguf_hub_model_id, processor, quantization_method="q4_k_m")
+        logger.info("Pushing GGUF model to Hugging Face Hub: https://huggingface.co/%s", gguf_hub_model_id)
+        model.push_to_hub_gguf(gguf_hub_model_id, processor, quantization_method="q4_k_m")
 
 
 @hydra.main(config_path=CONFIG_DIR)
@@ -183,10 +197,9 @@ def main(cfg: DictConfig) -> None:
         print("Usage: satyrn-unsloth --config-name experiment/<name>")
         return
 
-    output_dir = Path(HydraConfig.get().runtime.output_dir)
+    output_dir = get_output_dir()
     log_path = output_dir / "run.log"
     evals_dir = output_dir / "evals"
-    os.environ["INSPECT_LOG_DIR"] = str(evals_dir)
     with tee_output(log_path) as log_file:
         unsloth_init()
         load_secrets()
@@ -254,9 +267,9 @@ def main(cfg: DictConfig) -> None:
                 )
                 log_code_version()
 
-                if config.pre_model_eval:
+                if is_evaluated(config, "pre"):
                     logger.info("Model evaluation before training")
-                    evaluate_model("pre", model, tokenizer)
+                    evaluate_model("pre", model, tokenizer, config)
 
                 if config.datasets.cpt is not None:
                     logger.info("Starting Continuous Pre-Training (CPT) stage")
@@ -285,8 +298,9 @@ def main(cfg: DictConfig) -> None:
                         log_dataset_params(config.datasets.cpt, trainer)
                         trainer.train()
 
-                    logger.info("Model evaluation after Continuous Pre-Training (CPT)")
-                    evaluate_model("cpt", model, tokenizer)
+                    if is_evaluated(config, "cpt"):
+                        logger.info("Model evaluation after Continuous Pre-Training (CPT)")
+                        evaluate_model("cpt", model, tokenizer, config)
 
                 if config.datasets.sft is not None:
                     logger.info("Starting Supervised Fine-Tuning (SFT) stage")
@@ -305,8 +319,9 @@ def main(cfg: DictConfig) -> None:
                         log_dataset_params(config.datasets.sft, trainer)
                         trainer.train()
 
-                    logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
-                    evaluate_model("sft", model, tokenizer)
+                    if is_evaluated(config, "sft"):
+                        logger.info("Model evaluation after Supervised Fine-Tuning (SFT)")
+                        evaluate_model("sft", model, tokenizer, config)
 
                 if config.datasets.rl is not None:
                     logger.info("Starting Reinforcement Learning (RL) stage")
@@ -316,7 +331,7 @@ def main(cfg: DictConfig) -> None:
                     dataset = dataset.map(to_chat_prompt)
 
                     training_args = GRPOConfig(
-                        output_dir="outputs/rl",
+                        output_dir=str(output_dir / "checkpoints" / "rl"),
                         per_device_train_batch_size=config.rl.batch_size,
                         gradient_accumulation_steps=config.rl.gradient_accumulation_steps,
                         num_generations=config.rl.num_generations,
@@ -348,8 +363,9 @@ def main(cfg: DictConfig) -> None:
                         log_dataset_params(config.datasets.rl, trainer)
                         trainer.train()
 
-                    logger.info("Model evaluation after Reinforcement Learning (RL)")
-                    evaluate_model("rl", model, tokenizer)
+                    if is_evaluated(config, "rl"):
+                        logger.info("Model evaluation after Reinforcement Learning (RL)")
+                        evaluate_model("rl", model, tokenizer, config)
 
                 if config.push_to_hub:
                     upload_to_hub(model, processor, config)

@@ -1,23 +1,21 @@
-"""Run inspect_ai evals against a live (model, tokenizer) pair mid-training.
-
-inspect_ai's hf provider imports transformers, so every inspect_ai import is
-deferred into `run_inspect_eval` to keep this module importable before unsloth.
-"""
+"""Run inspect_ai evals against a live (model, tokenizer) pair and log their metrics to MLflow."""
 
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, get_args
+from typing import TYPE_CHECKING, Any
 
 import inspect_ai
 import mlflow
 from inspect_ai.model import GenerateConfig, Model
+from inspect_evals.humaneval import humaneval
 
-from satyrn.trainer.unsloth.config import StageName
+from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.utils import model_in_inference_mode
 
 if TYPE_CHECKING:
-    from inspect_ai import Task
+    from pathlib import Path
+
     from inspect_ai.log import EvalLog
     from torch.nn import Module
     from transformers import PreTrainedTokenizerBase
@@ -26,40 +24,38 @@ if TYPE_CHECKING:
 os.environ.setdefault("INSPECT_LOG_LEVEL", "NOTSET")
 
 
-def run_inspect_eval(
-    stage: StageName,
-    model: Module,
-    tokenizer: PreTrainedTokenizerBase,
-    task: Task,
-    enable_thinking: bool = False,
-    max_new_tokens: int = 4096,
-    batch_size: int = 8,
-    limit: int | None = None,
+def run_eval_suite(
+    model: Module, tokenizer: PreTrainedTokenizerBase, metadata: dict[str, Any], log_dir: Path
 ) -> list[EvalLog]:
-
+    """Run HumanEval and PythonEval against a live model, storing metadata in the eval logs."""
     # Lazy import to allow Unsloth patching of Torch and Transformers
     from satyrn.trainer.unsloth.eval.inspect_api import InMemoryHuggingFaceAPI
 
-    api = InMemoryHuggingFaceAPI(model, tokenizer, enable_thinking)
-    with model_in_inference_mode(model):
-        log = inspect_ai.eval(
-            task,
-            model=Model(api, GenerateConfig(max_tokens=max_new_tokens, max_connections=batch_size)),
-            limit=limit,
-            max_samples=batch_size,
+    api = InMemoryHuggingFaceAPI(model, tokenizer, enable_thinking=False)
+    eval_model = Model(api, GenerateConfig(max_tokens=4096, max_connections=8))
+    with model_in_inference_mode(model), eval_model:
+        return inspect_ai.eval(
+            [humaneval(sandbox="local"), python_eval()],
+            model=eval_model,
+            log_dir=str(log_dir),
+            metadata=metadata,
+            max_samples=8,
             display="plain",
         )
 
+
+def log_eval_metrics(logs: list[EvalLog], step: int, run_id: str | None = None) -> None:
+    """Log the metrics of the eval logs to an MLflow run, the active one when run_id is None."""
     # Per-PEP scores stay in the printed results table only
     mlflow.log_metrics(
         {
-            f"{result.eval.task_display_name}_{score.name}_{metric_name}": metric.value
-            for result in log
-            if result.results
-            for score in result.results.scores
+            f"{log.eval.task_display_name}_{score.name}_{metric_name}": metric.value
+            for log in logs
+            if log.results
+            for score in log.results.scores
             for metric_name, metric in score.metrics.items()
             if metric.params.get("group_key") != "pep"
         },
-        step=get_args(StageName).index(stage),
+        step=step,
+        run_id=run_id,
     )
-    return log

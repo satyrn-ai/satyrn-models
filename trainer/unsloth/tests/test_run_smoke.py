@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 from hydra import compose, initialize_config_dir
 
-from satyrn.trainer.unsloth.config import ExperimentConfig, SftStageConfig, calculate_eval_steps, validate_config
+from satyrn.trainer.unsloth.config import (
+    ExperimentConfig,
+    SftStageConfig,
+    calculate_eval_steps,
+    is_evaluated,
+    validate_config,
+)
 from satyrn.trainer.unsloth.run import CONFIG_DIR, main
 
 EXPERIMENT_NAMES = sorted(path.stem for path in Path(CONFIG_DIR, "experiment").glob("*.yaml"))
@@ -55,6 +61,23 @@ def test_model_config_validates(model_name: str) -> None:
     assert config.model.peft.r > 0
 
 
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        ([], {"pre": True, "cpt": False, "sft": True, "rl": True}),
+        (["pre_model_eval=false"], {"pre": False, "cpt": False, "sft": True, "rl": True}),
+        (["eval_stages=[cpt]"], {"pre": False, "cpt": True, "sft": False, "rl": False}),
+        (["eval_stages=[]"], {"pre": False, "cpt": False, "sft": False, "rl": False}),
+    ],
+)
+def test_is_evaluated(overrides: list[str], expected: dict[str, bool]) -> None:
+    with initialize_config_dir(config_dir=CONFIG_DIR):
+        cfg = compose(config_name="experiment/py3.15", overrides=overrides)
+
+    config = validate_config(cfg)
+    assert {stage: is_evaluated(config, stage) for stage in expected} == expected
+
+
 def test_null_eval_steps_validates() -> None:
     """Both CPT and SFT accept eval_steps=null."""
     with initialize_config_dir(config_dir=CONFIG_DIR):
@@ -93,6 +116,7 @@ def test_calculate_eval_steps(
         batch_size=batch_size,
         eval_batch_size=1,
         eval_steps=None,
+        checkpoint_steps=None,
         gradient_accumulation_steps=gradient_accumulation_steps,
         num_train_epochs=num_train_epochs,
         learning_rate=1e-4,
