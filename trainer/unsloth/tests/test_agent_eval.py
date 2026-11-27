@@ -13,7 +13,6 @@ from satyrn.trainer.unsloth.eval.agent_eval import (
     agent_eval,
     grade,
     load_task,
-    recorded_session,
     system_prompt,
 )
 
@@ -36,15 +35,6 @@ TOOLS = [
 SYSTEM = "You are a coding agent.\n\n<cwd>\n/workspace\n</cwd>\nBe concise."
 
 
-@pytest.fixture(autouse=True)
-def agentic_data(tmp_path_factory, monkeypatch) -> Path:
-    """A one-row agentic SFT file, standing in for the real (git-lfs) dataset the eval reads its session from."""
-    path = tmp_path_factory.mktemp("data") / "sft-agentic.jsonl"
-    path.write_text(json.dumps({"prompt": [{"role": "system", "content": SYSTEM}], "tools": TOOLS}) + "\n")
-    monkeypatch.setenv("SATYRN_AGENTIC_DATA", str(path))
-    return path
-
-
 def make_task(root: Path, overlay: bool = False) -> Path:
     """A one-file task in the satyrn-evals layout: manifest, base/ and an optional hidden overlay/."""
     task = root / "double"
@@ -58,6 +48,8 @@ def make_task(root: Path, overlay: bool = False) -> Path:
     manifest = {
         "name": "double",
         "contract": "Implement double(n) in solution.py.",
+        "system_prompt": SYSTEM,
+        "tools": TOOLS,
         "expected_test_ids": ["test_solution.py::test_two", "test_solution.py::test_zero"],
         "source_paths": ["solution.py"],
     }
@@ -319,24 +311,11 @@ def test_grade_honours_the_oracle_env_prefix(tmp_path: Path) -> None:
     assert grade(ws, task) == set(task.expected)
 
 
-def test_session_is_read_from_the_agentic_training_data(agentic_data: Path) -> None:
-    """The system prompt and tool schemas are the training data's own, never a copy kept in code."""
-    system, tools = recorded_session()
-    assert system == SYSTEM and tools == TOOLS
-
-
 def test_system_prompt_names_the_real_working_folder(tmp_path: Path) -> None:
     """<cwd> in the recorded prompt is replaced by the sample's actual folder, whatever it was recorded as."""
     root = tmp_path / "a" / "long" / "folder"
-    prompt = system_prompt(root)
+    prompt = system_prompt(SYSTEM, root)
     assert prompt == f"You are a coding agent.\n\n<cwd>\n{root}\n</cwd>\nBe concise."
-
-
-def test_a_git_lfs_pointer_is_a_clear_error(agentic_data: Path) -> None:
-    """Without git-lfs the dataset is a pointer file; say so instead of failing on JSON."""
-    agentic_data.write_text("version https://git-lfs.github.com/spec/v1\noid sha256:abc\nsize 1\n")
-    with pytest.raises(RuntimeError, match="git-lfs"):
-        recorded_session()
 
 
 def test_the_model_is_offered_pis_tool_schemas(tmp_path: Path) -> None:
@@ -379,13 +358,6 @@ def test_read_offset_limit_and_bash_timeout_are_honoured(tmp_path: Path) -> None
     assert ws.call("read", {"path": "lines.txt", "offset": 2, "limit": 2})[0].startswith("two\nthree")
     out, err = ws.call("bash", {"command": "sleep 5", "timeout": 1})
     assert err and "timed out" in out
-
-
-def test_default_agentic_data_path_is_the_repo_dataset() -> None:
-    """The default points at the repository's own agentic SFT file (present as a git-lfs file or pointer)."""
-    from satyrn.trainer.unsloth.eval.agent_eval import AGENTIC_DATA
-
-    assert AGENTIC_DATA.is_file()
 
 
 def test_grading_does_not_need_pytest_in_the_running_interpreter(tmp_path: Path, monkeypatch) -> None:

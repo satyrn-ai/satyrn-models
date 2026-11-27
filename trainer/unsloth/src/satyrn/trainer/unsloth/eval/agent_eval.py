@@ -6,11 +6,6 @@ in a fresh copy of `base/` through the coding tools of the agentic SFT data (rea
 The working folder is long and unique per sample, never a short fixed path such as `/workspace`, so a model
 that learned to build absolute paths from one fixed folder is caught writing outside its workspace.
 
-The model sees the system prompt and tool schemas it was trained with: both are read from the first row of the
-agentic SFT data (`SATYRN_AGENTIC_DATA`, by default `datasets/python3.15/sft-agentic.jsonl`) when the eval runs,
-with `<cwd>` naming the sample's real folder. Nothing about the recording harness is kept in code, so the eval
-follows the training data if that harness changes.
-
 A sample ends in one of four ways: the model stops on its own (a turn with no tool calls), it writes a tool call
 as plain text instead of stopping, it repeats the same turn `loop_repeats` times in a row (the repeat is not
 run), or it reaches `max_turns`. The workspace is graded however the sample ended, so stopping can be scored
@@ -53,8 +48,6 @@ DEFAULT_TASKS = [
     "agentclinic-repair-depth-2",
     "selfhost-review-script",
 ]
-AGENTIC_DATA_ENV = "SATYRN_AGENTIC_DATA"
-AGENTIC_DATA = Path(__file__).resolve().parents[7] / "datasets" / "python3.15" / "sft-agentic.jsonl"
 CWD_BLOCK = re.compile(r"<cwd>\n.*?\n</cwd>", re.DOTALL)
 COPY_IGNORE = shutil.ignore_patterns(".venv", "__pycache__", ".pytest_cache", "*.pyc", ".git")
 MAX_OUTPUT = 20_000
@@ -89,6 +82,8 @@ class AgentTask:
     base: Path
     overlay: Path | None
     expected: list[str]
+    system_prompt: str
+    tools: list[dict]
     oracle_env: dict[str, str] = field(default_factory=dict)
     category: str = "other"
     max_calls: int | None = None
@@ -115,6 +110,8 @@ def load_task(task_dir: Path) -> AgentTask:
         base,
         overlay,
         manifest["expected_test_ids"],
+        manifest["system_prompt"],
+        manifest["tools"],
         oracle_env,
         manifest.get("category", "other"),
         manifest.get("max_calls"),
@@ -352,29 +349,17 @@ def grade(workspace: Workspace, agent_task: AgentTask) -> set[str]:
     return {test_id for test_id in agent_task.expected if f"PASSED {test_id}" in output}
 
 
-def recorded_session() -> tuple[str, list[dict]]:
-    """The system prompt and tool schemas from the first row of the agentic SFT data."""
-    path = Path(os.environ.get(AGENTIC_DATA_ENV) or AGENTIC_DATA)
-    with path.open() as fh:
-        first = fh.readline()
-    if first.startswith("version https://git-lfs"):
-        raise RuntimeError(f"{path} is a git-lfs pointer: run `git lfs pull` to fetch the agentic SFT data")
-    row = json.loads(first)
-    return row["prompt"][0]["content"], row["tools"]
-
-
-def system_prompt(root: Path) -> str:
-    """The recorded system prompt, with its <cwd> block naming the sample's real working folder."""
-    system, _tools = recorded_session()
-    return CWD_BLOCK.sub(lambda _match: f"<cwd>\n{root}\n</cwd>", system)
+def system_prompt(template: str, root: Path) -> str:
+    """The system prompt, with its <cwd> block naming the sample's real working folder."""
+    return CWD_BLOCK.sub(lambda _match: f"<cwd>\n{root}\n</cwd>", template)
 
 
 async def _executed_by_workspace(**_arguments: object) -> str:
     raise NotImplementedError  # the solver executes calls through its Workspace
 
 
-def agent_tools() -> list[ToolDef]:
-    """The recorded tools, with the exact names, descriptions and parameter schemas of the training data."""
+def agent_tools(specs: list[dict]) -> list[ToolDef]:
+    """Return an inspect_ai ToolDef for each tool schema in specs."""
     return [
         ToolDef(
             _executed_by_workspace,
@@ -382,7 +367,7 @@ def agent_tools() -> list[ToolDef]:
             description=spec["function"]["description"],
             parameters=ToolParams.model_validate(spec["function"]["parameters"]),
         )
-        for spec in recorded_session()[1]
+        for spec in specs
     ]
 
 
@@ -397,10 +382,10 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         agent_task = load_task(Path(state.metadata["task_dir"]))
-        schemas = {spec["function"]["name"]: spec["function"]["parameters"] for spec in recorded_session()[1]}
+        schemas = {spec["function"]["name"]: spec["function"]["parameters"] for spec in agent_task.tools}
         ws = Workspace.create(agent_task, Path(runs_dir or tempfile.gettempdir()), schemas)
-        state.messages.insert(0, ChatMessageSystem(content=system_prompt(ws.root)))
-        tools, model = agent_tools(), get_model()
+        state.messages.insert(0, ChatMessageSystem(content=system_prompt(agent_task.system_prompt, ws.root)))
+        tools, model = agent_tools(agent_task.tools), get_model()
         ending, text_calls, turns = TURN_CAP, 0, 0
         last_signature, repeats = None, 0
         for turns in range(1, max_turns + 1):  # noqa: B007 - the last turn number is the turn count
