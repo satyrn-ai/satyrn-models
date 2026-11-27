@@ -70,6 +70,14 @@ class TuningRun:
     config: ExperimentConfig
     mlflow_url: str
     stages: list[Stage]
+    pre_scores: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def has_scores(self) -> bool:
+        """Return whether the untrained model or any checkpoint has been evaluated."""
+        return bool(self.pre_scores) or any(
+            checkpoint.is_evaluated for stage in self.stages for checkpoint in stage.checkpoints
+        )
 
 
 def mlflow_run_urls(run_dir: Path) -> dict[str, str]:
@@ -81,8 +89,8 @@ def find_run_dir(run_id: str) -> Path:
     """Return the run directory of the MLflow run matching run_id."""
     for run_log in sorted(Path("results").glob("*/run.log"), reverse=True):
         run_dir = run_log.parent
-        for url in mlflow_run_urls(run_dir).values():
-            if url.rsplit("/", 1)[1].startswith(run_id):
+        for name, url in mlflow_run_urls(run_dir).items():
+            if name == run_id or url.rsplit("/", 1)[1].startswith(run_id):
                 return run_dir
     raise click.ClickException(f"No run directory for MLflow run {run_id}")
 
@@ -91,20 +99,31 @@ def load_checkpoint(path: Path) -> Checkpoint:
     return Checkpoint(path, json.loads((path / "trainer_state.json").read_text()))
 
 
-def load_scores(run_dir: Path, stages: list[Stage]) -> None:
-    """Fill the scores of the checkpoints from the eval logs in run_dir."""
-    stages_by_name = {stage.name: stage for stage in stages}
-    for log_path in sorted((run_dir / "evals").glob("*.eval")):
+def load_scores(run: TuningRun) -> None:
+    """Fill the scores of the model from the eval logs of the run."""
+    stages_by_name = {stage.name: stage for stage in run.stages}
+
+    for log_path in sorted((run.run_dir / "evals").glob("*.eval")):
         log = read_eval_log(str(log_path), header_only=True)
+        if log.status != "success":
+            continue
+
         metadata = log.eval.metadata or {}
-        stage = stages_by_name.get(metadata.get("stage"))
+        stage_name = metadata.get("stage")
+        stage = stages_by_name.get(stage_name)
         checkpoint = stage.find_checkpoint(metadata.get("global_step")) if stage else None
-        if checkpoint and log.status == "success":
-            checkpoint.scores[log.eval.task_display_name] = log.results.scores[0].metrics["accuracy"].value
-            if {"humaneval", "python_eval"} <= checkpoint.scores.keys():
-                checkpoint.scores["satyrn_score"] = satyrn_models_score(
-                    checkpoint.scores["python_eval"], checkpoint.scores["humaneval"]
-                )
+
+        # Add untrained model scores from the "pre" stage
+        if stage_name == "pre":
+            scores = run.pre_scores
+        elif checkpoint:
+            scores = checkpoint.scores
+        else:
+            continue
+
+        scores[log.eval.task_display_name] = log.results.scores[0].metrics["accuracy"].value
+        if {"humaneval", "python_eval"} <= scores.keys():
+            scores["satyrn_score"] = satyrn_models_score(scores["python_eval"], scores["humaneval"])
 
 
 def load_run_data(run_dir: Path) -> TuningRun:
@@ -119,5 +138,6 @@ def load_run_data(run_dir: Path) -> TuningRun:
             checkpoints = [load_checkpoint(path) for path in checkpoint_paths]
             checkpoints.sort(key=lambda checkpoint: checkpoint.state["global_step"])
             stages.append(Stage(stage_name, url, checkpoints))
-    load_scores(run_dir, stages)
-    return TuningRun(run_dir, config, urls[config.run_name], stages)
+    run = TuningRun(run_dir, config, urls[config.run_name], stages)
+    load_scores(run)
+    return run
