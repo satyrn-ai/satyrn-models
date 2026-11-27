@@ -41,11 +41,10 @@ def run_inspect_eval(
     from satyrn.trainer.unsloth.eval.inspect_api import InMemoryHuggingFaceAPI
 
     api = InMemoryHuggingFaceAPI(model, tokenizer, enable_thinking)
-    eval_model = Model(api, GenerateConfig(max_tokens=max_new_tokens, max_connections=batch_size))
-    with model_in_inference_mode(model), eval_model:
+    with model_in_inference_mode(model):
         log = inspect_ai.eval(
             task,
-            model=eval_model,
+            model=Model(api, GenerateConfig(max_tokens=max_new_tokens, max_connections=batch_size)),
             limit=limit,
             metadata={"stage": stage},
             max_samples=batch_size,

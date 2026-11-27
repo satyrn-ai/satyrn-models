@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gc
 import logging
 import os
 import shutil
@@ -65,12 +64,6 @@ def unsloth_init() -> None:
     from transformers.trainer_callback import ProgressCallback
 
     transformers.trainer.DEFAULT_PROGRESS_CALLBACK = ProgressCallback
-
-
-def shutdown() -> None:
-    """Collect garbage and release cached GPU memory."""
-    gc.collect()
-    torch.cuda.empty_cache()
 
 
 def get_output_dir() -> Path:
