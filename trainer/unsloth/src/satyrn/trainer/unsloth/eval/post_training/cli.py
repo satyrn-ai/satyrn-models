@@ -1,6 +1,5 @@
 """Entry point for the satyrn-model-eval CLI."""
 
-import os
 from typing import get_args
 
 import click
@@ -84,8 +83,9 @@ def print_run_summary(run: TuningRun) -> None:
 
 def update_chart(run: TuningRun) -> None:
     """Redraw the chart of the run and print where it is saved."""
-    chart_path = run.run_dir / "tuning_run.png"
+    chart_path = run.run_dir / "eval_scores.png"
     plot_tuning_run(run, chart_path)
+    mlflow.log_artifact(str(chart_path), run_id=run.mlflow_run_id)
     click.echo(f"Chart updated: {chart_path}")
 
 
@@ -97,10 +97,6 @@ def evaluate_checkpoints(run: TuningRun) -> None:
 
     # Unsloth must be imported before transformers, which inspect_ai's HF provider imports
     from unsloth import FastVisionModel
-
-    load_secrets()
-    os.environ["INSPECT_LOG_DIR"] = str(run.run_dir / "evals")
-    mlflow.set_tracking_uri(run.config.mlflow.tracking_uri)
 
     model, processor = FastVisionModel.from_pretrained(
         model_name=str(checkpoint.path),
@@ -117,23 +113,24 @@ def evaluate_checkpoints(run: TuningRun) -> None:
         is_last = checkpoint is stage.checkpoints[-1]
         if is_last:
             metadata = {"stage": stage.name}
-            mlflow_run_url, step = run.mlflow_url, get_args(StageName).index(stage.name)
+            mlflow_run, step = run, get_args(StageName).index(stage.name)
         else:
             metadata = {"stage": stage.name, "global_step": global_step}
-            mlflow_run_url, step = stage.mlflow_url, global_step
-        mlflow_run_id = mlflow_run_url.rsplit("/", 1)[1]
+            mlflow_run, step = stage, global_step
 
         model.load_adapter(str(checkpoint.path), adapter_name="checkpoint")
         model.set_adapter("checkpoint")
-        logs = run_eval_suite(model, tokenizer, metadata)
+        logs = run_eval_suite(model, tokenizer, metadata, run.run_dir / "evals")
         model.set_adapter("default")
         model.delete_adapter("checkpoint")
 
         load_scores(run)
         if not checkpoint.is_evaluated:
             raise click.ClickException(f"Evaluation of {stage.name} step {global_step} did not complete")
-        log_eval_metrics(logs, step, mlflow_run_id)
-        mlflow.log_metrics({"satyrn_score": checkpoint.scores["satyrn_score"]}, step=step, run_id=mlflow_run_id)
+        log_eval_metrics(logs, step, mlflow_run.mlflow_run_id)
+        mlflow.log_metrics(
+            {"satyrn_score": checkpoint.scores["satyrn_score"]}, step=step, run_id=mlflow_run.mlflow_run_id
+        )
         click.echo(f"{stage.name} step {global_step}: Satyrn Score {percent(checkpoint.scores['satyrn_score'])}")
         update_chart(run)
 
@@ -147,6 +144,8 @@ def main(run_id: str) -> None:
     """Evaluate the checkpoints of the training run of the MLflow run RUN_ID."""
     run = load_run_data(find_run_dir(run_id))
     print_run_summary(run)
+    load_secrets()
+    mlflow.set_tracking_uri(run.config.mlflow.tracking_uri)
     if run.has_scores:
         update_chart(run)
     evaluate_checkpoints(run)

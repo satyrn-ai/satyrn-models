@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 from typing import Any, get_args
 
@@ -41,6 +42,11 @@ class Stage:
     mlflow_url: str
     checkpoints: list[Checkpoint]
 
+    @cached_property
+    def mlflow_run_id(self) -> str:
+        """Return the MLflow run id from the run URL."""
+        return self.mlflow_url.rsplit("/", 1)[1]
+
     @property
     def satyrn_scores(self) -> dict[int, float]:
         """Return the satyrn_score of each evaluated checkpoint by its global step."""
@@ -71,6 +77,11 @@ class TuningRun:
     mlflow_url: str
     stages: list[Stage]
     pre_scores: dict[str, float] = field(default_factory=dict)
+
+    @cached_property
+    def mlflow_run_id(self) -> str:
+        """Return the MLflow run id from the run URL."""
+        return self.mlflow_url.rsplit("/", 1)[1]
 
     @property
     def has_scores(self) -> bool:

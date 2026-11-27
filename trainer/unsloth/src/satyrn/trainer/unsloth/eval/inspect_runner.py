@@ -14,6 +14,8 @@ from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.utils import model_in_inference_mode
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from inspect_ai.log import EvalLog
     from torch.nn import Module
     from transformers import PreTrainedTokenizerBase
@@ -22,7 +24,9 @@ if TYPE_CHECKING:
 os.environ.setdefault("INSPECT_LOG_LEVEL", "NOTSET")
 
 
-def run_eval_suite(model: Module, tokenizer: PreTrainedTokenizerBase, metadata: dict[str, Any]) -> list[EvalLog]:
+def run_eval_suite(
+    model: Module, tokenizer: PreTrainedTokenizerBase, metadata: dict[str, Any], log_dir: Path
+) -> list[EvalLog]:
     """Run HumanEval and PythonEval against a live model, storing metadata in the eval logs."""
     # Lazy import to allow Unsloth patching of Torch and Transformers
     from satyrn.trainer.unsloth.eval.inspect_api import InMemoryHuggingFaceAPI
@@ -33,6 +37,7 @@ def run_eval_suite(model: Module, tokenizer: PreTrainedTokenizerBase, metadata: 
         return inspect_ai.eval(
             [humaneval(sandbox="local"), python_eval()],
             model=eval_model,
+            log_dir=str(log_dir),
             metadata=metadata,
             max_samples=8,
             display="plain",

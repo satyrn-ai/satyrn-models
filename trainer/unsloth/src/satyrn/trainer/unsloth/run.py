@@ -169,7 +169,7 @@ def log_code_version() -> None:
 def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Run every eval against the model as it stands after stage_name."""
     run_eval_qa(stage_name, model, tokenizer)
-    logs = run_eval_suite(model, tokenizer, {"stage": stage_name})
+    logs = run_eval_suite(model, tokenizer, {"stage": stage_name}, get_output_dir() / "evals")
     log_eval_metrics(logs, step=get_args(StageName).index(stage_name))
 
 
@@ -194,7 +194,6 @@ def main(cfg: DictConfig) -> None:
     output_dir = get_output_dir()
     log_path = output_dir / "run.log"
     evals_dir = output_dir / "evals"
-    os.environ["INSPECT_LOG_DIR"] = str(evals_dir)
     with tee_output(log_path) as log_file:
         unsloth_init()
         load_secrets()
