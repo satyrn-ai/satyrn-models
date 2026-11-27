@@ -6,7 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from satyrn.trainer.unsloth.eval.agent_eval import AGENT_TASKS, Workspace, agent_eval, file_digest, grade, load_task
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import file_digest, load_task
+from satyrn.trainer.unsloth.eval.agent_eval.task import AGENT_TASKS, agent_eval, grade
+from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace
 
 TASK_DIRS = sorted(path.parent for path in AGENT_TASKS.glob("*/manifest.json"))
 CATEGORIES = {"finish", "recover", "judgement"}

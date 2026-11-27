@@ -2,7 +2,7 @@
 
 import pytest
 
-from satyrn.trainer.unsloth.eval.tool_calls import parse_tool_calls
+from satyrn.trainer.unsloth.eval.agent_eval.tool_calls import parse_tool_calls
 
 EDIT_ARGS = {"path": "app.py", "edits": [{"oldText": "a = 1", "newText": "a = 2"}]}
 

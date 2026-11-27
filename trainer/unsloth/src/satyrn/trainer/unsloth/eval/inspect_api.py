@@ -11,7 +11,7 @@ from inspect_ai.model import ContentReasoning, ContentText
 from inspect_ai.model._model import ModelAPI
 from inspect_ai.model._providers.hf import HuggingFaceAPI
 
-from satyrn.trainer.unsloth.eval.tool_calls import parse_tool_calls
+from satyrn.trainer.unsloth.eval.agent_eval.tool_calls import parse_tool_calls
 from satyrn.trainer.unsloth.rl.code_tester import split_thinking
 
 # The tools of the generate call in progress: rendered into the chat template, but parsed by us

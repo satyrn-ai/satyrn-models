@@ -7,14 +7,9 @@ import pytest
 from inspect_ai import eval as inspect_eval
 from inspect_ai.model import ModelOutput, get_model
 
-from satyrn.trainer.unsloth.eval.agent_eval import (
-    DEFAULT_TASKS,
-    Workspace,
-    agent_eval,
-    grade,
-    load_task,
-    system_prompt,
-)
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import load_task
+from satyrn.trainer.unsloth.eval.agent_eval.task import DEFAULT_TASKS, agent_eval, grade, system_prompt
+from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace
 
 SOLVED = "def double(n):\n    return n * 2\n"
 

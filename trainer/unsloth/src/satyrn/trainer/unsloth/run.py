@@ -29,7 +29,7 @@ from satyrn.trainer.unsloth.config import (
     validate_config,
 )
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
-from satyrn.trainer.unsloth.eval.agent_eval import agent_eval
+from satyrn.trainer.unsloth.eval.agent_eval.task import agent_eval
 from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
 from satyrn.trainer.unsloth.eval.python_eval import python_eval
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
