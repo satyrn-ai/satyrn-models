@@ -66,6 +66,23 @@ class AgentTask:
         }
         return cls.from_manifest(json.loads(manifest_path.read_text()), files)
 
+    @classmethod
+    def from_json(cls, line: str) -> AgentTask:
+        """Read a task from one JSONL line."""
+        record = json.loads(line)
+        return cls.from_manifest(record["manifest"], record["files"])
+
+    def to_json(self) -> str:
+        """Return the task as one JSONL line."""
+        return json.dumps({"manifest": self.manifest, "files": self.files})
+
+    def to_directory(self, destination: Path) -> None:
+        """Write the task as a folder named after it under destination."""
+        task_dir = destination / self.name
+        task_dir.mkdir(parents=True, exist_ok=True)
+        (task_dir / "manifest.json").write_text(json.dumps(self.manifest, indent=2, ensure_ascii=False) + "\n")
+        self.write_files(task_dir)
+
     def write_files(self, destination: Path, folder: str = "") -> None:
         """Write the files under folder, or all files, to destination."""
         prefix = f"{folder}/" if folder else ""
@@ -78,3 +95,15 @@ class AgentTask:
 
 def file_digest(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+
+def directories_to_jsonl(tasks_dir: Path, jsonl_path: Path) -> None:
+    """Write every task folder in tasks_dir to jsonl_path, one line per task."""
+    tasks = [AgentTask.from_directory(manifest.parent) for manifest in sorted(tasks_dir.glob("*/manifest.json"))]
+    jsonl_path.write_text("".join(task.to_json() + "\n" for task in tasks))
+
+
+def jsonl_to_directories(jsonl_path: Path, destination: Path) -> None:
+    """Write each task in jsonl_path as a folder under destination."""
+    for line in jsonl_path.read_text().splitlines():
+        AgentTask.from_json(line).to_directory(destination)

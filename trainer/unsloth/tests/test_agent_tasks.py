@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask, file_digest
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import (
+    AgentTask,
+    directories_to_jsonl,
+    file_digest,
+    jsonl_to_directories,
+)
 from satyrn.trainer.unsloth.eval.agent_eval.task import AGENT_TASKS, agent_eval, grade
 from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace
 
@@ -17,6 +22,14 @@ CATEGORIES = {"finish", "recover", "judgement"}
 def test_there_are_packaged_tasks_and_the_eval_runs_them_by_default() -> None:
     assert TASK_DIRS
     assert sorted(sample.id for sample in agent_eval().dataset) == sorted(path.name for path in TASK_DIRS)
+
+
+def test_tasks_survive_a_round_trip_through_jsonl(tmp_path: Path) -> None:
+    jsonl_path = tmp_path / "tasks.jsonl"
+    directories_to_jsonl(AGENT_TASKS, jsonl_path)
+    jsonl_to_directories(jsonl_path, tmp_path / "tasks")
+    for task_dir in TASK_DIRS:
+        assert AgentTask.from_directory(tmp_path / "tasks" / task_dir.name) == AgentTask.from_directory(task_dir)
 
 
 @pytest.mark.parametrize("task_dir", TASK_DIRS, ids=lambda path: path.name)
