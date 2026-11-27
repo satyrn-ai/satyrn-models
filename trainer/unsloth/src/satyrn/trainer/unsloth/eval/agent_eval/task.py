@@ -34,7 +34,7 @@ from inspect_ai.scorer import Score, Scorer, Target, grouped, mean, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import ToolDef, ToolParams
 
-from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask, file_digest
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask
 from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace, task_env
 
 # The tasks kept with this module; SATYRN_EVALS_TASKS may point at a satyrn-evals checkout instead
@@ -171,9 +171,7 @@ def agent_loop(max_turns: int, runs_dir: str | None, loop_repeats: int = LOOP_RE
             "passed": sorted(grade(ws, agent_task)),
             "max_calls": agent_task.max_calls,
             "changes_made": ws.changes_made,
-            "protected_changed": sorted(
-                path for path, digest in agent_task.protected.items() if file_digest(ws.root / path) != digest
-            ),
+            "protected_changed": sorted(agent_task.changed_protected_paths(ws.root)),
         }
         return state
 

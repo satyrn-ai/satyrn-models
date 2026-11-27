@@ -6,12 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from satyrn.trainer.unsloth.eval.agent_eval.agent_task import (
-    AgentTask,
-    directories_to_jsonl,
-    file_digest,
-    jsonl_to_directories,
-)
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask, directories_to_jsonl, jsonl_to_directories
 from satyrn.trainer.unsloth.eval.agent_eval.task import AGENT_TASKS, agent_eval, grade
 from satyrn.trainer.unsloth.eval.agent_eval.workspace import Workspace
 
@@ -39,6 +34,7 @@ def test_manifest_is_sound(task_dir: Path) -> None:
     assert task.name == task_dir.name
     assert task.category in CATEGORIES
     assert 300 <= len(task.contract) <= 900, "prompts follow the agentic SFT data, 400-800 characters"
+    assert all(f"base/{path}" in task.files for path in task.protected), "every protected path exists in base/"
     for path, replacements in task.on_first_touch.items():
         text = task.files[f"base/{path}"]
         assert all(old in text for old, _new in replacements), f"every first-touch change to {path} applies to base/"
@@ -62,5 +58,4 @@ def test_base_fails_and_reference_passes(task_dir: Path, tmp_path: Path) -> None
     for path in manifest.get("reference_delete", []):  # a reference solution that removes files
         (ws.root / path).unlink()
     assert grade(ws, task) == set(task.expected)
-    changed = [path for path, digest in task.protected.items() if file_digest(ws.root / path) != digest]
-    assert changed == [], "the reference solution leaves protected files alone"
+    assert task.changed_protected_paths(ws.root) == [], "the reference solution leaves protected files alone"

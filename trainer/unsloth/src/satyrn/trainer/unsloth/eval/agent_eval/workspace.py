@@ -8,13 +8,11 @@ import subprocess
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from jsonschema import Draft202012Validator  # a dependency of inspect_ai
 from jsonschema.exceptions import best_match
 
-if TYPE_CHECKING:
-    from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask
+from satyrn.trainer.unsloth.eval.agent_eval.agent_task import AgentTask
 
 MAX_OUTPUT = 20_000
 # pi's read tool: "output is truncated to 2000 lines or 50KB (whichever is hit first)"
@@ -80,7 +78,6 @@ class Workspace:
     @classmethod
     def create(cls, agent_task: AgentTask, runs_dir: Path, schemas: dict[str, dict] | None = None) -> Workspace:
         root = runs_dir / f"satyrn-agent-eval-{uuid.uuid4().hex[:12]}" / agent_task.name / "project-workspace"
-        root.mkdir(parents=True)
         agent_task.write_files(root, "base")
         return cls(root.resolve(), schemas or {}, pending_changes=dict(agent_task.on_first_touch))
 
