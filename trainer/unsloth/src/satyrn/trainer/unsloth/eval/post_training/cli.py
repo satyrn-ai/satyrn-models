@@ -151,5 +151,3 @@ def main(run_id: str) -> None:
     if run.has_scores:
         update_chart(run)
     evaluate_checkpoints(run)
-    if run.has_scores:
-        update_chart(run)

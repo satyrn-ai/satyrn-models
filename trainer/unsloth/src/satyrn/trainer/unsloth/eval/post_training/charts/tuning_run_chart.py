@@ -55,7 +55,7 @@ def plot_tuning_run(run: TuningRun, path: Path) -> None:
 
         # One segment per stage, so the loss does not connect across stages
         losses = stage_models["val_loss"].dropna()
-        if not losses.empty:
+        if len(losses) > 1:
             label = None if loss_axis.lines else "Validation loss"
             loss_axis.plot(losses.index, losses, color=LOSS_GRAY, linewidth=1.6, linestyle="--", label=label, zorder=2)
 
