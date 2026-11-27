@@ -7,14 +7,13 @@ import os
 import shutil
 from importlib.metadata import distributions
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, get_args
 
 import hydra
 import mlflow
 from datasets import Dataset
 from git import Repo
 from hydra.core.hydra_config import HydraConfig
-from inspect_evals.humaneval import humaneval
 from mlflow.utils.git_utils import get_git_branch, get_git_commit
 from mlflow.utils.mlflow_tags import MLFLOW_GIT_BRANCH, MLFLOW_GIT_COMMIT, MLFLOW_GIT_DIRTY
 from omegaconf import DictConfig
@@ -29,8 +28,7 @@ from satyrn.trainer.unsloth.config import (
     validate_config,
 )
 from satyrn.trainer.unsloth.dataset_packing import pack_documents
-from satyrn.trainer.unsloth.eval.inspect_runner import run_inspect_eval
-from satyrn.trainer.unsloth.eval.python_eval import python_eval
+from satyrn.trainer.unsloth.eval.inspect_runner import log_eval_metrics, run_eval_suite
 from satyrn.trainer.unsloth.eval.qa import run_eval_qa
 from satyrn.trainer.unsloth.log_capture import tee_output
 from satyrn.trainer.unsloth.repo_sources import load_cpt_dataset, read_rows
@@ -171,8 +169,8 @@ def log_code_version() -> None:
 def evaluate_model(stage_name: StageName, model: Module, tokenizer: PreTrainedTokenizerBase) -> None:
     """Run every eval against the model as it stands after stage_name."""
     run_eval_qa(stage_name, model, tokenizer)
-    run_inspect_eval(stage_name, model, tokenizer, humaneval(sandbox="local"))
-    run_inspect_eval(stage_name, model, tokenizer, python_eval())
+    logs = run_eval_suite(model, tokenizer, {"stage": stage_name})
+    log_eval_metrics(logs, step=get_args(StageName).index(stage_name))
 
 
 def upload_to_hub(model: Module, processor: ProcessorMixin, config: ExperimentConfig) -> None:

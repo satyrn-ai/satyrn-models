@@ -24,6 +24,8 @@ dependencies = [
     "agent-client-protocol==1.0.0",
     # pyspark, preinstalled on Molab, does not support pandas 3 yet
     "pandas<3",
+    "click",
+    "rich",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +33,7 @@ dev = ["pytest>=9,<10", "ruff==0.17.5"]
 
 [project.scripts]
 satyrn-unsloth = "satyrn.trainer.unsloth.run:main"
+satyrn-model-eval = "satyrn.trainer.unsloth.eval.post_training.cli:main"
 
 [build-system]
 requires = ["hatchling"]
