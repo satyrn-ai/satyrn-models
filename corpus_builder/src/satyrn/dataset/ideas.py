@@ -5,7 +5,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from pathlib import Path
-from typing import get_args
+from typing import Any, get_args
 
 import click
 from tqdm import tqdm
@@ -16,6 +16,7 @@ from satyrn.dataset.llm.models import Model, SchemaValidationError, get_llm
 from satyrn.dataset.utils.generation import (
     PYTHON_CODE_RULES,
     SYSTEM_PROMPT,
+    USE_CASE_RULES,
     Idea,
     IdeaKind,
     append_dataset_line,
@@ -35,7 +36,7 @@ ideas for short, self-contained code blocks that would demonstrate the described
 - DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
   C API changes, shell commands and CLI invocations, or build configuration.
 
-{python_code_rules}
+{rules}
 """
 
 RL_IDEAS_PROMPT = """
@@ -52,7 +53,7 @@ ideas for short programming tasks in which the solver must use the described fea
 - DO NOT propose ideas for parts of the document that cannot be exercised in Python code, such as
   C API changes, shell commands and CLI invocations, or build configuration.
 
-{python_code_rules}
+{rules}
 """
 
 AGENTIC_SFT_IDEAS_PROMPT = """
@@ -84,8 +85,32 @@ uses the described features.
   use case. Write each idea as plain prose, without labels or headings.
 - Propose fewer ideas if the document only covers a small change.
 
-{python_code_rules}
+{rules}
 """
+
+# Perhaps we should use the phrase 'making it more robust' rather than 'making it more secure'?
+USE_CASE_IDEAS_PROMPT = """
+The attached document describes a change in Python version {python_version}. Describe between 0 and 50
+ideas for short practical Python programming problems that could benefit from the use of the described features.
+
+- Each idea is a short description of a practical situation that can be solved with pure Python where the use
+  of the described feature improves the code by simplifying it, making it more robust and/or secure,
+  making it more elegant or a combination of the aforementioned.
+- Propose fewer ideas if the document only covers a small change.
+- Do not repeat the same idea.
+- Propose fewer ideas when the ideas start becoming too similar to previous ideas.
+- DO NOT propose ideas for parts of the document that cannot be demonstrated in Python, such as
+  C API changes, shell commands and CLI invocations, or build configuration.
+
+{rules}
+"""
+
+IDEAS_PROMPTS_AND_RULES: dict[IdeaKind, tuple[str, str]] = {
+    "sft": (SFT_IDEAS_PROMPT, PYTHON_CODE_RULES),
+    "rl": (RL_IDEAS_PROMPT, PYTHON_CODE_RULES),
+    "agentic-sft": (AGENTIC_SFT_IDEAS_PROMPT, PYTHON_CODE_RULES),
+    "use-case": (USE_CASE_IDEAS_PROMPT, USE_CASE_RULES),
+}
 
 
 def collect_input_docs(input_path: Path) -> list[Path]:
@@ -95,13 +120,13 @@ def collect_input_docs(input_path: Path) -> list[Path]:
 
 def generate_ideas(model: Model, doc_path: Path, python_version: str, kind: IdeaKind) -> list[Idea]:
     """Return distinct ideas of the given kind for features described in doc_path."""
-    prompt_template = {"sft": SFT_IDEAS_PROMPT, "rl": RL_IDEAS_PROMPT, "agentic-sft": AGENTIC_SFT_IDEAS_PROMPT}[kind]
+    prompt_template, rules = IDEAS_PROMPTS_AND_RULES[kind]
     prompt = prompt_template.format(
         python_version=python_version,
-        python_code_rules=PYTHON_CODE_RULES,
+        rules=rules,
         min_initial_file_length=MIN_INITIAL_FILE_LENGTH,
     )
-    schema = {
+    schema: dict[str, Any] = {
         "type": "object",
         "properties": {
             "ideas": {

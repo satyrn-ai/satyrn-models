@@ -11,7 +11,12 @@ from typing import Any, Literal, NamedTuple
 
 import click
 
-IdeaKind = Literal["sft", "rl", "agentic-sft"]
+# Kinds of idea that we can generate:
+# - `sft`: self-contained code blocks that demonstrate the described feature
+# - `rl`: programming tasks in which the solver must use the described feature to produce a result
+# - `agentic-sft`
+# - `use-case`: practical problems that would benefit from the use of the described feature
+IdeaKind = Literal["sft", "rl", "agentic-sft", "use-case"]
 
 SYSTEM_PROMPT = "You are an expert Python instructor writing teaching material for the newest Python release."
 
@@ -22,6 +27,14 @@ PYTHON_CODE_RULES = """
 - The code must terminate within a few seconds; no infinite loops or blocking waits.
 - Only write Python code. Skip anything that cannot be expressed as a Python code example,
   such as C API changes, shell commands and CLI invocations, build configuration, etc.
+"""
+
+USE_CASE_RULES = """
+- The idea must exercise Python and should not require shell command or CLI invocation.
+- The use case should run non-interactively to completion without requiring a real terminal.
+- The problem should be solvable with code that terminates within a few seconds; no infinite loops or blocking waits.
+- Only propose problems that can be solved with Pure Python. Skip anything that cannot be solved with a Python code
+  example, such as requiring C API changes, requiring shell commands or CLI invocations, build configuration, etc.
 """
 
 output_file_lock = threading.Lock()
