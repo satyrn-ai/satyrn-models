@@ -99,7 +99,7 @@ Each row of `--output` holds one idea:
 
 - `description`: what the example or task should demonstrate;
 - `python_version`: the target Python version;
-- `kind`: `sft`, `rl` or `agentic-sft`
+- `kind`: `sft`, `rl`, `agentic-sft` or `use-case`
 - `doc_path`: the absolute path of the source document the idea came from.
 
 > [!IMPORTANT]
